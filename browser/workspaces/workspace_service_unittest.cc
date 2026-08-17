@@ -23,6 +23,7 @@
 #include "brave/browser/workspaces/workspace_metadata.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/browser/workspaces/workspace_utils.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile_manager.h"
@@ -69,6 +70,45 @@ class WorkspaceServiceTest : public ::testing::Test {
 // No workspaces listed w/ empty profile
 TEST_F(WorkspaceServiceTest, ListWorkspaces_InitiallyEmpty) {
   EXPECT_TRUE(service_->ListWorkspaces().empty());
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_StartWithPersistentHome) {
+  const auto& spaces = service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 1u);
+  EXPECT_EQ(spaces[0].name, "Home");
+  EXPECT_EQ(spaces[0].icon, "🏠");
+
+  const std::string home_id = spaces[0].id;
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_CRUDAndOrdering) {
+  const std::string home_id = service_->GetOriginSpaces()[0].id;
+  const std::string work_id = service_->CreateOriginSpace("Work", "🔥");
+  const std::string play_id = service_->CreateOriginSpace("Play", "🌴");
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 3u);
+
+  OriginSpaceMetadata work = *service_->GetOriginSpace(work_id);
+  work.name = "Design";
+  work.icon = "✏️";
+  EXPECT_TRUE(service_->UpdateOriginSpace(work));
+  EXPECT_EQ(service_->GetOriginSpace(work_id)->name, "Design");
+
+  EXPECT_TRUE(service_->ReorderOriginSpace(play_id, 0));
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, play_id);
+  EXPECT_TRUE(service_->DeleteOriginSpace(work_id));
+  EXPECT_EQ(service_->GetOriginSpaces().size(), 2u);
+  EXPECT_NE(service_->GetOriginSpace(home_id), nullptr);
+  EXPECT_EQ(service_->GetOriginSpace(work_id), nullptr);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_NeverDeleteLastSpace) {
+  const std::string home_id = service_->GetOriginSpaces()[0].id;
+  EXPECT_FALSE(service_->DeleteOriginSpace(home_id));
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
 }
 
 // Verify saving preference adds workspace to list
@@ -252,11 +292,20 @@ class WorkspaceServiceFactoryTest : public ::testing::Test {
   TestingProfileManager profile_manager_{TestingBrowserProcess::GetGlobal()};
 };
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+TEST_F(WorkspaceServiceFactoryTest,
+       FeatureDisabled_OriginStillCreatesRequiredService) {
+  feature_list_.InitAndDisableFeature(features::kWorkspaces);
+  auto* profile = profile_manager_.CreateTestingProfile("test");
+  EXPECT_NE(WorkspaceServiceFactory::GetForProfile(profile), nullptr);
+}
+#else
 TEST_F(WorkspaceServiceFactoryTest, FeatureDisabled_GetForProfileReturnsNull) {
   feature_list_.InitAndDisableFeature(features::kWorkspaces);
   auto* profile = profile_manager_.CreateTestingProfile("test");
   EXPECT_EQ(WorkspaceServiceFactory::GetForProfile(profile), nullptr);
 }
+#endif
 
 TEST_F(WorkspaceServiceFactoryTest,
        FeatureEnabled_GetForProfileReturnsNonNull) {

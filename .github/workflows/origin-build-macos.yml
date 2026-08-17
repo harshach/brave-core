@@ -1,0 +1,97 @@
+name: Origin macOS binary
+
+on:
+  workflow_dispatch:
+    inputs:
+      architecture:
+        description: macOS architecture to build
+        required: true
+        default: ARM64
+        type: choice
+        options:
+          - ARM64
+          - X64
+  push:
+    tags:
+      - "origin-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: origin-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  GIT_CACHE_PATH: ${{ github.workspace }}/workspace/.git-cache
+  NINJA_SUMMARIZE_BUILD: "1"
+
+jobs:
+  build:
+    name: macOS ${{ inputs.architecture || 'ARM64' }}
+    runs-on:
+      - self-hosted
+      - origin-build
+      - macOS
+      - ${{ inputs.architecture || 'ARM64' }}
+    timeout-minutes: 720
+
+    steps:
+      - name: Check out brave-core
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          path: workspace/src/brave
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24.19.0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: 11.22.0
+          run_install: false
+
+      - name: Select architecture
+        shell: bash
+        run: |
+          if [[ "${{ inputs.architecture || 'ARM64' }}" == "ARM64" ]]; then
+            echo "TARGET_ARCH=arm64" >> "$GITHUB_ENV"
+          else
+            echo "TARGET_ARCH=x64" >> "$GITHUB_ENV"
+          fi
+
+      - name: Select Origin branding
+        working-directory: workspace/src/brave
+        run: printf '%s\n' 'is_brave_origin_branded=true' > .env
+
+      - name: Initialize Chromium workspace
+        working-directory: workspace/src/brave
+        run: >-
+          pnpm run init
+          --target_os=mac
+          --target_arch=${TARGET_ARCH}
+          --no-history
+
+      - name: Build unsigned Origin disk image
+        working-directory: workspace/src/brave
+        run: >-
+          pnpm run create_dist Release
+          --target_os=mac
+          --target_arch=${TARGET_ARCH}
+          --skip_signing
+          --gn=should_generate_symbols:false
+
+      - name: Upload macOS packages
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: origin-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            workspace/src/out/**/packaged/**/*.dmg
+            workspace/src/out/**/packaged/**/*.zip
+            workspace/src/out/**/dist/**/*.zip

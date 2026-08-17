@@ -23,4 +23,14 @@ inline constexpr char kBraveTreeParentNodeIdKey[] = "brave_tree_parent_node_id";
 inline constexpr char kBraveTreeNodeCollapsedKey[] =
     "brave_tree_node_collapsed";
 
+// The profile-scoped Origin space ID that owns this tab. This is intentionally
+// tab extra data (rather than a window pref) so closed tabs and full session
+// restore return to the same space.
+inline constexpr char kBraveOriginSpaceIdKey[] = "brave_origin_space_id";
+
+// The selected Origin space for a browser window. This is separate from tab
+// membership so an empty space can survive crash and full-session restore.
+inline constexpr char kBraveOriginActiveSpaceIdKey[] =
+    "brave_origin_active_space_id";
+
 #endif  // BRAVE_BROWSER_SESSIONS_BRAVE_SESSION_KEYS_H_

@@ -562,9 +562,13 @@ void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(kEnableWindowClosingConfirm, true);
   registry->RegisterBooleanPref(kEnableClosingLastTab, true);
   registry->RegisterBooleanPref(kShowFullscreenReminder, true);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  registry->RegisterBooleanPref(kWebViewRoundedCorners, true);
+#else
   registry->RegisterBooleanPref(
       kWebViewRoundedCorners,
       base::FeatureList::IsEnabled(features::kBraveRoundedCornersByDefault));
+#endif
   registry->RegisterBooleanPref(kBraveSubtleAppMenuLogo, false);
 
   brave_tabs::RegisterBraveProfilePrefs(registry);

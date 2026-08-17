@@ -5,6 +5,7 @@
 
 #include "brave/browser/workspaces/workspace_service.h"
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <utility>
@@ -18,6 +19,9 @@
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "base/time/time.h"
+#include "base/uuid.h"
+#include "base/values.h"
+#include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_session_utils.h"
 #include "brave/browser/workspaces/workspace_utils.h"
 #include "chrome/browser/profiles/profile.h"
@@ -32,6 +36,10 @@ std::string ComputeKey(const std::string& name) {
   return absl::StrFormat("%08x", base::PersistentHash(name));
 }
 
+constexpr char kSpaceIdKey[] = "id";
+constexpr char kSpaceNameKey[] = "name";
+constexpr char kSpaceIconKey[] = "icon";
+
 }  // namespace
 
 WorkspaceService::WorkspaceService(Profile& profile)
@@ -40,13 +48,131 @@ WorkspaceService::WorkspaceService(Profile& profile)
       pref_service_(*profile.GetPrefs()),
       io_task_runner_(base::ThreadPool::CreateSequencedTaskRunner(
           {base::MayBlock(), base::TaskPriority::USER_VISIBLE,
-           base::TaskShutdownBehavior::BLOCK_SHUTDOWN})) {}
+           base::TaskShutdownBehavior::BLOCK_SHUTDOWN})) {
+  LoadOriginSpaces();
+}
 
 WorkspaceService::~WorkspaceService() = default;
 
 std::vector<WorkspaceMetadata> WorkspaceService::ListWorkspaces() const {
   return ListWorkspacesFromDict(
       pref_service_->GetDict(kWorkspacesMetadataPref));
+}
+
+const std::vector<OriginSpaceMetadata>& WorkspaceService::GetOriginSpaces()
+    const {
+  return origin_spaces_;
+}
+
+const OriginSpaceMetadata* WorkspaceService::GetOriginSpace(
+    const std::string& id) const {
+  auto it = std::ranges::find(origin_spaces_, id, &OriginSpaceMetadata::id);
+  return it == origin_spaces_.end() ? nullptr : &*it;
+}
+
+std::string WorkspaceService::CreateOriginSpace(std::string name,
+                                                std::string icon) {
+  OriginSpaceMetadata space{
+      .id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
+      .name = name.empty() ? "Untitled" : std::move(name),
+      .icon = icon.empty() ? "✨" : std::move(icon)};
+  origin_spaces_.push_back(std::move(space));
+  SaveOriginSpaces();
+  NotifyOriginSpacesChanged();
+  return origin_spaces_.back().id;
+}
+
+bool WorkspaceService::UpdateOriginSpace(const OriginSpaceMetadata& space) {
+  auto it =
+      std::ranges::find(origin_spaces_, space.id, &OriginSpaceMetadata::id);
+  if (it == origin_spaces_.end()) {
+    return false;
+  }
+  it->name = space.name.empty() ? "Untitled" : space.name;
+  it->icon = space.icon.empty() ? "✨" : space.icon;
+  SaveOriginSpaces();
+  NotifyOriginSpacesChanged();
+  return true;
+}
+
+bool WorkspaceService::DeleteOriginSpace(const std::string& id) {
+  if (origin_spaces_.size() <= 1u) {
+    return false;
+  }
+  auto it = std::ranges::find(origin_spaces_, id, &OriginSpaceMetadata::id);
+  if (it == origin_spaces_.end()) {
+    return false;
+  }
+  origin_spaces_.erase(it);
+  SaveOriginSpaces();
+  NotifyOriginSpacesChanged();
+  return true;
+}
+
+bool WorkspaceService::ReorderOriginSpace(const std::string& id,
+                                          size_t target_index) {
+  auto it = std::ranges::find(origin_spaces_, id, &OriginSpaceMetadata::id);
+  if (it == origin_spaces_.end()) {
+    return false;
+  }
+  target_index = std::min(target_index, origin_spaces_.size() - 1u);
+  OriginSpaceMetadata space = std::move(*it);
+  origin_spaces_.erase(it);
+  origin_spaces_.insert(origin_spaces_.begin() + target_index,
+                        std::move(space));
+  SaveOriginSpaces();
+  NotifyOriginSpacesChanged();
+  return true;
+}
+
+void WorkspaceService::AddObserver(Observer* observer) {
+  observers_.AddObserver(observer);
+}
+
+void WorkspaceService::RemoveObserver(Observer* observer) {
+  observers_.RemoveObserver(observer);
+}
+
+void WorkspaceService::LoadOriginSpaces() {
+  origin_spaces_.clear();
+  for (const auto& value : pref_service_->GetList(kOriginSpacesPref)) {
+    const auto* dict = value.GetIfDict();
+    if (!dict) {
+      continue;
+    }
+    const std::string* id = dict->FindString(kSpaceIdKey);
+    const std::string* name = dict->FindString(kSpaceNameKey);
+    const std::string* icon = dict->FindString(kSpaceIconKey);
+    if (!id || id->empty() || !name || !icon) {
+      continue;
+    }
+    origin_spaces_.push_back({.id = *id, .name = *name, .icon = *icon});
+  }
+  if (origin_spaces_.empty()) {
+    origin_spaces_.push_back(
+        {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
+         .name = "Home",
+         .icon = "🏠"});
+    SaveOriginSpaces();
+  }
+}
+
+void WorkspaceService::SaveOriginSpaces() {
+  base::ListValue list;
+  for (const auto& space : origin_spaces_) {
+    base::DictValue dict;
+    dict.Set(kSpaceIdKey, space.id);
+    dict.Set(kSpaceNameKey, space.name);
+    dict.Set(kSpaceIconKey, space.icon);
+    list.Append(std::move(dict));
+  }
+  pref_service_->SetList(kOriginSpacesPref, std::move(list));
+}
+
+void WorkspaceService::NotifyOriginSpacesChanged() {
+  for (Observer& observer : observers_) {
+    observer.OnOriginSpacesChanged();
+  }
 }
 
 void WorkspaceService::SaveWorkspaceMetadata(const WorkspaceMetadata& meta) {
@@ -139,5 +265,6 @@ base::WeakPtr<WorkspaceService> WorkspaceService::GetWeakPtr() {
 }
 
 void WorkspaceService::Shutdown() {
+  observers_.Clear();
   weak_ptr_factory_.InvalidateWeakPtrs();
 }

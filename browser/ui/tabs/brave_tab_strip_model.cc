@@ -16,6 +16,7 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tree_tab_strip_collection_delegate.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/tabs/public/brave_tab_strip_collection.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
@@ -178,7 +179,16 @@ void BraveTabStripModel::CloseTabs(base::span<int> indices,
 }
 
 void BraveTabStripModel::OnTreeTabRelatedPrefChanged() {
-  if (*tree_tabs_enabled_ && *vertical_tabs_enabled_) {
+  const bool should_use_tree_tabs =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      true;
+#else
+      *tree_tabs_enabled_ && *vertical_tabs_enabled_;
+#endif
+  if (should_use_tree_tabs) {
+    if (tree_tab_model_) {
+      return;
+    }
     BuildTreeTabs();
   } else {
     FlattenTreeTabs();

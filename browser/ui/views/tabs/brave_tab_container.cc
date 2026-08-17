@@ -27,6 +27,7 @@
 #include "brave/browser/ui/views/tabs/brave_tab_group_header.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/ui/color/nala/nala_color_id.h"
 #include "cc/paint/paint_flags.h"
 #include "chrome/browser/profiles/profile.h"
@@ -1012,6 +1013,24 @@ void BraveTabContainer::UpdateIdealBounds() {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (scroll_direction == views::LayoutOrientation::kVertical) {
+    int compact_y = tabs_view_model_.view_size()
+                        ? tabs_view_model_.ideal_bounds(0).y()
+                        : 0;
+    for (size_t i = 0; i < tabs_view_model_.view_size(); ++i) {
+      gfx::Rect bounds = tabs_view_model_.ideal_bounds(i);
+      bounds.set_y(compact_y);
+      if (tabs_view_model_.view_at(i)->GetVisible()) {
+        compact_y += bounds.height();
+      } else {
+        bounds.set_height(0);
+      }
+      tabs_view_model_.set_ideal_bounds(i, bounds);
+    }
+  }
+#endif
+
   // Adjust ideal bounds of unpinned tabs by scroll_offset_
   int tab_count = GetTabCount();
   for (int i = 0; i < tab_count; ++i) {
@@ -1816,7 +1835,13 @@ void BraveTabContainer::UpdatePinnedUnpinnedSeparator() {
 void BraveTabContainer::OnTreeTabsEnabledChanged() {
   CHECK(base::FeatureList::IsEnabled(tabs::kBraveTreeTab));
 
-  layout_helper_->set_use_tree_tabs(*tree_tabs_enabled_);
+  layout_helper_->set_use_tree_tabs(
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      true
+#else
+      *tree_tabs_enabled_
+#endif
+  );
   if (!ShouldShowVerticalTabs()) {
     return;
   }

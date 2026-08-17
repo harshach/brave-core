@@ -1,8 +1,26 @@
 diff --git a/chrome/browser/sessions/session_restore.cc b/chrome/browser/sessions/session_restore.cc
-index 4ed5c5f2be3e99ac0b02260887d37fabbe13f6d8..0040d3669d33320a53551962b6fcf3a65ed6eeaa 100644
+index 4ed5c5f2be3e99ac0b02260887d37fabbe13f6d8..1012d50b54edb5403093a9b1963dbcd32e4508d8 100644
 --- a/chrome/browser/sessions/session_restore.cc
 +++ b/chrome/browser/sessions/session_restore.cc
-@@ -1327,6 +1327,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -852,6 +852,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+ #endif
+       }
+ 
++      BraveBeginOriginSpaceWindowRestore(browser, window->extra_data);
++
+       // 2. Track TYPE_NORMAL browsers.
+       if (is_normal_window) {
+         has_normal_browser = true;
+@@ -929,6 +931,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+         chrome::CloseWebContents(browser, active_tab, true);
+       }
+ 
++      BraveFinishOriginSpaceWindowRestore(browser);
++
+       // Sanity check: A restored browser should have an active tab.
+       // TODO(crbug.com/40662817): Change to DCHECK once we understand
+       // why some browsers don't have an active tab on startup.
+@@ -1327,6 +1331,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
                                 : WindowOpenDisposition::NEW_BACKGROUND_TAB;
        params.tabstrip_add_types = add_types;
        is_first_tab = false;

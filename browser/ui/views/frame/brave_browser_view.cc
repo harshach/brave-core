@@ -16,6 +16,7 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
+#include "base/strings/string_util.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/sparkle_buildflags.h"
@@ -31,12 +32,15 @@
 #include "brave/browser/ui/sidebar/sidebar_utils.h"
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
 #include "brave/browser/ui/views/brave_help_bubble/brave_help_bubble_host_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_layout_manager.h"
 #include "brave/browser/ui/views/frame/focus_mode_title_bar_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
+#include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/tab_strip_placement_coordinator.h"
@@ -50,6 +54,7 @@
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/browser/ui/views/window_closing_confirm_dialog_view.h"
 #include "brave/common/pref_names.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/commands/common/features.h"
 #include "brave/components/constants/pref_names.h"
@@ -60,6 +65,7 @@
 #include "brave/ui/color/nala/nala_color_id.h"
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/app_mode/app_mode_utils.h"
+#include "chrome/browser/autocomplete/autocomplete_classifier_factory.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_ui_controller.h"
 #include "chrome/browser/devtools/devtools_window.h"
@@ -71,9 +77,12 @@
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/frame/window_frame_util.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/side_panel/side_panel_entry.h"
 #include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/tabs/features.h"
+#include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/views/frame/browser_frame_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/browser_widget.h"
@@ -92,8 +101,11 @@
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
 #include "chrome/common/pref_names.h"
 #include "components/javascript_dialogs/tab_modal_dialog_manager.h"
+#include "components/omnibox/browser/autocomplete_classifier.h"
+#include "components/omnibox/browser/autocomplete_match.h"
 #include "components/omnibox/browser/location_bar_model.h"
 #include "components/permissions/permission_request_manager.h"
+#include "components/split_tabs/split_tab_visual_data.h"
 #include "components/tabs/public/tab_interface.h"
 #include "components/web_modal/web_contents_modal_dialog_manager.h"
 #include "content/public/browser/page_navigator.h"
@@ -106,9 +118,11 @@
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/compositor/layer.h"
+#include "ui/content_accelerators/accelerator_util.h"
 #include "ui/display/screen.h"
 #include "ui/events/event.h"
 #include "ui/events/event_observer.h"
+#include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 #include "ui/views/border.h"
 #include "ui/views/bubble/bubble_dialog_delegate_view.h"
@@ -363,6 +377,23 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
   contents_background_view_ =
       AddChildViewAt(std::make_unique<ContentsBackground>(), 0);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_empty_space_view_ = AddChildView(std::make_unique<views::View>());
+  origin_empty_space_view_->SetBackground(
+      views::CreateSolidBackground(kColorToolbar));
+  origin_empty_space_view_->SetPaintToLayer();
+  origin_empty_space_view_->layer()->SetFillsBoundsOpaquely(false);
+  origin_empty_space_view_->layer()->SetRoundedCornerRadius(
+      gfx::RoundedCornersF(10));
+  origin_empty_space_view_->SetVisible(false);
+
+  origin_quick_open_view_ = AddChildView(std::make_unique<OriginQuickOpenView>(
+      base::BindRepeating(&BraveBrowserView::SubmitOriginQuickOpen,
+                          base::Unretained(this)),
+      base::BindRepeating(&BraveBrowserView::HideOriginQuickOpen,
+                          base::Unretained(this))));
+#endif
+
   compact_horizontal_tabs_.Init(
       brave_tabs::kCompactHorizontalTabs, g_browser_process->local_state(),
       base::BindRepeating(&BraveBrowserView::OnCompactModePrefChanged,
@@ -444,12 +475,117 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
   EnsureFindBarHostViewIsLastChild();
 }
 
+void BraveBrowserView::Layout(PassKey) {
+  LayoutSuperclass<BrowserView>(this);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_empty_space_view_) {
+    auto* multi_contents = GetBraveMultiContentsView();
+    gfx::Rect empty_space_bounds = multi_contents->GetMainContentsBounds();
+    empty_space_bounds = views::View::ConvertRectToTarget(multi_contents, this,
+                                                          empty_space_bounds);
+    origin_empty_space_view_->SetBoundsRect(empty_space_bounds);
+    if (origin_quick_open_view_) {
+      origin_quick_open_view_->SetBoundsRect(empty_space_bounds);
+    }
+  }
+#endif
+}
+
+void BraveBrowserView::SetOriginSpaceEmpty(bool empty) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_empty_space_view_ ||
+      origin_empty_space_view_->GetVisible() == empty) {
+    return;
+  }
+  origin_empty_space_view_->SetVisible(empty);
+  if (empty) {
+    ReorderChildView(origin_empty_space_view_, -1);
+    EnsureFindBarHostViewIsLastChild();
+  }
+  InvalidateLayout();
+#endif
+}
+
 void BraveBrowserView::EnsureFindBarHostViewIsLastChild() {
   CHECK(find_bar_host_view_);
 
   // FindBarHost uses this view as kHostViewKey. See
   // BrowserView::find_bar_host_view().
   ReorderChildView(find_bar_host_view_, -1);
+}
+
+void BraveBrowserView::ShowOriginQuickOpen() {
+  if (!origin_quick_open_view_) {
+    return;
+  }
+  origin_insert_mode_ = false;
+  ReorderChildView(origin_quick_open_view_, -1);
+  EnsureFindBarHostViewIsLastChild();
+  origin_quick_open_view_->ShowAndFocus();
+  InvalidateLayout();
+}
+
+void BraveBrowserView::HideOriginQuickOpen() {
+  if (!origin_quick_open_view_ || !origin_quick_open_view_->GetVisible()) {
+    return;
+  }
+  origin_quick_open_view_->SetVisible(false);
+  if (auto* contents = GetActiveWebContents()) {
+    contents->Focus();
+  }
+}
+
+void BraveBrowserView::SubmitOriginQuickOpen(
+    std::u16string input,
+    OriginQuickOpenDisposition disposition) {
+  input = base::CollapseWhitespace(input, false);
+
+  if (input.empty()) {
+    if (disposition == OriginQuickOpenDisposition::kReplace) {
+      return;
+    }
+    HideOriginQuickOpen();
+    if (disposition == OriginQuickOpenDisposition::kSplit) {
+      chrome::NewSplitTab(browser(), split_tabs::SplitTabLayout::kSideBySide,
+                          split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
+    } else {
+      chrome::ExecuteCommand(browser(), IDC_NEW_TAB);
+    }
+    return;
+  }
+
+  AutocompleteMatch match;
+  AutocompleteClassifierFactory::GetForProfile(GetProfile())
+      ->Classify(input, /*in_keyword_mode=*/false,
+                 /*allow_exact_keyword_match=*/false,
+                 metrics::OmniboxEventProto::INVALID_SPEC, &match, nullptr);
+  if (!match.destination_url.is_valid()) {
+    return;
+  }
+
+  HideOriginQuickOpen();
+  switch (disposition) {
+    case OriginQuickOpenDisposition::kNewPage:
+      browser()->tab_strip_model()->delegate()->AddTabAt(match.destination_url,
+                                                         -1, true);
+      break;
+    case OriginQuickOpenDisposition::kReplace: {
+      NavigateParams params(browser(), match.destination_url,
+                            ui::PAGE_TRANSITION_TYPED);
+      params.disposition = WindowOpenDisposition::CURRENT_TAB;
+      Navigate(&params);
+      break;
+    }
+    case OriginQuickOpenDisposition::kSplit: {
+      chrome::NewSplitTab(browser(), split_tabs::SplitTabLayout::kSideBySide,
+                          split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
+      NavigateParams params(browser(), match.destination_url,
+                            ui::PAGE_TRANSITION_TYPED);
+      params.disposition = WindowOpenDisposition::CURRENT_TAB;
+      Navigate(&params);
+      break;
+    }
+  }
 }
 
 void BraveBrowserView::OnCompactModePrefChanged() {
@@ -1318,6 +1454,73 @@ bool BraveBrowserView::UpdateToolbarSecurityState() {
     UpdateFocusModeState();
   }
   return state_changed;
+}
+
+content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
+    const input::NativeWebKeyboardEvent& event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown) {
+    const ui::Accelerator accelerator =
+        ui::GetAcceleratorFromNativeWebKeyboardEvent(event);
+    const bool has_modifiers = accelerator.modifiers() != ui::EF_NONE;
+    auto* contents = GetActiveWebContents();
+
+    if (!has_modifiers && accelerator.key_code() == ui::VKEY_ESCAPE &&
+        origin_insert_mode_) {
+      origin_insert_mode_ = false;
+      return content::KeyboardEventProcessingResult::HANDLED;
+    }
+
+    if (!origin_insert_mode_ && !has_modifiers && contents &&
+        !contents->IsFocusedElementEditable()) {
+      switch (accelerator.key_code()) {
+        case ui::VKEY_I:
+          origin_insert_mode_ = true;
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_J: {
+          auto* controller = browser()->GetFeatures().origin_space_controller();
+          if (controller) {
+            controller->SelectAdjacentTab(/*next=*/true);
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        case ui::VKEY_K: {
+          auto* controller = browser()->GetFeatures().origin_space_controller();
+          if (controller) {
+            controller->SelectAdjacentTab(/*next=*/false);
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        case ui::VKEY_D: {
+          auto* controller = browser()->GetFeatures().origin_space_controller();
+          if (!controller || !controller->ActiveSpaceHasTabs()) {
+            return content::KeyboardEventProcessingResult::HANDLED;
+          }
+          auto* model =
+              static_cast<BraveTabStripModel*>(browser()->tab_strip_model());
+          std::vector<int> indices =
+              model->GetTreeTabDescendantIndices(model->active_index());
+          indices.push_back(model->active_index());
+          model->CloseTabs(indices);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        case ui::VKEY_Z:
+          chrome::ExecuteCommand(browser(), IDC_RESTORE_TAB);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_O:
+          ShowOriginQuickOpen();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_F:
+          chrome::ExecuteCommand(browser(), IDC_TOGGLE_FOCUS_MODE);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        default:
+          break;
+      }
+    }
+  }
+#endif
+
+  return BrowserView::PreHandleKeyboardEvent(event);
 }
 
 bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {

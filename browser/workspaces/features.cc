@@ -5,11 +5,16 @@
 
 #include "brave/browser/workspaces/features.h"
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+
 namespace features {
 
 // Allows saving open tabs and windows as a named workspace for later restore.
 // NOTE: Being implemented in phases.
 // See https://github.com/brave/brave-browser/issues/54738
-BASE_FEATURE(kWorkspaces, base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kWorkspaces,
+             BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+                 ? base::FEATURE_ENABLED_BY_DEFAULT
+                 : base::FEATURE_DISABLED_BY_DEFAULT);
 
 }  // namespace features

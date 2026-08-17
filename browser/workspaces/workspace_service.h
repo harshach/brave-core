@@ -14,6 +14,7 @@
 #include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/observer_list.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_metadata.h"
@@ -41,6 +42,11 @@ class Profile;
 // sequence, then all blocking I/O tasks are posted to that same runner.
 class WorkspaceService : public KeyedService {
  public:
+  class Observer : public base::CheckedObserver {
+   public:
+    virtual void OnOriginSpacesChanged() = 0;
+  };
+
   explicit WorkspaceService(Profile& profile);
   ~WorkspaceService() override;
 
@@ -51,6 +57,16 @@ class WorkspaceService : public KeyedService {
   // modified (most-recent first).  Reads from the profile preference; no disk
   // I/O.
   std::vector<WorkspaceMetadata> ListWorkspaces() const;
+
+  // Live Sigma-style spaces shared across all windows in this profile.
+  const std::vector<OriginSpaceMetadata>& GetOriginSpaces() const;
+  const OriginSpaceMetadata* GetOriginSpace(const std::string& id) const;
+  std::string CreateOriginSpace(std::string name, std::string icon);
+  bool UpdateOriginSpace(const OriginSpaceMetadata& space);
+  bool DeleteOriginSpace(const std::string& id);
+  bool ReorderOriginSpace(const std::string& id, size_t target_index);
+  void AddObserver(Observer* observer);
+  void RemoveObserver(Observer* observer);
 
   // Writes workspace metadata into the profile preference.  Called on the UI
   // thread after a successful WriteWorkspaceToDisk background task.
@@ -85,6 +101,9 @@ class WorkspaceService : public KeyedService {
   void Shutdown() override;
 
  private:
+  void LoadOriginSpaces();
+  void SaveOriginSpaces();
+  void NotifyOriginSpacesChanged();
   // Called on the UI thread with the commands read from disk by
   // RestoreWorkspace.
   void DoRestoreWorkspace(
@@ -94,6 +113,8 @@ class WorkspaceService : public KeyedService {
   const base::FilePath workspaces_path_;
   raw_ref<PrefService> pref_service_;
   scoped_refptr<base::SequencedTaskRunner> io_task_runner_;
+  std::vector<OriginSpaceMetadata> origin_spaces_;
+  base::ObserverList<Observer> observers_;
 
   base::WeakPtrFactory<WorkspaceService> weak_ptr_factory_{this};
 };

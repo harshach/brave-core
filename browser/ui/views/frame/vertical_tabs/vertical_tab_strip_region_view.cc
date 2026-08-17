@@ -18,6 +18,8 @@
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
@@ -31,17 +33,21 @@
 #include "brave/browser/ui/views/tabs/brave_new_tab_button.h"
 #include "brave/browser/ui/views/tabs/brave_tab_container.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/themes/theme_properties.h"
 #include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/frame/window_frame_util.h"
 #include "chrome/browser/ui/tabs/features.h"
+#include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
@@ -59,14 +65,19 @@
 #include "ui/compositor/layer.h"
 #include "ui/display/screen.h"
 #include "ui/events/event_observer.h"
+#include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/gfx/scoped_canvas.h"
 #include "ui/views/accessibility/accessibility_paint_checks.h"
 #include "ui/views/animation/ink_drop.h"
+#include "ui/views/controls/button/image_button.h"
+#include "ui/views/controls/button/label_button.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/controls/image_view.h"
+#include "ui/views/controls/label.h"
 #include "ui/views/controls/resize_area.h"
+#include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/layout/flex_layout.h"
@@ -84,8 +95,102 @@
 
 namespace {
 
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 constexpr int kSeparatorHeight = 1;
+#endif
 constexpr int kBorderThickness = 1;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+constexpr int kOriginWorkspaceRailWidth = 48;
+constexpr int kOriginWorkspaceHeaderHeight = 52;
+constexpr int kOriginPagesHeaderHeight = 0;
+constexpr int kOriginWorkspaceGap = 8;
+
+enum OriginWorkspaceMenuCommand {
+  kOriginRenameSpace = 1,
+  kOriginMoveSpaceUp,
+  kOriginMoveSpaceDown,
+  kOriginDeleteSpace,
+  kOriginIconHome,
+  kOriginIconFocus,
+  kOriginIconCreate,
+  kOriginIconChat,
+  kOriginIconPlay,
+};
+
+gfx::FontList OriginChromeFont(int size, gfx::Font::Weight weight) {
+#if BUILDFLAG(IS_MAC)
+  constexpr char kFamily[] = "SF Pro Text";
+#elif BUILDFLAG(IS_WIN)
+  constexpr char kFamily[] = "Segoe UI";
+#else
+  constexpr char kFamily[] = "Inter";
+#endif
+  return gfx::FontList({kFamily}, gfx::Font::NORMAL, size, weight);
+}
+
+class OriginWorkspaceButton : public views::LabelButton {
+  METADATA_HEADER(OriginWorkspaceButton, views::LabelButton)
+ public:
+  OriginWorkspaceButton(PressedCallback callback,
+                        const std::u16string& icon,
+                        const std::u16string& accessible_name,
+                        bool selected)
+      : LabelButton(std::move(callback), icon), selected_(selected) {
+    SetPreferredSize(gfx::Size(32, 32));
+    SetBorder(views::CreateEmptyBorder(gfx::Insets()));
+    SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
+    label()->SetFontList(label()->font_list().DeriveWithSizeDelta(1));
+    SetAccessibleName(accessible_name);
+    SetTooltipText(accessible_name);
+    SetBackground(views::CreateRoundedRectBackground(
+        selected_ ? kColorBraveVerticalTabActiveBackground
+                  : kColorBraveVerticalTabInactiveBackground,
+        9));
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+  }
+
+  void SetWorkspaceSelected(bool selected) {
+    selected_ = selected;
+    UpdateWorkspaceBackground();
+  }
+
+  void StateChanged(ButtonState old_state) override {
+    LabelButton::StateChanged(old_state);
+    UpdateWorkspaceBackground();
+  }
+
+ private:
+  void UpdateWorkspaceBackground() {
+    const bool highlighted =
+        selected_ || GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    SetBackground(views::CreateRoundedRectBackground(
+        highlighted ? kColorBraveVerticalTabActiveBackground
+                    : kColorBraveVerticalTabInactiveBackground,
+        9));
+  }
+
+  bool selected_;
+};
+
+BEGIN_METADATA(OriginWorkspaceButton)
+END_METADATA
+
+class OriginWorkspaceTitleButton : public views::LabelButton {
+  METADATA_HEADER(OriginWorkspaceTitleButton, views::LabelButton)
+ public:
+  OriginWorkspaceTitleButton(PressedCallback callback,
+                             const std::u16string& text)
+      : LabelButton(std::move(callback), text) {
+    label()->SetFontList(OriginChromeFont(17, gfx::Font::Weight::SEMIBOLD));
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+  }
+};
+
+BEGIN_METADATA(OriginWorkspaceTitleButton)
+END_METADATA
+
+#endif
 
 class ShortcutBox : public views::View {
   METADATA_HEADER(ShortcutBox, views::View)
@@ -169,8 +274,12 @@ class VerticalTabNewTabButton : public BraveNewTabButton {
                                  views::MaximumFlexSizeRule::kPreferred)
             .WithOrder(1));
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    text_ = AddChildView(std::make_unique<views::Label>(u"New Page"));
+#else
     text_ = AddChildView(std::make_unique<views::Label>(
         l10n_util::GetStringUTF16(IDS_ACCNAME_NEWTAB)));
+#endif
     text_->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
     text_->SetVerticalAlignment(gfx::VerticalAlignment::ALIGN_MIDDLE);
     constexpr int kGapBetweenIconAndText = 16;
@@ -182,10 +291,19 @@ class VerticalTabNewTabButton : public BraveNewTabButton {
                            views::MaximumFlexSizeRule::kPreferred)
                            .WithOrder(3));
 
-    constexpr int kFontSize = 12;
+    constexpr int kFontSize =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+        14;
+#else
+        12;
+#endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    text_->SetFontList(OriginChromeFont(kFontSize, gfx::Font::Weight::NORMAL));
+#else
     const auto text_font = text_->font_list();
     text_->SetFontList(
         text_font.DeriveWithSizeDelta(kFontSize - text_font.GetFontSize()));
+#endif
     text_->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
 
     auto* spacer = AddChildView(std::make_unique<views::View>());
@@ -314,6 +432,70 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   region_view_container_->SetLayoutManager(
       std::make_unique<views::FillLayout>());
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_workspace_service_ =
+      WorkspaceServiceFactory::GetForProfile(browser_->GetProfile());
+  CHECK(origin_workspace_service_);
+  origin_workspace_service_->AddObserver(this);
+  origin_space_controller_ = browser_->GetFeatures().origin_space_controller();
+  CHECK(origin_space_controller_);
+  origin_space_controller_->AddObserver(this);
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+
+  origin_workspace_rail_ = AddChildView(std::make_unique<views::View>());
+  origin_workspace_rail_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets::TLBR(10, 8, 10, 8),
+      kOriginWorkspaceGap));
+  origin_workspace_rail_->SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+
+  origin_workspace_header_ = AddChildView(std::make_unique<views::View>());
+  origin_workspace_header_->SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+  origin_workspace_header_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kHorizontal,
+      gfx::Insets::TLBR(10, 10, 6, 8), 6));
+  origin_workspace_title_ = origin_workspace_header_->AddChildView(
+      std::make_unique<OriginWorkspaceTitleButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::BeginOriginWorkspaceRename,
+              base::Unretained(this)),
+          std::u16string()));
+  origin_workspace_title_->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  origin_workspace_title_->SetBorder(
+      views::CreateEmptyBorder(gfx::Insets::VH(4, 4)));
+
+  origin_workspace_name_editor_ = origin_workspace_header_->AddChildView(
+      std::make_unique<views::Textfield>());
+  origin_workspace_name_editor_->SetVisible(false);
+  origin_workspace_name_editor_->set_controller(this);
+  origin_workspace_name_editor_->SetFontList(
+      OriginChromeFont(16, gfx::Font::Weight::SEMIBOLD));
+  origin_workspace_save_button_ = origin_workspace_header_->AddChildView(
+      std::make_unique<views::LabelButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::CommitOriginWorkspaceRename,
+              base::Unretained(this)),
+          u"Save"));
+  origin_workspace_save_button_->SetVisible(false);
+  origin_workspace_menu_button_ = origin_workspace_header_->AddChildView(
+      std::make_unique<views::LabelButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::ShowOriginWorkspaceMenu,
+              base::Unretained(this)),
+          u"⋯"));
+  origin_workspace_menu_button_->SetPreferredSize(gfx::Size(28, 28));
+  origin_workspace_menu_button_->SetAccessibleName(u"Space options");
+  origin_workspace_menu_button_->SetTooltipText(u"Space options");
+  views::InkDrop::Get(origin_workspace_menu_button_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+  origin_pages_header_ = AddChildView(std::make_unique<views::View>());
+  origin_pages_header_->SetVisible(false);
+  RebuildOriginWorkspaceUI();
+#endif
+
   auto* placement_coordinator = GetPlacementCoordinator(browser_view);
   CHECK(placement_coordinator);
   placement_coordinator->SetPlacement(TabStripPlacementKind::kVerticalTabStrip,
@@ -328,7 +510,12 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       GetShortcutTextForNewTabButton(browser_view), browser_));
 
   resize_area_ = AddChildView(std::make_unique<ResettableResizeArea>(this));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+#else
   SetBackground(views::CreateSolidBackground(kColorToolbar));
+#endif
 
   auto* prefs = browser_->GetProfile()->GetPrefs();
 
@@ -356,6 +543,11 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       base::BindRepeating(
           &BraveVerticalTabStripRegionView::OnCollapsedPrefChanged,
           base::Unretained(this)));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's workspace is the only tab surface, so never initialize it as the
+  // legacy icon-only rail. Focus mode is responsible for hiding the workspace.
+  collapsed_pref_.SetValue(false);
+#endif
   OnCollapsedPrefChanged();
 
   expanded_state_per_window_pref_.Init(
@@ -417,6 +609,14 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
 }
 
 BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_workspace_service_) {
+    origin_workspace_service_->RemoveObserver(this);
+  }
+  if (origin_space_controller_) {
+    origin_space_controller_->RemoveObserver(this);
+  }
+#endif
   auto* container =
       views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_);
   CHECK(container);
@@ -429,6 +629,276 @@ BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
     coordinator->ClearPlacement(TabStripPlacementKind::kVerticalTabStrip);
   }
   UpdateLayout();
+}
+
+void BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected(
+    std::string id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_workspace_service_->GetOriginSpace(id)) {
+    return;
+  }
+
+  origin_space_controller_->SelectSpace(id);
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+  RebuildOriginWorkspaceUI();
+  ApplyOriginWorkspaceTabs();
+  InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Release the tracked raw_ptr references while their views are still alive.
+  // Chromium's dangling-pointer detector intentionally rejects clearing these
+  // references after RemoveAllChildViews() has destroyed the buttons.
+  origin_workspace_buttons_.clear();
+  origin_workspace_rail_->RemoveAllChildViews();
+
+  for (const auto& space : origin_workspace_service_->GetOriginSpaces()) {
+    auto* button = origin_workspace_rail_->AddChildView(
+        std::make_unique<OriginWorkspaceButton>(
+            base::BindRepeating(
+                &BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected,
+                base::Unretained(this), space.id),
+            base::UTF8ToUTF16(space.icon), base::UTF8ToUTF16(space.name),
+            space.id == origin_active_workspace_id_));
+    origin_workspace_buttons_.push_back(button);
+  }
+  origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
+      base::BindRepeating(
+          &BraveVerticalTabStripRegionView::CreateOriginWorkspace,
+          base::Unretained(this)),
+      u"＋", u"Add space", false));
+
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (active) {
+    origin_workspace_title_->SetText(base::UTF8ToUTF16(active->name));
+  }
+  origin_workspace_rail_->InvalidateLayout();
+  origin_workspace_header_->InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CreateOriginWorkspace() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const std::string id =
+      origin_workspace_service_->CreateOriginSpace("Untitled", "✨");
+  OnOriginWorkspaceSelected(id);
+  BeginOriginWorkspaceRename();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::BeginOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  origin_workspace_name_editor_->SetText(base::UTF8ToUTF16(active->name));
+  origin_workspace_title_->SetVisible(false);
+  origin_workspace_name_editor_->SetVisible(true);
+  origin_workspace_save_button_->SetVisible(true);
+  origin_workspace_name_editor_->RequestFocus();
+  origin_workspace_name_editor_->SelectAll(false);
+  origin_workspace_header_->InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CommitOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  OriginSpaceMetadata updated = *active;
+  std::u16string name =
+      base::CollapseWhitespace(origin_workspace_name_editor_->GetText(), false);
+  if (name.empty()) {
+    name = base::UTF8ToUTF16(active->name);
+  }
+  if (name.size() > 40u) {
+    name.resize(40u);
+  }
+  updated.name = base::UTF16ToUTF8(name);
+  origin_workspace_service_->UpdateOriginSpace(updated);
+  origin_workspace_name_editor_->SetVisible(false);
+  origin_workspace_save_button_->SetVisible(false);
+  origin_workspace_title_->SetVisible(true);
+  origin_workspace_header_->InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CancelOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_workspace_name_editor_->SetVisible(false);
+  origin_workspace_save_button_->SetVisible(false);
+  origin_workspace_title_->SetVisible(true);
+  origin_workspace_header_->InvalidateLayout();
+#endif
+}
+
+bool BraveVerticalTabStripRegionView::HandleKeyEvent(
+    views::Textfield* sender,
+    const ui::KeyEvent& key_event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (sender != origin_workspace_name_editor_ ||
+      key_event.type() != ui::EventType::kKeyPressed) {
+    return false;
+  }
+  if (key_event.key_code() == ui::VKEY_RETURN) {
+    CommitOriginWorkspaceRename();
+    return true;
+  }
+  if (key_event.key_code() == ui::VKEY_ESCAPE) {
+    CancelOriginWorkspaceRename();
+    return true;
+  }
+#endif
+  return false;
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginWorkspaceMenu() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (IsMenuShowing()) {
+    return;
+  }
+  origin_workspace_menu_model_ = std::make_unique<ui::SimpleMenuModel>(this);
+  origin_workspace_menu_model_->AddItem(kOriginRenameSpace, u"Rename space");
+  origin_workspace_menu_model_->AddItem(kOriginMoveSpaceUp, u"Move up");
+  origin_workspace_menu_model_->AddItem(kOriginMoveSpaceDown, u"Move down");
+  origin_workspace_menu_model_->AddSeparator(ui::NORMAL_SEPARATOR);
+  origin_workspace_menu_model_->AddItem(kOriginIconHome, u"Use 🏠 icon");
+  origin_workspace_menu_model_->AddItem(kOriginIconFocus, u"Use 🔥 icon");
+  origin_workspace_menu_model_->AddItem(kOriginIconCreate, u"Use ✏️ icon");
+  origin_workspace_menu_model_->AddItem(kOriginIconChat, u"Use 💬 icon");
+  origin_workspace_menu_model_->AddItem(kOriginIconPlay, u"Use 🌴 icon");
+  origin_workspace_menu_model_->AddSeparator(ui::NORMAL_SEPARATOR);
+  origin_workspace_menu_model_->AddItem(kOriginDeleteSpace, u"Delete space");
+
+  menu_runner_ = std::make_unique<views::MenuRunner>(
+      origin_workspace_menu_model_.get(), views::MenuRunner::CONTEXT_MENU,
+      base::BindRepeating(&BraveVerticalTabStripRegionView::OnMenuClosed,
+                          base::Unretained(this)));
+  menu_runner_->RunMenuAt(origin_workspace_menu_button_->GetWidget(), nullptr,
+                          origin_workspace_menu_button_->GetBoundsInScreen(),
+                          views::MenuAnchorPosition::kTopRight,
+                          ui::mojom::MenuSourceType::kMouse);
+#endif
+}
+
+bool BraveVerticalTabStripRegionView::IsCommandIdEnabled(int command_id) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const auto current = std::ranges::find(spaces, origin_active_workspace_id_,
+                                         &OriginSpaceMetadata::id);
+  const size_t index = current == spaces.end()
+                           ? spaces.size()
+                           : static_cast<size_t>(current - spaces.begin());
+  if (command_id == kOriginMoveSpaceUp) {
+    return index > 0 && index < spaces.size();
+  }
+  if (command_id == kOriginMoveSpaceDown) {
+    return index + 1 < spaces.size();
+  }
+  if (command_id == kOriginDeleteSpace) {
+    return spaces.size() > 1u;
+  }
+#endif
+  return true;
+}
+
+void BraveVerticalTabStripRegionView::ExecuteCommand(int command_id,
+                                                     int event_flags) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  if (command_id == kOriginRenameSpace) {
+    BeginOriginWorkspaceRename();
+    return;
+  }
+
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const auto current = std::ranges::find(spaces, origin_active_workspace_id_,
+                                         &OriginSpaceMetadata::id);
+  if (current == spaces.end()) {
+    return;
+  }
+  const size_t index = static_cast<size_t>(current - spaces.begin());
+  if (command_id == kOriginMoveSpaceUp && index > 0) {
+    origin_workspace_service_->ReorderOriginSpace(active->id, index - 1);
+    return;
+  }
+  if (command_id == kOriginMoveSpaceDown && index + 1 < spaces.size()) {
+    origin_workspace_service_->ReorderOriginSpace(active->id, index + 1);
+    return;
+  }
+  if (command_id == kOriginDeleteSpace) {
+    origin_workspace_service_->DeleteOriginSpace(active->id);
+    return;
+  }
+
+  OriginSpaceMetadata updated = *active;
+  switch (command_id) {
+    case kOriginIconHome:
+      updated.icon = "🏠";
+      break;
+    case kOriginIconFocus:
+      updated.icon = "🔥";
+      break;
+    case kOriginIconCreate:
+      updated.icon = "✏️";
+      break;
+    case kOriginIconChat:
+      updated.icon = "💬";
+      break;
+    case kOriginIconPlay:
+      updated.icon = "🌴";
+      break;
+    default:
+      return;
+  }
+  origin_workspace_service_->UpdateOriginSpace(updated);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnOriginSpacesChanged() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+  RebuildOriginWorkspaceUI();
+  ApplyOriginWorkspaceTabs();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnOriginSpaceControllerChanged() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const std::string active_space_id =
+      origin_space_controller_->active_space_id();
+  if (origin_active_workspace_id_ != active_space_id) {
+    origin_active_workspace_id_ = active_space_id;
+    RebuildOriginWorkspaceUI();
+  }
+  ApplyOriginWorkspaceTabs();
+  InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ApplyOriginWorkspaceTabs() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* model = browser_->tab_strip_model();
+  for (int i = 0; i < model->count(); ++i) {
+    auto* contents = model->GetWebContentsAt(i);
+    tab_strip()->tab_at(i)->SetVisible(
+        origin_space_controller_->IsTabInActiveSpace(contents));
+  }
+  BraveBrowserView::From(browser_view_)
+      ->SetOriginSpaceEmpty(!origin_space_controller_->ActiveSpaceHasTabs());
+#endif
 }
 
 void BraveVerticalTabStripRegionView::ToggleState() {
@@ -683,27 +1153,66 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ApplyOriginWorkspaceTabs();
+#endif
+
   const auto contents_bounds = GetContentsBounds();
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const int rail_width =
+      std::min(kOriginWorkspaceRailWidth, contents_bounds.width());
+  origin_workspace_rail_->SetBounds(contents_bounds.x(), contents_bounds.y(),
+                                    rail_width, contents_bounds.height());
+
+  const int workspace_x = contents_bounds.x() + rail_width;
+  const int workspace_width = std::max(0, contents_bounds.width() - rail_width);
+  origin_workspace_header_->SetBounds(workspace_x, contents_bounds.y(),
+                                      workspace_width,
+                                      kOriginWorkspaceHeaderHeight);
+  origin_pages_header_->SetBounds(
+      workspace_x, contents_bounds.y() + kOriginWorkspaceHeaderHeight,
+      workspace_width, kOriginPagesHeaderHeight);
+#else
+  const int workspace_x = contents_bounds.x();
+  const int workspace_width = contents_bounds.width();
+#endif
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const int contents_view_max_height = contents_bounds.height() -
+                                       kOriginWorkspaceHeaderHeight -
+                                       kOriginPagesHeaderHeight;
+#else
   constexpr int kNewTabButtonHeight = tabs::kVerticalTabHeight;
   const int contents_view_max_height =
       contents_bounds.height() - tabs::kMarginForVerticalTabContainers -
       kNewTabButtonHeight - tabs::kMarginForVerticalTabContainers -
       kSeparatorHeight;
+#endif
   // Using tab_container_'s preferred height because tab_strip's preferred
   // height could be 0 in tests.
   const int contents_view_preferred_height =
       tab_strip()->tab_container_->GetPreferredSize().height();
 
   region_view_container_->SetBoundsRect(gfx::Rect(
-      contents_bounds.origin(),
-      gfx::Size(
-          contents_bounds.width(),
-          std::min(contents_view_max_height, contents_view_preferred_height))));
+      gfx::Point(workspace_x, contents_bounds.y()
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+                                  + kOriginWorkspaceHeaderHeight +
+                                  kOriginPagesHeaderHeight
+#endif
+                 ),
+      gfx::Size(workspace_width, std::min(contents_view_max_height,
+                                          contents_view_preferred_height))));
 
-  gfx::Rect separator_bounds(
-      region_view_container_->bounds().bottom_left(),
-      gfx::Size(contents_bounds.width(), kSeparatorHeight));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Quick Open is Origin's single page-creation surface. Keeping the legacy
+  // vertical-tab new-tab button here duplicates that action and leaves a
+  // permanent footer which Sigma-style workspaces do not have.
+  separator_->SetBoundsRect(gfx::Rect());
+  new_tab_button_->SetBoundsRect(gfx::Rect());
+#else
+  gfx::Rect separator_bounds(region_view_container_->bounds().bottom_left(),
+                             gfx::Size(workspace_width, kSeparatorHeight));
   separator_bounds.Inset(
       gfx::Insets::VH(0, tabs::kMarginForVerticalTabContainers));
   separator_->SetBoundsRect(separator_bounds);
@@ -712,6 +1221,7 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
       gfx::Size(separator_bounds.width(), kNewTabButtonHeight));
   new_tab_button_bounds.Offset(0, tabs::kMarginForVerticalTabContainers);
   new_tab_button_->SetBoundsRect(new_tab_button_bounds);
+#endif
 
   // Put resize area, overlapped with contents.
   if (vertical_tab_on_right_.GetPrefName().empty()) {
@@ -918,9 +1428,13 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
       *resize_offset_ - GetInsets().width();
   // Passed |true| but it doesn't have any meaning becuase we always use same
   // width.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  dest_width = std::clamp(dest_width, 220, 420);
+#else
   dest_width =
       std::clamp(dest_width, tab_style_->GetPinnedWidth(/*is_split*/ true) * 3,
                  tab_style_->GetStandardWidth(/*is_split*/ true) * 2);
+#endif
   if (done_resizing) {
     resize_offset_ = std::nullopt;
   }
@@ -960,16 +1474,26 @@ void BraveVerticalTabStripRegionView::UpdateNewTabButtonVisibility() {
                                     ->ShouldShowBraveVerticalTabs();
   auto* original_ntb = original_region_view_->new_tab_button();
   original_ntb->SetVisible(!is_vertical_tabs);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  new_tab_button_->SetVisible(false);
+  separator_->SetVisible(false);
+#else
   new_tab_button_->SetVisible(is_vertical_tabs);
   separator_->SetVisible(is_vertical_tabs);
+#endif
 }
 
 int BraveVerticalTabStripRegionView::GetTabStripViewportMaxHeight() const {
   // Don't depend on |contents_view_|'s current height. It could be bigger than
   // the actual viewport height.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return GetContentsBounds().height() - kOriginWorkspaceHeaderHeight -
+         kOriginPagesHeaderHeight;
+#else
   return GetContentsBounds().height() -
          (separator_->height() + tabs::kMarginForVerticalTabContainers) -
          new_tab_button_->height();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::ResetExpandedWidth() {
@@ -1086,10 +1610,17 @@ void BraveVerticalTabStripRegionView::
 
 void BraveVerticalTabStripRegionView::OnShowToggleButtonPrefChanged() {
   if (!show_toggle_button_pref_.GetValue()) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Origin deliberately hides the legacy toggle because the expanded tree
+    // workspace is its primary tab surface.
+    collapsed_pref_.SetValue(false);
+    SetState(State::kExpanded);
+#else
     // There is no other way to expand collapsed vertical tabs when the
     // toggle button is hidden, so force the base/resting state to collapsed.
     collapsed_pref_.SetValue(true);
     SetState(State::kCollapsed);
+#endif
   }
 
   // Floating mode is forced on when the toggle button is hidden; make sure

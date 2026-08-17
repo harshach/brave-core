@@ -9,6 +9,7 @@
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/public/switches.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/features.h"
@@ -62,7 +63,14 @@ bool VerticalTabController::ShouldShowBraveVerticalTabs() const {
     return false;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The workspace is Origin's only tab surface. Keeping this independent of
+  // the legacy preference prevents horizontal tabs from reappearing after a
+  // profile migration or a stale settings write.
+  return true;
+#else
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsEnabled);
+#endif
 }
 
 bool VerticalTabController::ShouldShowWindowTitleForVerticalTabs() const {
@@ -74,7 +82,11 @@ bool VerticalTabController::ShouldShowWindowTitleForVerticalTabs() const {
     return false;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return false;
+#else
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsShowTitleOnWindow);
+#endif
 }
 
 bool VerticalTabController::IsFloatingVerticalTabsEnabled() const {
@@ -82,6 +94,11 @@ bool VerticalTabController::IsFloatingVerticalTabsEnabled() const {
     return false;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Focus mode has its own transient hiding behavior. Outside focus mode the
+  // Origin workspace remains a stable, resizable navigation surface.
+  return false;
+#else
   if (ShouldHideVerticalTabsCompletelyWhenCollapsed()) {
     // In this case, we should support floating mode regardless of the setting
     // of kVerticalTabsFloatingEnabled.
@@ -96,17 +113,26 @@ bool VerticalTabController::IsFloatingVerticalTabsEnabled() const {
   }
 
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsFloatingEnabled);
+#endif
 }
 
 bool VerticalTabController::IsVerticalTabOnRight() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return false;
+#else
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsOnRight);
+#endif
 }
 
 bool VerticalTabController::ShouldHideVerticalTabsCompletelyWhenCollapsed()
     const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return false;
+#else
   return base::FeatureList::IsEnabled(tabs::kBraveVerticalTabHideCompletely) &&
          prefs_->GetBoolean(
              brave_tabs::kVerticalTabsHideCompletelyWhenCollapsed);
+#endif
 }
 
 bool VerticalTabController::ShouldShowVerticalTabToggleButton() const {
@@ -114,7 +140,11 @@ bool VerticalTabController::ShouldShowVerticalTabToggleButton() const {
     return false;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return false;
+#else
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsShowToggleButton);
+#endif
 }
 
 base::WeakPtr<VerticalTabController> VerticalTabController::GetWeakPtr() {

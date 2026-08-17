@@ -19,4 +19,12 @@ struct WorkspaceMetadata {
   int number_of_tabs = 0;
 };
 
+struct OriginSpaceMetadata {
+  std::string id;
+  std::string name;
+  std::string icon;
+
+  bool operator==(const OriginSpaceMetadata&) const = default;
+};
+
 #endif  // BRAVE_BROWSER_WORKSPACES_WORKSPACE_METADATA_H_

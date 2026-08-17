@@ -18,6 +18,7 @@
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/tabs/accent_color/brave_tab_accent_color_palette.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "cc/paint/paint_flags.h"
@@ -29,6 +30,7 @@
 #include "chrome/browser/ui/views/tabs/hovercard/hover_card_anchor_target.h"
 #include "chrome/browser/ui/views/tabs/tab/alert_indicator_button.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_close_button.h"
+#include "chrome/browser/ui/views/tabs/tab/tab_title.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
 #include "components/vector_icons/vector_icons.h"
 #include "ui/base/models/image_model.h"
@@ -44,6 +46,7 @@
 #include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/label.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_utils.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 #include "brave/browser/containers/containers_service_factory.h"
@@ -195,6 +198,22 @@ END_METADATA
 
 BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
     : Tab(handle, controller) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  for (auto child : children()) {
+    if (auto* title = views::AsViewClass<TabTitle>(child.get())) {
+#if BUILDFLAG(IS_MAC)
+      constexpr char kFamily[] = "SF Pro Text";
+#elif BUILDFLAG(IS_WIN)
+      constexpr char kFamily[] = "Segoe UI";
+#else
+      constexpr char kFamily[] = "Inter";
+#endif
+      title->SetFontList(gfx::FontList({kFamily}, gfx::Font::NORMAL, 14,
+                                       gfx::Font::Weight::NORMAL));
+      break;
+    }
+  }
+#endif
   if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
     InitTreeToggleButton();
   }

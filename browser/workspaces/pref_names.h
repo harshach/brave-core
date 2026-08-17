@@ -9,4 +9,9 @@
 // Profile preference key — stores a dict keyed by hash of the display name.
 inline constexpr char kWorkspacesMetadataPref[] = "brave.workspaces.metadata";
 
+// Ordered list of live Sigma-style spaces. Each entry contains a stable id,
+// display name, and emoji icon. This is intentionally separate from saved
+// workspace snapshots above.
+inline constexpr char kOriginSpacesPref[] = "brave.origin.spaces";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

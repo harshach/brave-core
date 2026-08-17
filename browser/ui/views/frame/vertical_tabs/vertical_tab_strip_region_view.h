@@ -8,6 +8,8 @@
 
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include "base/callback_list.h"
 #include "base/functional/callback_helpers.h"
@@ -17,19 +19,30 @@
 #include "base/timer/timer.h"
 #include "base/types/pass_key.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
 #include "components/prefs/pref_member.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/slide_animation.h"
+#include "ui/menus/simple_menu_model.h"
 #include "ui/views/animation/animation_delegate_views.h"
 #include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/resize_area_delegate.h"
+#include "ui/views/controls/textfield/textfield_controller.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget_observer.h"
 
 namespace views {
+class Label;
+class LabelButton;
 class MenuRunner;
+class Textfield;
 }  // namespace views
+
+namespace content {
+class WebContents;
+}
 
 class BraveNewTabButton;
 class BrowserView;
@@ -43,9 +56,15 @@ class BraveVerticalTabStripRegionView : public views::View,
                                         public views::AnimationDelegateViews,
                                         public views::WidgetObserver,
                                         public views::ContextMenuController,
-                                        public FocusModeController::Observer {
+                                        public FocusModeController::Observer,
+                                        public WorkspaceService::Observer,
+                                        public OriginSpaceController::Observer,
+                                        public views::TextfieldController,
+                                        public ui::SimpleMenuModel::Delegate {
   METADATA_HEADER(BraveVerticalTabStripRegionView, views::View)
  public:
+  using views::TextfieldController::HandleMouseEvent;
+
   // We have a state machine which cycles like:
   //
   //               <hovered>          <pressed button>
@@ -166,6 +185,28 @@ class BraveVerticalTabStripRegionView : public views::View,
   void OnBrowserPanelsMoved();
 
   void UpdateLayout();
+  void OnOriginWorkspaceSelected(std::string id);
+  void RebuildOriginWorkspaceUI();
+  void CreateOriginWorkspace();
+  void BeginOriginWorkspaceRename();
+  void CommitOriginWorkspaceRename();
+  void CancelOriginWorkspaceRename();
+  void ShowOriginWorkspaceMenu();
+  void ApplyOriginWorkspaceTabs();
+
+  // WorkspaceService::Observer:
+  void OnOriginSpacesChanged() override;
+
+  // OriginSpaceController::Observer:
+  void OnOriginSpaceControllerChanged() override;
+
+  // views::TextfieldController:
+  bool HandleKeyEvent(views::Textfield* sender,
+                      const ui::KeyEvent& key_event) override;
+
+  // ui::SimpleMenuModel::Delegate:
+  bool IsCommandIdEnabled(int command_id) const override;
+  void ExecuteCommand(int command_id, int event_flags) override;
 
   void OnCollapsedPrefChanged();
   void OnFloatingModePrefChanged();
@@ -225,6 +266,22 @@ class BraveVerticalTabStripRegionView : public views::View,
   // case, but this seems to fix the issue.
   // https://github.com/brave/brave-browser/issues/51719
   raw_ptr<views::View> region_view_container_ = nullptr;
+
+  // Brave Origin presents the vertical tab model as a Sigma-style workspace.
+  // These views are deliberately part of the native browser chrome so tabs,
+  // split views, profiles, and Shields keep their normal browser semantics.
+  raw_ptr<views::View> origin_workspace_rail_ = nullptr;
+  raw_ptr<views::View> origin_workspace_header_ = nullptr;
+  raw_ptr<views::View> origin_pages_header_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_title_ = nullptr;
+  raw_ptr<views::Textfield> origin_workspace_name_editor_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_save_button_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_menu_button_ = nullptr;
+  std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
+  std::unique_ptr<ui::SimpleMenuModel> origin_workspace_menu_model_;
+  raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
+  raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
+  std::string origin_active_workspace_id_;
 
   // Separator between tabs and new tab button.
   raw_ptr<views::View> separator_ = nullptr;

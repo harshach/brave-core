@@ -1,0 +1,82 @@
+name: Origin Linux binary
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "origin-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: origin-linux-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CI: "true"
+  GIT_CACHE_PATH: ${{ github.workspace }}/workspace/.git-cache
+  NINJA_SUMMARIZE_BUILD: "1"
+
+jobs:
+  build:
+    name: Linux x64
+    runs-on: [self-hosted, origin-build, Linux, X64]
+    timeout-minutes: 720
+
+    steps:
+      - name: Check out brave-core
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 1
+          path: workspace/src/brave
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 24.19.0
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6.0.10
+        with:
+          version: 11.22.0
+          run_install: false
+
+      - name: Select Origin branding
+        working-directory: workspace/src/brave
+        run: printf '%s\n' 'is_brave_origin_branded=true' > .env
+
+      - name: Initialize Chromium workspace
+        working-directory: workspace/src/brave
+        run: >-
+          pnpm run init
+          --target_os=linux
+          --target_arch=x64
+          --no-history
+
+      - name: Install Linux build dependencies
+        run: >-
+          sudo -n workspace/src/build/install-build-deps.sh
+          --no-prompt
+          --no-syms
+          --no-arm
+
+      - name: Build unsigned Origin packages
+        working-directory: workspace/src/brave
+        run: >-
+          pnpm run create_dist Release
+          --target_os=linux
+          --target_arch=x64
+          --skip_signing
+          --gn=should_generate_symbols:false
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: origin-linux-x64-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            workspace/src/out/**/*.deb
+            workspace/src/out/**/*.rpm
+            workspace/src/out/**/dist/**/*.zip

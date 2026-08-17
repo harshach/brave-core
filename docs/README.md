@@ -33,6 +33,10 @@ resources outside this repository, go to:
 
 ### General Development
 
+- [NavKeys Origin Architecture](navkeys_browser_architecture.md) - Native tree
+  tabs, split views, web side pages, keyboard modes, and upstream maintenance.
+- [Origin Desktop Builds](origin_release_builds.md) - Build and retrieve
+  unsigned Linux, Windows, and macOS packages using GitHub Actions.
 - [Running test suites](running_test_suites.md) - Selectively execute unit,
   browser and typescript tests.
 - [`gni` notes](gni_sources.md) - Brief notes on the use of `source.gni` files

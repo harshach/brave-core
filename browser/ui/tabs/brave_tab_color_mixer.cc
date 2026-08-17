@@ -13,6 +13,7 @@
 #include "base/functional/callback_forward.h"
 #include "base/logging.h"
 #include "brave/browser/ui/color/brave_color_id.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/ui/color/brave_ref_color_mixer.h"
 #include "brave/ui/color/nala/nala_color_id.h"
 #include "chrome/browser/themes/theme_properties.h"
@@ -205,6 +206,45 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
   postprocessing_mixer[kColorTabForegroundInactiveFrameInactive] =
       ui::ColorTransform(apply_opacity_for_inactive_tab_foreground);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // SigmaOS-inspired workspace palette. Origin has no horizontal tab strip,
+  // so these tab colors belong exclusively to the left page column.
+  const bool dark = key.color_mode == ui::ColorProviderKey::ColorMode::kDark;
+  const SkColor kWorkspaceSurface =
+      dark ? SkColorSetRGB(0x20, 0x1F, 0x1E)
+           : SkColorSetRGB(0xFA, 0xF7, 0xF2);
+  const SkColor kWorkspaceSelection =
+      dark ? SkColorSetRGB(0x4A, 0x37, 0x30)
+           : SkColorSetRGB(0xF7, 0xDF, 0xCE);
+  const SkColor kWorkspaceHover =
+      dark ? SkColorSetRGB(0x32, 0x2E, 0x2B)
+           : SkColorSetRGB(0xF2, 0xEA, 0xE2);
+  const SkColor kWorkspaceText =
+      dark ? SkColorSetRGB(0xF4, 0xF0, 0xEB)
+           : SkColorSetRGB(0x3B, 0x36, 0x32);
+  const SkColor kWorkspaceMutedText =
+      dark ? SkColorSetRGB(0xAE, 0xA7, 0xA0)
+           : SkColorSetRGB(0x83, 0x7D, 0x77);
+  mixer[kColorBraveVerticalTabActiveBackground] = {kWorkspaceSelection};
+  mixer[kColorBraveVerticalTabHoveredBackground] = {kWorkspaceHover};
+  mixer[kColorBraveVerticalTabInactiveBackground] = {kWorkspaceSurface};
+  mixer[kColorBraveVerticalTabSeparator] = {
+      dark ? SkColorSetRGB(0x3B, 0x38, 0x35)
+           : SkColorSetRGB(0xE8, 0xE0, 0xD8)};
+  mixer[kColorBraveVerticalTabNTBIconColor] = {kWorkspaceMutedText};
+  mixer[kColorBraveVerticalTabNTBTextColor] = {kWorkspaceMutedText};
+  mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorTabForegroundActiveFrameActive] = {
+      kWorkspaceText};
+  postprocessing_mixer[kColorTabForegroundActiveFrameInactive] = {
+      kWorkspaceText};
+  postprocessing_mixer[kColorTabForegroundInactiveFrameActive] = {
+      kWorkspaceMutedText};
+  postprocessing_mixer[kColorTabForegroundInactiveFrameInactive] = {
+      kWorkspaceMutedText};
+  return;
+#else
+
 #if defined(TOOLKIT_VIEWS)
   if (!base::FeatureList::IsEnabled(
           darker_theme::features::kBraveDarkerTheme) ||
@@ -289,6 +329,7 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
   postprocessing_mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {
       toolbar_icon};
 #endif  // defined(TOOLKIT_VIEWS)
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 }
 
 void AddBraveTabPrivateThemeColorMixer(ui::ColorProvider* provider,

@@ -20,6 +20,7 @@
 #include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/profiles/profile.h"
@@ -455,8 +456,12 @@ bool BraveBrowserTabStripController::ShouldShowTreeTabs() {
     return false;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return true;
+#else
   return GetBrowserWindowInterface()->GetProfile()->GetPrefs()->GetBoolean(
       brave_tabs::kTreeTabsEnabled);
+#endif
 }
 
 void BraveBrowserTabStripController::ExpandAllCollapsedAncestors(

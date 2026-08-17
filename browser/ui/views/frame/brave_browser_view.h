@@ -78,10 +78,12 @@ class BrowserWindowInterface;
 class ContentsLayoutManager;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
+class OriginQuickOpenView;
 class SidebarContainerView;
 class SidePanelEntry;
 class TabStripPlacementCoordinator;
 class BraveVerticalTabStripContainerView;
+enum class OriginQuickOpenDisposition;
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 class WalletButton;
@@ -148,6 +150,8 @@ class BraveBrowserView : public BrowserView,
                           int reason) override;
   void UpdateToolbar(content::WebContents* contents) override;
   bool UpdateToolbarSecurityState() override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      const input::NativeWebKeyboardEvent& event) override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
   bool IsInTabDragging() const override;
   void ReadyToListenFullscreenChanges() override;
@@ -195,6 +199,11 @@ class BraveBrowserView : public BrowserView,
   void UpdateRoundedCornersUI();
   void UpdateVerticalTabStripBorder();
   void UpdateSidebarBorder();
+
+  // Covers the underlying renderer when the selected Origin space has no
+  // pages. Chromium always retains an active WebContents, but an empty space
+  // must not leak a page from another space into the canvas.
+  void SetOriginSpaceEmpty(bool empty);
 
   // Re-applies the side panel border so the content corner radii track the
   // sidebar control view's visibility. Wired as SidebarContainerView's
@@ -278,6 +287,7 @@ class BraveBrowserView : public BrowserView,
   static void SetDownloadConfirmReturnForTesting(bool allow);
 
   // BrowserView overrides:
+  void Layout(PassKey) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
   void LoadAccelerators() override;
@@ -334,6 +344,11 @@ class BraveBrowserView : public BrowserView,
   // class's ctor body runs).
   void EnsureFindBarHostViewIsLastChild();
 
+  void ShowOriginQuickOpen();
+  void HideOriginQuickOpen();
+  void SubmitOriginQuickOpen(std::u16string input,
+                             OriginQuickOpenDisposition disposition);
+
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
   bool HasSelectedURL() const override;
@@ -357,6 +372,8 @@ class BraveBrowserView : public BrowserView,
   raw_ptr<BraveHelpBubbleHostView> brave_help_bubble_host_view_ = nullptr;
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
   raw_ptr<views::View> contents_background_view_ = nullptr;
+  raw_ptr<views::View> origin_empty_space_view_ = nullptr;
+  raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>
       vertical_tab_strip_container_view_ = nullptr;
@@ -397,6 +414,8 @@ class BraveBrowserView : public BrowserView,
       bookmark_tab_helper_observation_{this};
   base::CallbackListSubscription active_tab_will_discard_contents_subscription_;
   base::CallbackListSubscription active_tab_will_detach_subscription_;
+
+  bool origin_insert_mode_ = false;
 
   base::WeakPtrFactory<BraveBrowserView> weak_ptr_{this};
 };
