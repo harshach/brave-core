@@ -7,12 +7,14 @@
 #define BRAVE_BROWSER_UI_VIEWS_BRAVE_ACTIONS_BRAVE_SHIELDS_ACTION_VIEW_H_
 
 #include <memory>
+#include <optional>
 
 #include "base/functional/callback.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "brave/browser/ui/views/brave_actions/brave_shields_action_controller.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/controls/button/label_button.h"
 #include "ui/views/widget/widget.h"
@@ -34,6 +36,7 @@ class BraveShieldsActionView : public views::LabelButton {
 
   void Init();
   void Update();
+  void SetOriginForegroundColor(std::optional<SkColor> color);
 
   // views::LabelButton:
   std::unique_ptr<views::LabelButtonBorder> CreateDefaultBorder()

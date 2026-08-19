@@ -466,11 +466,19 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, LayoutSanity) {
   // https://github.com/brave/brave-browser/issues/28084
   const auto region_view_bounds =
       GetBoundsInScreen(region_view, region_view->GetLocalBounds());
+  const auto page_column_bounds =
+      GetBoundsInScreen(region_view->region_view_container_,
+                        region_view->region_view_container_->GetLocalBounds());
+  EXPECT_EQ(region_view->GetAvailableWidthForTabContainer(),
+            page_column_bounds.width());
   for (int i = 0; i < model->count(); i++) {
     auto* tab = GetTabAt(browser(), i);
     const auto tab_bounds = GetBoundsInScreen(tab, tab->GetLocalBounds());
     EXPECT_TRUE(region_view_bounds.Contains(tab_bounds))
         << "Region view bounds: " << region_view_bounds.ToString()
+        << " vs. Tab bounds: " << tab_bounds.ToString();
+    EXPECT_TRUE(page_column_bounds.Contains(tab_bounds))
+        << "Page column bounds: " << page_column_bounds.ToString()
         << " vs. Tab bounds: " << tab_bounds.ToString();
   }
 
@@ -2058,11 +2066,23 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   // there is no other way to expand/collapse it, and should force floating
   // mode on regardless of kVerticalTabsFloatingEnabled.
   prefs->SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, false);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's panel control is structural and cannot be hidden by the legacy
+  // Brave preference.
+  EXPECT_EQ(BraveVerticalTabStripRegionView::State::kExpanded,
+            region_view->state());
+  EXPECT_FALSE(prefs->GetBoolean(brave_tabs::kVerticalTabsCollapsed));
+  EXPECT_TRUE(VerticalTabController::FromBrowser(browser())
+                  ->ShouldShowVerticalTabToggleButton());
+  EXPECT_FALSE(VerticalTabController::FromBrowser(browser())
+                   ->IsFloatingVerticalTabsEnabled());
+#else
   EXPECT_EQ(BraveVerticalTabStripRegionView::State::kCollapsed,
             region_view->state());
   EXPECT_TRUE(prefs->GetBoolean(brave_tabs::kVerticalTabsCollapsed));
   EXPECT_TRUE(VerticalTabController::FromBrowser(browser())
                   ->IsFloatingVerticalTabsEnabled());
+#endif
 
   // Re-showing the toggle button should restore normal floating behavior.
   prefs->SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, true);

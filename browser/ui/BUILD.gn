@@ -82,6 +82,7 @@ source_set("ui") {
     "//brave/components/brave_news/common:mojom",
     "//brave/components/brave_news/common/buildflags",
     "//brave/components/brave_origin",
+    "//brave/components/brave_origin/buildflags",
     "//brave/components/brave_private_cdn",
     "//brave/components/brave_rewards/core/buildflags",
     "//brave/components/brave_shields/core/browser",
@@ -753,6 +754,7 @@ source_set("ui") {
       "//chrome/browser/ui/views/tabs/shared",
       "//chrome/browser/ui/views/toolbar",
       "//components/bookmarks/browser",
+      "//components/omnibox/browser",
     ]
 
     if (enable_brave_vpn) {
@@ -1562,6 +1564,7 @@ source_set("browser_tests") {
 
     deps = [
       "//brave/app:command_ids",
+      "//brave/components/brave_origin/buildflags",
       "//brave/components/constants",
       "//chrome/browser",
       "//chrome/browser/devtools:test_support",

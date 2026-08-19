@@ -22,6 +22,7 @@
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/split_view/split_view_link_redirect_utils.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "chrome/browser/lifetime/browser_close_manager.h"
 #include "chrome/browser/profiles/profile.h"
@@ -43,6 +44,7 @@
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/file_select_listener.h"
 #include "content/public/browser/navigation_entry.h"
+#include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_delegate.h"
 #include "content/public/common/url_constants.h"
@@ -219,6 +221,36 @@ content::WebContents* BraveBrowser::AddNewContents(
       disposition = WindowOpenDisposition::NEW_BACKGROUND_TAB;
     }
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin treats a page as the unit of navigation. A plain click therefore
+  // replaces the current page even when the site asks for target="_blank" or
+  // uses window.open(). Modified clicks arrive with a different disposition
+  // (Ctrl/Command-click is NEW_BACKGROUND_TAB), so they continue through the
+  // normal new-tab path and can be attached beneath their source page.
+  //
+  // Preserve the pending navigation's referrer when one is already available.
+  // Opener-suppressed windows are handed to us before their first navigation,
+  // in which case an empty referrer is safer than manufacturing one and
+  // accidentally defeating rel="noreferrer".
+  if (disposition == WindowOpenDisposition::NEW_FOREGROUND_TAB && source &&
+      user_gesture && new_contents && !target_url.is_empty()) {
+    content::Referrer referrer;
+    if (const content::NavigationEntry* pending_entry =
+            new_contents->GetController().GetPendingEntry()) {
+      referrer = pending_entry->GetReferrer();
+    }
+
+    content::OpenURLParams params(
+        target_url, referrer, WindowOpenDisposition::CURRENT_TAB,
+        ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false);
+    params.user_gesture = true;
+    if (was_blocked) {
+      *was_blocked = false;
+    }
+    return Browser::OpenURLFromTab(source, params, {});
+  }
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
   return Browser::AddNewContents(source, std::move(new_contents), target_url,
                                  disposition, window_features, user_gesture,

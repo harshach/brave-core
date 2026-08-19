@@ -35,15 +35,29 @@ void BraveBookmarkButton::UpdateImageAndText() {
   const gfx::VectorIcon& icon = active_
                                     ? omnibox::kStarActiveChromeRefreshOldIcon
                                     : omnibox::kStarChromeRefreshOldIcon;
-  SetImageModel(views::Button::STATE_NORMAL,
-                ui::ImageModel::FromVectorIcon(icon, kColorToolbarButtonIcon,
-                                               GetIconSize()));
-  SetImageModel(views::Button::STATE_DISABLED,
-                ui::ImageModel::FromVectorIcon(
-                    icon, kColorToolbarButtonIconInactive, GetIconSize()));
+  if (icon_enabled_colors_override()) {
+    SetImageModel(views::Button::STATE_NORMAL,
+                  ui::ImageModel::FromVectorIcon(
+                      icon, *icon_enabled_colors_override(), GetIconSize()));
+    SetImageModel(views::Button::STATE_DISABLED,
+                  ui::ImageModel::FromVectorIcon(
+                      icon, SkColorSetA(*icon_enabled_colors_override(), 0x61),
+                      GetIconSize()));
+  } else {
+    SetImageModel(views::Button::STATE_NORMAL,
+                  ui::ImageModel::FromVectorIcon(icon, kColorToolbarButtonIcon,
+                                                 GetIconSize()));
+    SetImageModel(views::Button::STATE_DISABLED,
+                  ui::ImageModel::FromVectorIcon(
+                      icon, kColorToolbarButtonIconInactive, GetIconSize()));
+  }
 
   int tooltip_id = active_ ? IDS_TOOLTIP_STARRED : IDS_TOOLTIP_STAR;
   SetTooltipText(l10n_util::GetStringUTF16(tooltip_id));
+}
+
+void BraveBookmarkButton::UpdateIcon() {
+  UpdateImageAndText();
 }
 
 BEGIN_METADATA(BraveBookmarkButton)

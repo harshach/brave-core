@@ -14,6 +14,7 @@
 #include "base/i18n/rtl.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
@@ -632,9 +633,11 @@ gfx::Insets BraveBrowserViewTabbedLayoutImpl::GetContentsMargins() const {
 
   gfx::Insets margins(kRoundedCornersContentsViewMargin);
 
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!IsContentsAtTopEdge()) {
     margins.set_top(0);
   }
+#endif
 
   return margins;
 }

@@ -116,8 +116,7 @@ TEST_F(VerticalTabControllerUnitTest,
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
   // kVerticalTabsShowToggleButton defaults to true
   auto controller = MakeController();
-  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
-            controller->ShouldShowVerticalTabToggleButton());
+  EXPECT_TRUE(controller->ShouldShowVerticalTabToggleButton());
 }
 
 TEST_F(VerticalTabControllerUnitTest,
@@ -132,11 +131,21 @@ TEST_F(VerticalTabControllerUnitTest,
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsFloatingEnabled, false);
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, false);
   auto controller = MakeController();
-  EXPECT_FALSE(controller->ShouldShowVerticalTabToggleButton());
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowVerticalTabToggleButton());
   // Floating mode is forced on when there is no toggle button to expand
-  // collapsed tabs, regardless of kVerticalTabsFloatingEnabled.
+  // collapsed tabs, regardless of kVerticalTabsFloatingEnabled. Origin keeps
+  // its panel control available and therefore remains non-floating.
   EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
             controller->IsFloatingVerticalTabsEnabled());
+}
+
+TEST_F(VerticalTabControllerUnitTest,
+       OriginHidesWorkspaceCompletelyWhenCollapsed) {
+  pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
+  auto controller = MakeController();
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldHideVerticalTabsCompletelyWhenCollapsed());
 }
 
 TEST_F(VerticalTabControllerUnitTest, IsVerticalTabOnRightDefault) {

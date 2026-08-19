@@ -6,6 +6,8 @@
 #ifndef BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 #define BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 
+#include <optional>
+
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
@@ -14,6 +16,7 @@
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "components/prefs/pref_member.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -61,9 +64,17 @@ class BraveToolbarView : public ToolbarView,
 #endif
 
   void UpdateHorizontalPadding();
+  void SetOriginPageChromeColors(SkColor surface,
+                                 SkColor location_bar_color,
+                                 SkColor foreground);
+
+  std::optional<SkColor> origin_page_chrome_color_for_testing() const {
+    return origin_page_chrome_surface_;
+  }
 
   void Init() override;
   void Layout(PassKey) override;
+  void OnPaintBackground(gfx::Canvas* canvas) override;
   void Update(content::WebContents* tab) override;
   void OnThemeChanged() override;
   void OnEditBookmarksEnabledChanged();
@@ -80,6 +91,7 @@ class BraveToolbarView : public ToolbarView,
   void LoadImages() override;
   void ResetLocationBarBounds();
   void ResetBookmarkButtonBounds();
+  void UpdateOriginPageChromeControls();
   void UpdateBookmarkVisibility();
   void UpdateVerticalTabToggleVisibility();
   void UpdateVerticalTabTogglePlacement();
@@ -151,6 +163,9 @@ class BraveToolbarView : public ToolbarView,
 
   // Whether this toolbar has been initialized.
   bool brave_initialized_ = false;
+  std::optional<SkColor> origin_page_chrome_surface_;
+  std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
   // Tracks profile count to determine whether profile switcher should be shown.
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorage::Observer>

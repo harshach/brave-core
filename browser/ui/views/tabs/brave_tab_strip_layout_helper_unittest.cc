@@ -210,15 +210,13 @@ TEST(BraveTabStripLayoutHelperUnitTest,
   tabs.push_back(MakeTabConstraints(TabPinned::kPinned));
   tabs.push_back(MakeTabConstraints(TabPinned::kPinned));
 
-  // Width that creates extra pixels to distribute.
-  // When there are three tabs, and width is 150,
-  // available width would be 150 - kVeriticalTabMargins(4)*2 = 142
-  // And we need to take away spacing between tabs (2 * 4) = 8
-  // So effective available width = 134
-  // Then all three tabs should be based on 134 / 3 = 44 pixels each,
-  // with 2 extra pixels to distribute, so first two tabs should be 45 pixels
+  // Build a width that leaves two extra pixels after three 44px cells. Keep
+  // the calculation tied to the product-specific margin/spacing constants.
+  constexpr int kBaseCellWidth = 44;
+  const int requested_width = 2 * kMarginForVerticalTabContainers +
+                              2 * kVerticalTabsSpacing + 3 * kBaseCellWidth + 2;
   std::vector<gfx::Rect> result;
-  CalculatePinnedTabsBoundsInGrid(tabs, 150, &result);
+  CalculatePinnedTabsBoundsInGrid(tabs, requested_width, &result);
 
   ASSERT_EQ(3u, result.size());
 

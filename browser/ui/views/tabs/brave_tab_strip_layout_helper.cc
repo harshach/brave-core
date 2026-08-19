@@ -134,11 +134,15 @@ void CalculateVerticalLayout(const std::vector<TabWidthConstraints>& tabs,
 }  // namespace
 
 int GetTabCornerRadius(const Tab& tab) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return 9;
+#else
   if (!tabs::HorizontalTabsUpdateEnabled()) {
     return tab.data().pinned ? 8 : 4;
   }
 
   return tabs::kTabBorderRadius;
+#endif
 }
 
 void CalculatePinnedTabsBoundsInGrid(
@@ -355,6 +359,23 @@ void UpdateInsertionIndexForVerticalTabs(
   if (dragging_pinned_tab && candidate_index != 0 &&
       !tab_strip_controller->IsTabPinned(candidate_index - 1)) {
     // Pinned tabs can only be inserted within pinned tabs area.
+    return;
+  }
+
+  // Treat the unindented lane as an explicit top-level drop target. A nested
+  // page enters it after being dragged left by half an indentation step. Once
+  // it has been reparented, its level becomes zero, so keep filtering to root
+  // boundaries for the rest of that drag instead of allowing it to fall back
+  // into a nearby child branch.
+  const int dragged_level =
+      tab_strip->tab_at(first_dragged_tab_index)->GetTabNestingInfo().level;
+  const bool dropping_at_root =
+      !dragging_pinned_tab &&
+      ((dragged_level == 0 && dragged_bounds.x() <= 0) ||
+       dragged_bounds.x() <= -(kBaseOffsetPerLevel / 2));
+  if (dropping_at_root && candidate_index != 0 &&
+      candidate_index != tab_strip_controller->GetCount() &&
+      tab_strip->tab_at(candidate_index)->GetTabNestingInfo().level != 0) {
     return;
   }
 

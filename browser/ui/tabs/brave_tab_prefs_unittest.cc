@@ -64,8 +64,7 @@ TEST(BraveTabPrefsTest, OriginUsesNativeTreeTabWorkspaceDefaults) {
             prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));
   EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
             prefs.GetBoolean(brave_tabs::kVerticalTabsFloatingEnabled));
-  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
-            prefs.GetBoolean(brave_tabs::kVerticalTabsShowToggleButton));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsShowToggleButton));
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   EXPECT_EQ(280, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
 #else
@@ -73,7 +72,7 @@ TEST(BraveTabPrefsTest, OriginUsesNativeTreeTabWorkspaceDefaults) {
 #endif
 }
 
-TEST(BraveTabPrefsTest, OriginMigratesLegacyCollapsedTabRail) {
+TEST(BraveTabPrefsTest, OriginMigratesWorkspaceAndPreservesCollapsedState) {
   TestingPrefServiceSimple prefs;
   brave_tabs::RegisterBraveProfilePrefs(prefs.registry());
   prefs.SetBoolean(brave_tabs::kVerticalTabsEnabled, false);
@@ -85,7 +84,7 @@ TEST(BraveTabPrefsTest, OriginMigratesLegacyCollapsedTabRail) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsEnabled));
   EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));
-  EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kVerticalTabsCollapsed));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsCollapsed));
 #else
   EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kVerticalTabsEnabled));
   EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));

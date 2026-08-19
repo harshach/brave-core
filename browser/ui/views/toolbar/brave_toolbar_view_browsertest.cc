@@ -21,6 +21,7 @@
 #include "brave/browser/ui/views/toolbar/side_panel_button.h"
 #include "brave/browser/workspaces/features.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/constants/webui_url_constants.h"
@@ -191,6 +192,24 @@ class BraveToolbarViewTest : public InProcessBrowserTest {
   raw_ptr<BraveToolbarView, DanglingUntriaged> toolbar_view_ = nullptr;
   testing::NiceMock<policy::MockConfigurationPolicyProvider> provider_;
 };
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
+                       OriginPanelControlAndBookmarkPlacement) {
+  auto* toggle = toolbar_view_->vertical_tab_toggle_button();
+  ASSERT_TRUE(toggle);
+  EXPECT_TRUE(toggle->GetVisible());
+  EXPECT_FALSE(toolbar_view_->workspaces_button_for_testing());
+
+  auto location_index =
+      toolbar_view_->GetIndexOf(toolbar_view_->location_bar_view());
+  auto bookmark_index =
+      toolbar_view_->GetIndexOf(toolbar_view_->bookmark_button());
+  ASSERT_TRUE(location_index.has_value());
+  ASSERT_TRUE(bookmark_index.has_value());
+  EXPECT_EQ(*location_index + 1, *bookmark_index);
+}
+#endif
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 class BraveToolbarViewTest_VPNEnabled : public BraveToolbarViewTest {

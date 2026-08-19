@@ -102,9 +102,10 @@ constexpr int kBorderThickness = 1;
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 constexpr int kOriginWorkspaceRailWidth = 48;
-constexpr int kOriginWorkspaceHeaderHeight = 52;
+constexpr int kOriginWorkspaceHeaderHeight = 50;
 constexpr int kOriginPagesHeaderHeight = 0;
 constexpr int kOriginWorkspaceGap = 8;
+constexpr int kOriginPageTrailingGutter = 8;
 
 enum OriginWorkspaceMenuCommand {
   kOriginRenameSpace = 1,
@@ -182,7 +183,7 @@ class OriginWorkspaceTitleButton : public views::LabelButton {
   OriginWorkspaceTitleButton(PressedCallback callback,
                              const std::u16string& text)
       : LabelButton(std::move(callback), text) {
-    label()->SetFontList(OriginChromeFont(17, gfx::Font::Weight::SEMIBOLD));
+    label()->SetFontList(OriginChromeFont(16, gfx::Font::Weight::SEMIBOLD));
     views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
   }
 };
@@ -454,7 +455,7 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
   origin_workspace_header_->SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kHorizontal,
-      gfx::Insets::TLBR(10, 10, 6, 8), 6));
+      gfx::Insets::TLBR(8, 10, 6, 8), 6));
   origin_workspace_title_ = origin_workspace_header_->AddChildView(
       std::make_unique<OriginWorkspaceTitleButton>(
           base::BindRepeating(
@@ -543,11 +544,6 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       base::BindRepeating(
           &BraveVerticalTabStripRegionView::OnCollapsedPrefChanged,
           base::Unretained(this)));
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin's workspace is the only tab surface, so never initialize it as the
-  // legacy icon-only rail. Focus mode is responsible for hiding the workspace.
-  collapsed_pref_.SetValue(false);
-#endif
   OnCollapsedPrefChanged();
 
   expanded_state_per_window_pref_.Init(
@@ -673,7 +669,8 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
   const auto* active =
       origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
   if (active) {
-    origin_workspace_title_->SetText(base::UTF8ToUTF16(active->name));
+    origin_workspace_title_->SetText(
+        base::UTF8ToUTF16(active->name + "  " + active->icon));
   }
   origin_workspace_rail_->InvalidateLayout();
   origin_workspace_header_->InvalidateLayout();
@@ -1094,8 +1091,17 @@ BraveVerticalTabStripRegionView::ExpandTabStripForDragging() {
 int BraveVerticalTabStripRegionView::GetAvailableWidthForTabContainer() {
   DCHECK(VerticalTabController::FromBrowser(browser_)
              ->ShouldShowBraveVerticalTabs());
-  return GetPreferredWidthForState(state_, /*include_border=*/false,
-                                   /*ignore_animation=*/false);
+  int width = GetPreferredWidthForState(state_, /*include_border=*/false,
+                                        /*ignore_animation=*/false);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The tab strip is hosted in the page column, not across Origin's complete
+  // sidebar. Subtract the workspace rail and the visual gutter so tab labels
+  // are laid out to their real width (and can elide) rather than being clipped
+  // by their parent at the web-content boundary.
+  width -= std::min(kOriginWorkspaceRailWidth, width);
+  width -= std::min(kOriginPageTrailingGutter, width);
+#endif
+  return std::max(0, width);
 }
 
 gfx::Size BraveVerticalTabStripRegionView::CalculatePreferredSize(
@@ -1153,10 +1159,6 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
     return;
   }
 
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  ApplyOriginWorkspaceTabs();
-#endif
-
   const auto contents_bounds = GetContentsBounds();
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -1167,6 +1169,8 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 
   const int workspace_x = contents_bounds.x() + rail_width;
   const int workspace_width = std::max(0, contents_bounds.width() - rail_width);
+  const int contents_view_width =
+      std::max(0, workspace_width - kOriginPageTrailingGutter);
   origin_workspace_header_->SetBounds(workspace_x, contents_bounds.y(),
                                       workspace_width,
                                       kOriginWorkspaceHeaderHeight);
@@ -1176,6 +1180,7 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 #else
   const int workspace_x = contents_bounds.x();
   const int workspace_width = contents_bounds.width();
+  const int contents_view_width = workspace_width;
 #endif
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -1201,8 +1206,9 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
                                   kOriginPagesHeaderHeight
 #endif
                  ),
-      gfx::Size(workspace_width, std::min(contents_view_max_height,
-                                          contents_view_preferred_height))));
+      gfx::Size(
+          contents_view_width,
+          std::min(contents_view_max_height, contents_view_preferred_height))));
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   // Quick Open is Origin's single page-creation surface. Keeping the legacy
@@ -1611,10 +1617,9 @@ void BraveVerticalTabStripRegionView::
 void BraveVerticalTabStripRegionView::OnShowToggleButtonPrefChanged() {
   if (!show_toggle_button_pref_.GetValue()) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    // Origin deliberately hides the legacy toggle because the expanded tree
-    // workspace is its primary tab surface.
-    collapsed_pref_.SetValue(false);
-    SetState(State::kExpanded);
+    // Origin always exposes its native panel control. Ignore a legacy Brave
+    // preference that used to hide that control rather than making a fully
+    // collapsed sidebar impossible to restore.
 #else
     // There is no other way to expand collapsed vertical tabs when the
     // toggle button is hidden, so force the base/resting state to collapsed.
@@ -1710,11 +1715,18 @@ int BraveVerticalTabStripRegionView::GetPreferredWidthForState(
 }
 
 bool BraveVerticalTabStripRegionView::IsFloatingVerticalTabsEnabled() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A manually hidden Origin sidebar stays hidden until the toolbar control or
+  // keyboard shortcut restores it. Focus/fullscreen mode can still request a
+  // transient floating state through IsFloatingEnabledForBrowserMode().
+  return IsFloatingEnabledForBrowserMode();
+#else
   return IsFloatingEnabledForBrowserMode() ||
          VerticalTabController::FromBrowser(browser_)
              ->IsFloatingVerticalTabsEnabled() ||
          VerticalTabController::FromBrowser(browser_)
              ->ShouldHideVerticalTabsCompletelyWhenCollapsed();
+#endif
 }
 
 bool BraveVerticalTabStripRegionView::IsFloatingEnabledForBrowserFullscreen()

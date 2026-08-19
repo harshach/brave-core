@@ -5,7 +5,9 @@
 
 #include "brave/browser/ui/views/tabs/dragging/dragging_tabs_session.h"
 
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "base/check.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -13,6 +15,7 @@
 #include "chrome/browser/ui/views/tabs/dragging/tab_drag_context.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
 #include "ui/gfx/geometry/point.h"
+#include "ui/gfx/geometry/rect.h"
 
 DraggingTabsSession::DraggingTabsSession(
     DragSessionData drag_data,
@@ -37,9 +40,20 @@ gfx::Point DraggingTabsSession::GetAttachedDragPoint(
   gfx::Point tab_loc(point_in_screen);
   views::View::ConvertPointFromScreen(base::to_address(attached_context_),
                                       &tab_loc);
-  const int x = drag_data_.tab_drag_data_.front().pinned
-                    ? tab_loc.x() - mouse_offset_
-                    : 0;
+  int x = tab_loc.x() - mouse_offset_;
+  if (!drag_data_.tab_drag_data_.front().pinned) {
+    // Vertical tree tabs used to force x to zero, making an outdent gesture
+    // impossible. Keep the normal position at zero, but expose a bounded
+    // negative delta while the pointer is dragged left through the tab's tree
+    // indentation. TabStrip uses that delta to select root-only insertion
+    // boundaries, and the dragged page visibly follows the pointer into the
+    // root lane.
+    const std::vector<gfx::Rect> bounds =
+        drag_position_delegate_->CalculateBoundsForDraggedViews(
+            drag_data_.attached_views());
+    const int nesting_offset = bounds.empty() ? 0 : bounds.front().x();
+    x = std::clamp(x - nesting_offset, -nesting_offset, 0);
+  }
   const int y = tab_loc.y() - mouse_y_offset_;
   return {x, y};
 }

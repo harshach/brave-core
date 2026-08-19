@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "base/check.h"
 #include "base/check_deref.h"
@@ -17,6 +18,7 @@
 #include "base/i18n/rtl.h"
 #include "brave/app/brave_command_ids.h"
 #include "brave/app/vector_icons/vector_icons.h"
+#include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -31,6 +33,7 @@
 #include "brave/browser/ui/views/workspaces/workspaces_bubble_controller.h"
 #include "brave/browser/workspaces/features.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -60,10 +63,13 @@
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/window_open_disposition_utils.h"
+#include "ui/color/color_provider.h"
 #include "ui/events/event.h"
+#include "ui/gfx/canvas.h"
 #include "ui/views/bubble/bubble_anchor.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_utils.h"
 #include "ui/views/window/hit_test_utils.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -361,10 +367,17 @@ void BraveToolbarView::Init() {
     CreateWorkspaceButtonIfNeeded();
   }
 
+  size_t bookmark_index = *GetIndexOf(location_bar_view_);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Keep the page column continuous from its leading edge through the
+  // address field. The bookmark action belongs with the trailing page actions,
+  // not in the seam between the workspace and the URL.
+  ++bookmark_index;
+#endif
   bookmark_ =
       AddChildViewAt(std::make_unique<BraveBookmarkButton>(base::BindRepeating(
                          callback, browser_, IDC_BOOKMARK_THIS_TAB)),
-                     *GetIndexOf(location_bar_view_));
+                     bookmark_index);
   bookmark_->SetTriggerableEventFlags(ui::EF_LEFT_MOUSE_BUTTON |
                                       ui::EF_MIDDLE_MOUSE_BUTTON);
   bookmark_->UpdateImageAndText();
@@ -508,6 +521,9 @@ void BraveToolbarView::OnThemeChanged() {
     wallet_->UpdateImageAndText();
   }
 #endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  UpdateOriginPageChromeControls();
+#endif
 }
 
 void BraveToolbarView::OnProfileAdded(const base::FilePath& profile_path) {
@@ -650,6 +666,135 @@ void BraveToolbarView::Layout(PassKey) {
     ResetLocationBarBounds();
     ResetBookmarkButtonBounds();
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A collapsed panel changes which controls belong to the page surface even
+  // when the page palette itself is unchanged.
+  UpdateOriginPageChromeControls();
+#endif
+}
+
+void BraveToolbarView::OnPaintBackground(gfx::Canvas* canvas) {
+  views::View::OnPaintBackground(canvas);
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const ui::ColorProvider* colors = GetColorProvider();
+  if (!colors) {
+    return;
+  }
+
+  // The active page owns the full content-side toolbar surface. Painting it
+  // before the workspace segment keeps the sidebar/address-bar boundary
+  // continuous through the top row.
+  canvas->FillRect(GetLocalBounds(), origin_page_chrome_surface_.value_or(
+                                         colors->GetColor(kColorToolbar)));
+
+  auto* brave_browser_view = BraveBrowserView::From(browser_view_);
+  auto* vertical_tabs = VerticalTabController::FromBrowser(browser_);
+  if (!brave_browser_view || !vertical_tabs ||
+      !vertical_tabs->ShouldShowBraveVerticalTabs()) {
+    return;
+  }
+
+  auto* sidebar = brave_browser_view->vertical_tab_strip_container_view();
+  const int sidebar_width = sidebar && sidebar->GetVisible()
+                                ? std::min(sidebar->width(), width())
+                                : 0;
+  if (sidebar_width <= 0) {
+    return;
+  }
+
+  gfx::Rect sidebar_surface = GetLocalBounds();
+  sidebar_surface.set_width(sidebar_width);
+  if (vertical_tabs->IsVerticalTabOnRight()) {
+    sidebar_surface.set_x(width() - sidebar_width);
+  }
+  canvas->FillRect(sidebar_surface,
+                   colors->GetColor(kColorBraveVerticalTabInactiveBackground));
+
+  gfx::Rect seam = sidebar_surface;
+  seam.set_width(1);
+  seam.set_x(vertical_tabs->IsVerticalTabOnRight()
+                 ? sidebar_surface.x()
+                 : sidebar_surface.right() - 1);
+  canvas->FillRect(seam, colors->GetColor(kColorBraveVerticalTabSeparator));
+#endif
+}
+
+void BraveToolbarView::SetOriginPageChromeColors(SkColor surface,
+                                                 SkColor location_bar_color,
+                                                 SkColor foreground) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_page_chrome_surface_ == surface &&
+      origin_page_chrome_location_bar_ == location_bar_color &&
+      origin_page_chrome_foreground_ == foreground) {
+    return;
+  }
+  origin_page_chrome_surface_ = surface;
+  origin_page_chrome_location_bar_ = location_bar_color;
+  origin_page_chrome_foreground_ = foreground;
+
+  if (auto* location_bar =
+          views::AsViewClass<BraveLocationBarView>(location_bar_view_)) {
+    location_bar->SetOriginPageChromeColors(*origin_page_chrome_location_bar_,
+                                            *origin_page_chrome_foreground_);
+  }
+  UpdateOriginPageChromeControls();
+  SchedulePaint();
+#endif
+}
+
+void BraveToolbarView::UpdateOriginPageChromeControls() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_page_chrome_foreground_) {
+    return;
+  }
+
+  int sidebar_width = 0;
+  bool sidebar_on_right = false;
+  auto* brave_browser_view = BraveBrowserView::From(browser_view_);
+  auto* vertical_tabs = VerticalTabController::FromBrowser(browser_);
+  if (brave_browser_view && vertical_tabs &&
+      vertical_tabs->ShouldShowBraveVerticalTabs()) {
+    auto* sidebar = brave_browser_view->vertical_tab_strip_container_view();
+    sidebar_width = sidebar && sidebar->GetVisible()
+                        ? std::min(sidebar->width(), width())
+                        : 0;
+    sidebar_on_right = vertical_tabs->IsVerticalTabOnRight();
+  }
+
+  std::vector<views::View*> pending;
+  for (views::View* child : children()) {
+    pending.push_back(child);
+  }
+  while (!pending.empty()) {
+    views::View* view = pending.back();
+    pending.pop_back();
+    for (views::View* child : view->children()) {
+      pending.push_back(child);
+    }
+
+    auto* button = views::AsViewClass<ToolbarButton>(view);
+    if (!button) {
+      continue;
+    }
+
+    const gfx::Rect bounds = views::View::ConvertRectToTarget(
+        button, this, button->GetLocalBounds());
+    const int center_x = bounds.CenterPoint().x();
+    const bool on_page_surface =
+        sidebar_width == 0 ||
+        (sidebar_on_right ? center_x < width() - sidebar_width
+                          : center_x >= sidebar_width);
+    const std::optional<SkColor> desired =
+        on_page_surface ? origin_page_chrome_foreground_ : std::nullopt;
+    if (button->icon_enabled_colors_override() == desired) {
+      continue;
+    }
+    button->SetIconEnabledColorsOverride(desired);
+    button->UpdateIcon();
+  }
+#endif
 }
 
 void BraveToolbarView::ResetLocationBarBounds() {
@@ -690,9 +835,14 @@ void BraveToolbarView::ResetBookmarkButtonBounds() {
       GetLayoutConstant(LayoutConstant::kLocationBarMargin);
 
   if (bookmark_ && bookmark_->GetVisible()) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    const int bookmark_x =
+        location_bar_view_->bounds().right() + button_right_margin;
+#else
     const int bookmark_width = bookmark_->GetPreferredSize().width();
     const int bookmark_x =
         location_bar_view_->x() - bookmark_width - button_right_margin;
+#endif
     bookmark_->SetX(bookmark_x);
   }
 }
@@ -787,6 +937,22 @@ void BraveToolbarView::UpdateVerticalTabToggleState() {
   }
 
   const bool is_expanded = !vertical_tabs_collapsed_.GetValue();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Use one stable panel glyph in both states; the action label communicates
+  // whether the next press hides or shows the panel. This avoids the two
+  // unrelated stacked-tab icons previously shown at the leading edge.
+  vertical_tab_toggle_->SetVectorIcon(kVerticalTabStripToggleCollapsedIcon);
+  const std::u16string accessible_name =
+      is_expanded ? u"Hide left panel" : u"Show left panel";
+  std::u16string tooltip = accessible_name;
+#if BUILDFLAG(IS_MAC)
+  tooltip.append(u"   ⌘←");
+#else
+  tooltip.append(u"   Ctrl+←");
+#endif
+  vertical_tab_toggle_->SetTooltipText(tooltip);
+  vertical_tab_toggle_->SetAccessibleName(accessible_name);
+#else
   vertical_tab_toggle_->SetVectorIcon(
       is_expanded ? kLeoWindowTabsVerticalExpandedIcon
                   : kVerticalTabStripToggleCollapsedIcon);
@@ -794,6 +960,7 @@ void BraveToolbarView::UpdateVerticalTabToggleState() {
       is_expanded ? IDS_VERTICAL_TABS_MINIMIZE : IDS_VERTICAL_TABS_EXPAND));
   vertical_tab_toggle_->SetAccessibleName(l10n_util::GetStringUTF16(
       is_expanded ? IDS_VERTICAL_TABS_MINIMIZE : IDS_VERTICAL_TABS_EXPAND));
+#endif
 }
 
 void BraveToolbarView::OnVerticalTabTogglePressed() {
@@ -818,6 +985,13 @@ void BraveToolbarView::OnVerticalTabTogglePressed() {
 }
 
 void BraveToolbarView::CreateWorkspaceButtonIfNeeded() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Spaces already have a dedicated native rail in Origin. A second toolbar
+  // button used the same stacked-page silhouette as the panel toggle and made
+  // the leading controls ambiguous.
+  return;
+#else
+
   // Only show the spaces button if the feature is enabled and this is a regular
   // browser window (not private, not PWA/popup/PIP/etc).
   if (!base::FeatureList::IsEnabled(features::kWorkspaces) ||
@@ -840,6 +1014,7 @@ void BraveToolbarView::CreateWorkspaceButtonIfNeeded() {
       l10n_util::GetStringUTF16(IDS_ACCNAME_WORKSPACES_BUTTON));
   workspaces_button_->SetVisible(VerticalTabController::FromBrowser(browser_)
                                      ->ShouldShowBraveVerticalTabs());
+#endif
 }
 
 void BraveToolbarView::OnWorkspacesButtonPressed() {

@@ -17,6 +17,7 @@
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
@@ -60,6 +61,7 @@
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
 #include "ui/compositor/layer.h"
+#include "ui/events/event_constants.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
 #include "ui/views/layout/layout_provider.h"
@@ -140,7 +142,35 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
   }
 
   BookmarkBarView* bookmark_bar() { return browser_view()->bookmark_bar(); }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  OriginQuickOpenView* origin_quick_open_view() {
+    return brave_browser_view()->origin_quick_open_view_;
+  }
+#endif
 };
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       NewTabAcceleratorShowsOriginQuickOpen) {
+  ASSERT_TRUE(origin_quick_open_view());
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+  const int initial_tab_count = browser()->tab_strip_model()->count();
+
+#if BUILDFLAG(IS_MAC)
+  constexpr int kModifiers = ui::EF_COMMAND_DOWN;
+#else
+  constexpr int kModifiers = ui::EF_CONTROL_DOWN;
+#endif
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_T, kModifiers)));
+  EXPECT_TRUE(origin_quick_open_view()->GetVisible());
+  EXPECT_EQ(initial_tab_count, browser()->tab_strip_model()->count());
+
+  origin_quick_open_view()->Dismiss();
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+}
+#endif
 
 // Tests bookmark/infobar/contents container layout with vertical tab.
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, LayoutWithVerticalTabTest) {
@@ -361,7 +391,13 @@ class BraveBrowserViewWithRoundedCornersTest
     return container_view->vertical_tab_strip_region_view();
   }
 
-  bool IsRoundedCornersEnabled() const { return GetParam(); }
+  bool IsRoundedCornersEnabled() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    return true;
+#else
+    return GetParam();
+#endif
+  }
 
  protected:
   // Helper methods to get metrics

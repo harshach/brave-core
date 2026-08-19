@@ -16,11 +16,13 @@
 #include "brave/browser/ui/page_info/features.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
+#include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_controller.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_view.h"
 #include "brave/browser/ui/views/location_bar/brave_shields_page_info_controller.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/commander/common/buildflags/buildflags.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "brave/grit/brave_theme_resources.h"
@@ -49,6 +51,7 @@
 #include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/views/animation/ink_drop.h"
+#include "ui/views/background.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/view_utils.h"
 
@@ -208,6 +211,7 @@ void BraveLocationBarView::Update(content::WebContents* contents) {
   }
 
   LocationBarView::Update(contents);
+  ApplyOriginPageChromeColors();
 }
 
 void BraveLocationBarView::OnOmniboxBlurred() {
@@ -221,6 +225,7 @@ void BraveLocationBarView::OnOmniboxBlurred() {
   }
 #endif
   LocationBarView::OnOmniboxBlurred();
+  RefreshBackground();
 }
 
 void BraveLocationBarView::Layout(PassKey) {
@@ -265,6 +270,7 @@ void BraveLocationBarView::OnChanged() {
 
   // OnChanged calls Layout
   LocationBarView::OnChanged();
+  ApplyOriginPageChromeColors();
 }
 
 std::vector<views::View*> BraveLocationBarView::GetRightMostTrailingViews() {
@@ -299,6 +305,10 @@ views::View* BraveLocationBarView::GetSearchPromotionButton() const {
 void BraveLocationBarView::RefreshBackground() {
   LocationBarView::RefreshBackground();
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ApplyOriginPageChromeColors();
+#endif
+
   if (shadow_) {
     const bool show_shadow =
         IsMouseHovered() &&
@@ -306,6 +316,85 @@ void BraveLocationBarView::RefreshBackground() {
     shadow_->SetVisible(show_shadow);
     return;
   }
+}
+
+SkColor BraveLocationBarView::GetIconLabelBubbleSurroundingForegroundColor()
+    const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors()) {
+    return *origin_page_chrome_foreground_;
+  }
+#endif
+  return LocationBarView::GetIconLabelBubbleSurroundingForegroundColor();
+}
+
+SkColor BraveLocationBarView::GetIconLabelBubbleBackgroundColor() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors()) {
+    return *origin_page_chrome_background_;
+  }
+#endif
+  return LocationBarView::GetIconLabelBubbleBackgroundColor();
+}
+
+SkColor BraveLocationBarView::GetSecurityChipColor(
+    security_state::SecurityLevel security_level) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors() &&
+      security_level != security_state::DANGEROUS) {
+    return *origin_page_chrome_foreground_;
+  }
+#endif
+  return LocationBarView::GetSecurityChipColor(security_level);
+}
+
+void BraveLocationBarView::SetOriginPageChromeColors(SkColor background,
+                                                     SkColor foreground) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_page_chrome_background_ == background &&
+      origin_page_chrome_foreground_ == foreground) {
+    return;
+  }
+  origin_page_chrome_background_ = background;
+  origin_page_chrome_foreground_ = foreground;
+  if (IsInitialized()) {
+    RefreshBackground();
+  }
+#endif
+}
+
+bool BraveLocationBarView::ShouldUseOriginPageChromeColors() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return origin_page_chrome_background_ && origin_page_chrome_foreground_ &&
+         IsInitialized() &&
+         !GetOmniboxController()->edit_model()->is_caret_visible();
+#else
+  return false;
+#endif
+}
+
+void BraveLocationBarView::ApplyOriginPageChromeColors() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!IsInitialized() || !omnibox_view_) {
+    return;
+  }
+
+  const bool use_page_colors = ShouldUseOriginPageChromeColors();
+  if (use_page_colors) {
+    background_color_ = *origin_page_chrome_background_;
+    SetBackground(views::CreateRoundedRectBackground(background_color_,
+                                                     GetBorderRadius()));
+    omnibox_view_->SetBackgroundColor(background_color_);
+    omnibox_view_->SetColor(*origin_page_chrome_foreground_);
+  } else if (const ui::ColorProvider* colors = GetColorProvider()) {
+    omnibox_view_->SetColor(colors->GetColor(kColorOmniboxText));
+  }
+
+  if (brave_actions_ && brave_actions_->GetShieldsActionView()) {
+    brave_actions_->GetShieldsActionView()->SetOriginForegroundColor(
+        use_page_colors ? origin_page_chrome_foreground_ : std::nullopt);
+  }
+#endif
 }
 
 int BraveLocationBarView::GetMinimumTrailingWidth() const {

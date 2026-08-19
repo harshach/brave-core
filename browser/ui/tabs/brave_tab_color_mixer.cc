@@ -207,41 +207,60 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
       ui::ColorTransform(apply_opacity_for_inactive_tab_foreground);
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // SigmaOS-inspired workspace palette. Origin has no horizontal tab strip,
-  // so these tab colors belong exclusively to the left page column.
+  // Origin has two related surfaces: the workspace sidebar and the active-page
+  // column. Keeping their tones close makes the window feel integrated, while
+  // a small luminance step and a shared outline make the page/address-bar
+  // column read as one distinct canvas.
   const bool dark = key.color_mode == ui::ColorProviderKey::ColorMode::kDark;
   const SkColor kWorkspaceSurface =
-      dark ? SkColorSetRGB(0x20, 0x1F, 0x1E)
-           : SkColorSetRGB(0xFA, 0xF7, 0xF2);
+      dark ? SkColorSetRGB(0x18, 0x18, 0x17) : SkColorSetRGB(0xF7, 0xF3, 0xEE);
+  const SkColor kPageChromeSurface =
+      dark ? SkColorSetRGB(0x10, 0x11, 0x11) : SkColorSetRGB(0xFD, 0xFC, 0xFA);
   const SkColor kWorkspaceSelection =
-      dark ? SkColorSetRGB(0x4A, 0x37, 0x30)
-           : SkColorSetRGB(0xF7, 0xDF, 0xCE);
+      dark ? SkColorSetRGB(0x3A, 0x30, 0x2D) : SkColorSetRGB(0xF7, 0xDF, 0xCE);
   const SkColor kWorkspaceHover =
-      dark ? SkColorSetRGB(0x32, 0x2E, 0x2B)
-           : SkColorSetRGB(0xF2, 0xEA, 0xE2);
+      dark ? SkColorSetRGB(0x2C, 0x29, 0x27) : SkColorSetRGB(0xF2, 0xEA, 0xE2);
   const SkColor kWorkspaceText =
-      dark ? SkColorSetRGB(0xF4, 0xF0, 0xEB)
-           : SkColorSetRGB(0x3B, 0x36, 0x32);
+      dark ? SkColorSetRGB(0xE9, 0xE5, 0xE1) : SkColorSetRGB(0x3B, 0x36, 0x32);
   const SkColor kWorkspaceMutedText =
-      dark ? SkColorSetRGB(0xAE, 0xA7, 0xA0)
-           : SkColorSetRGB(0x83, 0x7D, 0x77);
+      dark ? SkColorSetRGB(0xAA, 0xA4, 0x9F) : SkColorSetRGB(0x83, 0x7D, 0x77);
+  const SkColor kLocationBarSurface = kPageChromeSurface;
+  const SkColor kShellOutline =
+      dark ? SkColorSetRGB(0x4F, 0x4E, 0x4B) : SkColorSetRGB(0xD2, 0xC8, 0xBE);
   mixer[kColorBraveVerticalTabActiveBackground] = {kWorkspaceSelection};
   mixer[kColorBraveVerticalTabHoveredBackground] = {kWorkspaceHover};
   mixer[kColorBraveVerticalTabInactiveBackground] = {kWorkspaceSurface};
   mixer[kColorBraveVerticalTabSeparator] = {
-      dark ? SkColorSetRGB(0x3B, 0x38, 0x35)
-           : SkColorSetRGB(0xE8, 0xE0, 0xD8)};
+      dark ? SkColorSetRGB(0x3B, 0x38, 0x35) : SkColorSetRGB(0xE8, 0xE0, 0xD8)};
   mixer[kColorBraveVerticalTabNTBIconColor] = {kWorkspaceMutedText};
   mixer[kColorBraveVerticalTabNTBTextColor] = {kWorkspaceMutedText};
   mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {kWorkspaceMutedText};
-  postprocessing_mixer[kColorTabForegroundActiveFrameActive] = {
-      kWorkspaceText};
+  postprocessing_mixer[kColorTabForegroundActiveFrameActive] = {kWorkspaceText};
   postprocessing_mixer[kColorTabForegroundActiveFrameInactive] = {
       kWorkspaceText};
   postprocessing_mixer[kColorTabForegroundInactiveFrameActive] = {
       kWorkspaceMutedText};
   postprocessing_mixer[kColorTabForegroundInactiveFrameInactive] = {
       kWorkspaceMutedText};
+  postprocessing_mixer[ui::kColorFrameActive] = {kWorkspaceSurface};
+  postprocessing_mixer[ui::kColorFrameInactive] = {kWorkspaceSurface};
+  postprocessing_mixer[kColorToolbar] = {kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarContentAreaSeparator] = {kShellOutline};
+  postprocessing_mixer[kColorToolbarTopSeparatorFrameActive] = {
+      kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarTopSeparatorFrameInactive] = {
+      kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarSeparator] = {kShellOutline};
+  postprocessing_mixer[kColorLocationBarBackground] = {kLocationBarSurface};
+  postprocessing_mixer[kColorLocationBarBackgroundHovered] = {
+      kLocationBarSurface};
+  postprocessing_mixer[kColorLocationBarBorder] = {kShellOutline};
+  postprocessing_mixer[kColorToolbarButtonIcon] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorToolbarButtonIconDefault] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorToolbarButtonIconHovered] = {kWorkspaceText};
+  postprocessing_mixer[kColorToolbarButtonIconPressed] = {kWorkspaceText};
+  postprocessing_mixer[kColorToolbarText] = {kWorkspaceText};
+  postprocessing_mixer[kColorBraveContentsOutline] = {kShellOutline};
   return;
 #else
 

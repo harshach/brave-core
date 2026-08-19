@@ -10,6 +10,7 @@
 #include <utility>
 #include <vector>
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_layout_types.h"
 
 namespace gfx {
@@ -32,7 +33,13 @@ namespace tabs {
 
 inline constexpr int kVerticalTabHeight = 32;
 inline constexpr int kVerticalTabMinWidth = kVerticalTabHeight;
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+// Sigma-style pages have a visibly separate rhythm rather than reading as a
+// dense continuous list.
+inline constexpr int kVerticalTabsSpacing = 8;
+#else
 inline constexpr int kVerticalTabsSpacing = 4;
+#endif
 inline constexpr int kMarginForVerticalTabContainers = kVerticalTabsSpacing;
 inline constexpr int kPinnedUnpinnedSeparatorHeight = 1;
 

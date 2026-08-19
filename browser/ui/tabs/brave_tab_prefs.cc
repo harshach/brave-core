@@ -41,8 +41,7 @@ void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
 
   registry->RegisterBooleanPref(kVerticalTabsFloatingEnabled,
                                 !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
-  registry->RegisterBooleanPref(kVerticalTabsShowToggleButton,
-                                !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
+  registry->RegisterBooleanPref(kVerticalTabsShowToggleButton, true);
   registry->RegisterIntegerPref(kVerticalTabsExpandedWidth,
                                 kDefaultVerticalTabsExpandedWidth);
   registry->RegisterBooleanPref(kVerticalTabsOnRight, false);
@@ -66,12 +65,11 @@ void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
 
 void MigrateBraveProfilePrefs(PrefService* prefs) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin uses the tree workspace as its primary tab surface. Do not restore
-  // horizontal tabs or the legacy icon-only rail from a previous browser
-  // session.
+  // Origin uses the tree workspace as its primary tab surface. Keep vertical
+  // tree tabs enabled, but preserve the user's expanded/collapsed sidebar
+  // state across launches.
   prefs->SetBoolean(kVerticalTabsEnabled, true);
   prefs->SetBoolean(kTreeTabsEnabled, true);
-  prefs->SetBoolean(kVerticalTabsCollapsed, false);
 #endif
 
   if (auto* pref = prefs->FindPreference(kVerticalTabsShowScrollbar);

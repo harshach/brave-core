@@ -127,7 +127,9 @@ bool VerticalTabController::IsVerticalTabOnRight() const {
 bool VerticalTabController::ShouldHideVerticalTabsCompletelyWhenCollapsed()
     const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return false;
+  // Origin's sidebar is a complete workspace surface, not an icon-only tab
+  // rail. Collapsing it should return all of that width to the active page.
+  return true;
 #else
   return base::FeatureList::IsEnabled(tabs::kBraveVerticalTabHideCompletely) &&
          prefs_->GetBoolean(
@@ -141,7 +143,9 @@ bool VerticalTabController::ShouldShowVerticalTabToggleButton() const {
   }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return false;
+  // The toolbar control is the persistent way to restore a fully hidden
+  // workspace sidebar.
+  return true;
 #else
   return prefs_->GetBoolean(brave_tabs::kVerticalTabsShowToggleButton);
 #endif

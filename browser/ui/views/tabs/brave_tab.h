@@ -89,6 +89,7 @@ class BraveTab : public Tab
   bool IsActive() const override;
   TabSizeInfo GetTabSizeInfo() const override;
   TabNestingInfo GetTabNestingInfo() const override;
+  bool HasOriginHierarchyDescendants() const;
   bool IsInCollapsedTreeTabNode() const override;
   void MaybeUpdateHoverStatus(const ui::MouseEvent& event) override;
   void AddedToWidget() override;

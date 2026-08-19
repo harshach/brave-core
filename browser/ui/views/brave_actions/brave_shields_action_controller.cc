@@ -138,7 +138,9 @@ gfx::ImageSkia BraveShieldsActionController::GetIconImage(
   return gfx::CreateVectorIcon(
       is_enabled ? kLeoBraveIconOnlyFaceIcon
                  : kLeoBraveIconOnlyFaceDisabledIcon,
-      icon_size, color_provider->GetColor(kColorOmniboxResultsIcon));
+      icon_size,
+      origin_foreground_color_.value_or(
+          color_provider->GetColor(kColorOmniboxResultsIcon)));
 #else
   ui::ResourceBundle& rb = ui::ResourceBundle::GetSharedInstance();
   gfx::ImageSkia image;

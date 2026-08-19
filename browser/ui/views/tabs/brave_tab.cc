@@ -210,6 +210,10 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
 #endif
       title->SetFontList(gfx::FontList({kFamily}, gfx::Font::NORMAL, 14,
                                        gfx::Font::Weight::NORMAL));
+      // Origin's page list is intentionally narrow. Use a visible ellipsis
+      // instead of Chromium's default fade so a truncated page title has a
+      // clear endpoint before the web-content frame.
+      title->SetElideBehavior(gfx::ELIDE_TAIL);
       break;
     }
   }
@@ -777,6 +781,10 @@ TabNestingInfo BraveTab::GetTabNestingInfo() const {
   }
 
   return {.tree_height = GetTreeHeight(), .level = GetTreeTabNode()->level()};
+}
+
+bool BraveTab::HasOriginHierarchyDescendants() const {
+  return HasTreeTabNodeDescendants();
 }
 
 void BraveTab::MaybeUpdateHoverStatus(const ui::MouseEvent& event) {

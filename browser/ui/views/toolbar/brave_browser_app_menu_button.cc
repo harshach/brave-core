@@ -79,8 +79,13 @@ std::optional<SkColor> BraveBrowserAppMenuButton::GetHighlightColor() const {
 
 SkColor BraveBrowserAppMenuButton::GetForegroundColor(ButtonState state) const {
   std::optional<SkColor> color = GetColorForSeverity();
-  return color.has_value() ? color.value()
-                           : BrowserAppMenuButton::GetForegroundColor(state);
+  if (color) {
+    return *color;
+  }
+  if (icon_enabled_colors_override()) {
+    return *icon_enabled_colors_override();
+  }
+  return BrowserAppMenuButton::GetForegroundColor(state);
 }
 
 bool BraveBrowserAppMenuButton::ShouldPaintBorder() const {

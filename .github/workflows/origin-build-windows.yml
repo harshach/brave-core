@@ -46,10 +46,18 @@ jobs:
           version: 11.22.0
           run_install: false
 
-      - name: Select Origin branding
+      - name: Configure optimized Origin release
         working-directory: workspace/src/brave
         shell: pwsh
-        run: Set-Content -Path .env -Value 'is_brave_origin_branded=true' -Encoding ascii
+        run: |
+          @(
+            'is_brave_origin_branded=true'
+            'is_brave_release_build=1'
+            'dcheck_always_on=false'
+            'brave_services_key=origin-community-build'
+            'service_key_search=origin-community-build'
+            'service_key_stt=origin-community-build'
+          ) | Set-Content -Path .env -Encoding ascii
 
       - name: Initialize Chromium workspace
         working-directory: workspace/src/brave

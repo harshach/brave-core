@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/views/frame/layout/browser_view_layout_delegate.h"
@@ -507,10 +508,13 @@ TEST(BraveBrowserViewTabbedLayoutImplTest,
   auto layout = std::make_unique<BraveBrowserViewTabbedLayoutImpl>(
       std::move(mock), nullptr, std::move(views));
 
-  // The top margin is suppressed, but the other sides still reserve room for
-  // the rounded-corners shadow.
+  // Origin keeps its content canvas enclosed on every side. Regular Brave
+  // suppresses the top margin because the macOS overlay toolbar occupies it.
   gfx::Insets margins = layout->GetContentsMarginsForTesting();
-  EXPECT_EQ(0, margins.top());
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+                ? kRoundedCornersContentsViewMargin
+                : 0,
+            margins.top());
   EXPECT_EQ(kRoundedCornersContentsViewMargin, margins.left());
   EXPECT_EQ(kRoundedCornersContentsViewMargin, margins.right());
   EXPECT_EQ(kRoundedCornersContentsViewMargin, margins.bottom());

@@ -64,9 +64,16 @@ jobs:
             echo "TARGET_ARCH=x64" >> "$GITHUB_ENV"
           fi
 
-      - name: Select Origin branding
+      - name: Configure optimized Origin release
         working-directory: workspace/src/brave
-        run: printf '%s\n' 'is_brave_origin_branded=true' > .env
+        run: |
+          printf '%s\n' \
+            'is_brave_origin_branded=true' \
+            'is_brave_release_build=1' \
+            'dcheck_always_on=false' \
+            'brave_services_key=origin-community-build' \
+            'service_key_search=origin-community-build' \
+            'service_key_stt=origin-community-build' > .env
 
       - name: Initialize Chromium workspace
         working-directory: workspace/src/brave

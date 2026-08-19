@@ -607,6 +607,16 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
     child.view()->Paint(paint_info);
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  {
+    ui::PaintRecorder recorder(paint_info.context(),
+                               paint_info.paint_recording_size(),
+                               paint_info.paint_recording_scale_x(),
+                               paint_info.paint_recording_scale_y(), nullptr);
+    PaintOriginHierarchyMarkers(*recorder.canvas());
+  }
+#endif
+
   if (!ShouldShowVerticalTabs()) {
     return;
   }
@@ -620,6 +630,61 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
   if (!scroll_bar_->layer() && scroll_bar_->GetVisible()) {
     scroll_bar_->Paint(paint_info);
   }
+}
+
+void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!ShouldShowVerticalTabs()) {
+    return;
+  }
+
+  cc::PaintFlags flags;
+  flags.setAntiAlias(true);
+  flags.setStyle(cc::PaintFlags::kFill_Style);
+
+  for (Tab* tab : layout_helper_->GetTabs()) {
+    auto* brave_tab = views::AsViewClass<BraveTab>(tab);
+    if (!brave_tab || !brave_tab->GetVisible() || tab->data().pinned ||
+        tab->width() <= tabs::kVerticalTabMinWidth) {
+      continue;
+    }
+
+    const TabNestingInfo nesting = brave_tab->GetTabNestingInfo();
+    const SkColor foreground =
+        brave_tab->tab_style_views()->CalculateTargetColors().foreground_color;
+    flags.setColor(
+        SkColorSetA(foreground, brave_tab->IsActive() ? 0xE6 : 0x9E));
+
+    // Branches live in the indentation gutter, outside the rounded tab pill.
+    // This is the key visual distinction between a nested page and content
+    // painted inside an active page, and mirrors Sigma's dotted L rail.
+    if (nesting.level > 0) {
+      const float branch_x = std::max(3, tab->x() - 10) + 0.5f;
+      const float center_y = tab->bounds().CenterPoint().y();
+      for (float y : {center_y - 7.0f, center_y - 3.0f, center_y + 1.0f,
+                      center_y + 5.0f}) {
+        canvas.DrawCircle(gfx::PointF(branch_x, y), 1.1f, flags);
+      }
+      for (float x : {branch_x + 4.0f, branch_x + 8.0f}) {
+        canvas.DrawCircle(gfx::PointF(x, center_y + 7.0f), 1.1f, flags);
+      }
+    }
+
+    // A parent's six-dot drag affordance is intentionally contextual. Keeping
+    // it visible only for the selected/hovered branch avoids turning every
+    // ordinary page icon into visual noise.
+    if (brave_tab->HasOriginHierarchyDescendants() &&
+        (brave_tab->IsActive() || brave_tab->mouse_hovered())) {
+      const gfx::Rect contents = brave_tab->GetContentsBounds();
+      const float handle_x = tab->x() + std::max(4, contents.x() - 11) + 0.5f;
+      const float center_y = tab->bounds().CenterPoint().y();
+      for (float y : {center_y - 5.0f, center_y, center_y + 5.0f}) {
+        canvas.DrawCircle(gfx::PointF(handle_x, y), 1.2f, flags);
+        canvas.DrawCircle(gfx::PointF(handle_x + 5.0f, y), 1.2f, flags);
+      }
+    }
+  }
+#endif
 }
 
 void BraveTabContainer::SetTabSlotVisibility() {
@@ -1015,9 +1080,8 @@ void BraveTabContainer::UpdateIdealBounds() {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (scroll_direction == views::LayoutOrientation::kVertical) {
-    int compact_y = tabs_view_model_.view_size()
-                        ? tabs_view_model_.ideal_bounds(0).y()
-                        : 0;
+    int compact_y =
+        tabs_view_model_.view_size() ? tabs_view_model_.ideal_bounds(0).y() : 0;
     for (size_t i = 0; i < tabs_view_model_.view_size(); ++i) {
       gfx::Rect bounds = tabs_view_model_.ideal_bounds(i);
       bounds.set_y(compact_y);

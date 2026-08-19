@@ -8,6 +8,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -35,6 +36,7 @@
 #include "components/tabs/public/tab_interface.h"
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -79,6 +81,7 @@ class ContentsLayoutManager;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
+struct OriginQuickOpenSelection;
 class SidebarContainerView;
 class SidePanelEntry;
 class TabStripPlacementCoordinator;
@@ -150,6 +153,9 @@ class BraveBrowserView : public BrowserView,
                           int reason) override;
   void UpdateToolbar(content::WebContents* contents) override;
   bool UpdateToolbarSecurityState() override;
+  void OnThemeChanged() override;
+  void DidChangeThemeColor() override;
+  void OnBackgroundColorChanged() override;
   content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
       const input::NativeWebKeyboardEvent& event) override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
@@ -315,6 +321,7 @@ class BraveBrowserView : public BrowserView,
   void StopTabCycling();
   void OnCompactModePrefChanged();
   void OnPreferenceChanged(const std::string& pref_name);
+  void UpdateOriginPageChromeColor(content::WebContents* contents);
   void OnWindowClosingConfirmResponse(bool allowed_to_close);
   BraveBrowser* GetBraveBrowser() const;
   void UpdateFocusModeState();
@@ -344,9 +351,10 @@ class BraveBrowserView : public BrowserView,
   // class's ctor body runs).
   void EnsureFindBarHostViewIsLastChild();
 
-  void ShowOriginQuickOpen();
+  void ShowOriginQuickOpen(
+      std::optional<ui::KeyboardCode> activation_key = std::nullopt);
   void HideOriginQuickOpen();
-  void SubmitOriginQuickOpen(std::u16string input,
+  void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
                              OriginQuickOpenDisposition disposition);
 
   sidebar::Sidebar* InitSidebar() override;
@@ -369,6 +377,13 @@ class BraveBrowserView : public BrowserView,
 
   bool closing_confirm_dialog_activated_ = false;
   bool show_active_contents_domain_ = false;
+  // Toolbar updates are frequent while a page is loading. Cache the effective
+  // focus-mode state so unchanged updates do not relayout the browser chrome.
+  bool effective_focus_mode_enabled_ = false;
+  bool effective_focus_mode_state_initialized_ = false;
+  std::optional<SkColor> origin_page_chrome_surface_;
+  std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
   raw_ptr<BraveHelpBubbleHostView> brave_help_bubble_host_view_ = nullptr;
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
   raw_ptr<views::View> contents_background_view_ = nullptr;

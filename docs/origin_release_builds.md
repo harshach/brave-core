@@ -11,6 +11,22 @@ Each workflow can be started manually. Pushing a tag matching `origin-v*` starts
 Linux, Windows x64, and macOS ARM64 builds together. Artifacts are kept for 14
 days in the workflow run.
 
+## Runtime performance
+
+Distributed Origin packages use Brave's true `Release` configuration with
+`is_brave_release_build=1` and DCHECKs disabled. This checks out Chromium's PGO
+profiles and enables the same PGO and ThinLTO optimization path used by Brave's
+release binaries. Public builds use explicit non-secret placeholder values for
+the service keys that Brave requires at GN generation time; those placeholders
+do not grant access to paid Brave backend services. Shields' local blocking
+engine is independent of those service credentials.
+
+Do not distribute or performance-test the `Component` build:
+it is designed for fast incremental linking, keeps DCHECKs enabled, and loads
+hundreds of shared libraries. `Static` is appropriate for local functional
+testing while a fully optimized `Release` package is being built, but it is not
+the runtime-performance acceptance target.
+
 ## Build runners
 
 Brave's Chromium checkout exceeds 60 GB before build output. Standard GitHub

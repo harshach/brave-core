@@ -200,6 +200,7 @@ class BraveTabContainer : public TabContainerImpl,
   void PaintBoundingBoxForSplitTabs(gfx::Canvas& canvas);
   void PaintBoundingBoxForSplitTab(gfx::Canvas& canvas,
                                    const std::vector<int>& indices);
+  void PaintOriginHierarchyMarkers(gfx::Canvas& canvas);
 
   static gfx::ImageSkia* GetDropArrowImage(
       BraveTabContainer::DropArrow::Position pos,
