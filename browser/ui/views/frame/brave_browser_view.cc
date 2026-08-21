@@ -115,6 +115,7 @@
 #include "components/tabs/public/tab_interface.h"
 #include "components/web_modal/web_contents_modal_dialog_manager.h"
 #include "content/public/browser/page_navigator.h"
+#include "content/public/browser/render_widget_host.h"
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
 #include "components/viz/common/frame_sinks/copy_output_result.h"
@@ -1603,6 +1604,42 @@ void BraveBrowserView::UpdateVerticalTabStripBorder() {
     vertical_tab_strip_container_view_->vertical_tab_strip_region_view()
         ->UpdateBorder();
   }
+}
+
+void BraveBrowserView::FinalizeOriginContentsResize() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // NativeViewHost keeps the renderer in a separate native child view on
+  // macOS. During a sequence of animated bounds changes, its final clip and
+  // surface can otherwise remain at an intermediate size, leaving a large
+  // page-coloured region where newly exposed renderer tiles should be. This is
+  // the same final-layout step BrowserView performs after toolbar animation
+  // and tab dragging.
+  multi_contents_view_->SetIsAnimatingContent(false);
+  multi_contents_view_->ExecuteOnEachVisibleContentsView(
+      base::BindRepeating([](ContentsWebView* contents_view) {
+        contents_view->InvalidateLayout();
+      }));
+
+  InvalidateLayout();
+  DeprecatedLayoutImmediately();
+  contents_container_->DeprecatedLayoutImmediately();
+
+  // Make the destination viewport explicit to the renderer after the native
+  // holder has reached its final bounds. This also guarantees a fresh local
+  // surface when the sidebar crosses a responsive breakpoint.
+  multi_contents_view_->ExecuteOnEachVisibleContentsView(
+      base::BindRepeating([](ContentsWebView* contents_view) {
+        content::WebContents* web_contents = contents_view->web_contents();
+        if (!web_contents) {
+          return;
+        }
+        content::RenderWidgetHostView* render_view =
+            web_contents->GetRenderWidgetHostView();
+        if (render_view && render_view->GetRenderWidgetHost()) {
+          render_view->GetRenderWidgetHost()->SynchronizeVisualProperties();
+        }
+      }));
+#endif
 }
 
 void BraveBrowserView::UpdateSidebarBorder() {

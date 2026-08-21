@@ -211,6 +211,11 @@ class BraveBrowserView : public BrowserView,
   void UpdateVerticalTabStripBorder();
   void UpdateSidebarBorder();
 
+  // Completes a width change of Origin's workspace sidebar. The renderer is a
+  // native child view on macOS, so its holder needs one non-animated layout at
+  // the destination bounds after the sidebar animation or resize gesture.
+  void FinalizeOriginContentsResize();
+
   // Covers the underlying renderer when the selected Origin space has no
   // pages. Chromium always retains an active WebContents, but an empty space
   // must not leak a page from another space into the canvas.

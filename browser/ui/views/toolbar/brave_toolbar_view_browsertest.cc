@@ -68,6 +68,7 @@
 #include "content/public/test/test_utils.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/views/view.h"
+#include "ui/views/widget/widget.h"
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 #include "brave/browser/ui/views/toolbar/wallet_button.h"
@@ -213,6 +214,30 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
   ASSERT_TRUE(bookmark_index.has_value());
   EXPECT_EQ(*location_index + 1, *shields_index);
   EXPECT_EQ(*shields_index + 1, *bookmark_index);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
+                       OriginLocationBarCentersInAppWindow) {
+  constexpr int kTestWindowWidth = 1400;
+  constexpr int kExpectedLocationBarWidth = 600;
+  auto* browser_view = BrowserView::GetBrowserViewForBrowser(browser());
+  ASSERT_TRUE(browser_view);
+  auto* widget = browser_view->GetWidget();
+  ASSERT_TRUE(widget);
+
+  gfx::Rect window_bounds = widget->GetWindowBoundsInScreen();
+  window_bounds.set_width(kTestWindowWidth);
+  widget->SetBounds(window_bounds);
+  widget->LayoutRootViewIfNecessary();
+
+  const gfx::Rect location_bounds =
+      toolbar_view_->location_bar_view()->bounds();
+  EXPECT_EQ(kExpectedLocationBarWidth, location_bounds.width());
+  gfx::Point location_center_in_screen = location_bounds.CenterPoint();
+  views::View::ConvertPointToScreen(toolbar_view_,
+                                    &location_center_in_screen);
+  EXPECT_NEAR(widget->GetWindowBoundsInScreen().CenterPoint().x(),
+              location_center_in_screen.x(), 1);
 }
 #endif
 

@@ -49,6 +49,7 @@
 #include "chrome/browser/ui/views/frame/browser_frame_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
+#include "chrome/browser/ui/views/frame/multi_contents_view.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
 #include "chrome/browser/ui/views/tabs/new_tab_button.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_context_menu_controller.h"
@@ -58,6 +59,7 @@
 #include "chrome/test/base/interactive_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/tabs/public/split_tab_data.h"
+#include "content/public/browser/render_widget_host_view.h"
 #include "content/public/test/browser_test.h"
 #include "third_party/skia/include/core/SkPath.h"
 #include "ui/base/cursor/cursor.h"
@@ -395,6 +397,46 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   EXPECT_FALSE(region->resize_area_->GetEnabled());
   region->SetState(BraveVerticalTabStripRegionView::State::kFloating);
   EXPECT_TRUE(region->resize_area_->GetEnabled());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarResizeFinalizesRendererViewport) {
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  ToggleVerticalTabStrip();
+
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(BraveVerticalTabStripRegionView::State::kExpanded,
+            region->state());
+
+  ContentsWebView* contents_view =
+      browser_view()->multi_contents_view()->GetActiveContentsView();
+  ASSERT_TRUE(contents_view);
+  content::RenderWidgetHostView* render_view =
+      contents_view->web_contents()->GetRenderWidgetHostView();
+  ASSERT_TRUE(render_view);
+
+  browser_view()->DeprecatedLayoutImmediately();
+  const int expanded_contents_width = contents_view->width();
+  ASSERT_GT(expanded_contents_width, 0);
+
+  // Model the dirty native holder left by a sequence of intermediate sidebar
+  // widths, then finish the transition. The completion path must synchronously
+  // lay out the final native child view instead of waiting for a later paint.
+  contents_view->InvalidateLayout();
+  region->ToggleState();
+
+  EXPECT_EQ(BraveVerticalTabStripRegionView::State::kCollapsed,
+            region->state());
+  EXPECT_GT(contents_view->width(), expanded_contents_width);
+  EXPECT_FALSE(contents_view->needs_layout());
+  EXPECT_TRUE(base::test::RunUntil([&] {
+    return render_view->GetVisibleViewportSize() == contents_view->size();
+  }));
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
@@ -2426,3 +2468,35 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripFocusModeTest, RestoresCollapsedState) {
   EXPECT_EQ(State::kCollapsed, region_view->state());
   EXPECT_TRUE(region_view->GetVisible());
 }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(VerticalTabStripFocusModeTest,
+                       RevealedOriginSidebarReservesViewportWidth) {
+  auto scoped_mode = gfx::AnimationTestApi::SetRichAnimationRenderMode(
+      gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  using State = BraveVerticalTabStripRegionView::State;
+
+  ASSERT_TRUE(focus_mode_controller());
+  auto* region_view = GetRegionView();
+  ASSERT_TRUE(region_view);
+  ASSERT_EQ(State::kExpanded, region_view->state());
+  const int expanded_width = region_view->GetMinimumSize().width();
+  ASSERT_GT(expanded_width, 0);
+
+  focus_mode_controller()->SetEnabled(true);
+  ASSERT_EQ(State::kCollapsed, region_view->state());
+  ASSERT_FALSE(region_view->GetVisible());
+  EXPECT_EQ(0, region_view->GetMinimumSize().width());
+
+  gfx::Point mouse_position =
+      browser_view()->GetBoundingBoxInScreenForMouseOverHandling().origin();
+  mouse_position.Offset(2, 2);
+  region_view->HandleMouseEvent(gfx::PointF(mouse_position));
+
+  EXPECT_EQ(State::kFloating, region_view->state());
+  EXPECT_TRUE(region_view->GetVisible());
+  EXPECT_EQ(expanded_width, region_view->GetMinimumSize().width());
+
+  focus_mode_controller()->SetEnabled(false);
+}
+#endif

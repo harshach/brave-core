@@ -1843,6 +1843,10 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
   PreferredSizeChanged();
   UpdateBorder();
 
+  if (!width_animation_.is_animating()) {
+    FinalizeOriginContentsResize();
+  }
+
   if (last_state_ == State::kFloating && state_ == State::kExpanded) {
     // In this case we need to lay out pinned tabs so that they need to hide
     // title and close button.
@@ -1868,6 +1872,12 @@ void BraveVerticalTabStripRegionView::SetExpandedWidth(int dest_width) {
   }
 
   PreferredSizeChanged();
+}
+
+void BraveVerticalTabStripRegionView::FinalizeOriginContentsResize() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  BraveBrowserView::From(browser_view_)->FinalizeOriginContentsResize();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::UpdateStateAfterDragAndDropFinished(
@@ -1922,6 +1932,17 @@ gfx::Size BraveVerticalTabStripRegionView::CalculatePreferredSize(
 }
 
 gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Focus mode normally treats a revealed vertical tab strip as an overlay and
+  // leaves the renderer at full-window width. That makes responsive pages lay
+  // themselves out underneath Origin's much wider Space/page panel: once the
+  // panel is revealed, the visible page is the right-hand crop of that layout.
+  // Keep the hidden state overlay-sized, but reserve the panel's real width
+  // while it is visible so the renderer receives the viewport the user sees.
+  if (IsFloatingEnabledForBrowserMode() && state_ != State::kFloating) {
+    return {};
+  }
+#else
   if (IsFloatingEnabledForBrowserMode() ||
       ((VerticalTabController::FromBrowser(browser_)
             ->ShouldHideVerticalTabsCompletelyWhenCollapsed() &&
@@ -1929,14 +1950,23 @@ gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
     // Vertical tab strip always overlaps the contents area.
     return {};
   }
+#endif
 
   auto target_state = state_;
 
   // Minimum size is used for host view's preferred size.
   // See BraveVerticalTabStripContainerView::ChildPreferredSizeChanged().
-  // When floating, host view's size should not be changed during the floating.
+  // Regular Brave keeps the host size stable while the strip floats. Origin's
+  // wider workspace panel intentionally reserves its expanded width below.
   if (state_ == State::kFloating) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Origin's floating panel is a full Space/page sidebar. Its host must track
+    // that visible width so web contents reflows beside it instead of remaining
+    // hidden underneath it.
+    target_state = State::kExpanded;
+#else
     target_state = State::kCollapsed;
+#endif
   }
 
   // Get size w/o border. Consider border width later.
@@ -2275,6 +2305,9 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
   }
 
   if (expanded_width_ == dest_width) {
+    if (done_resizing) {
+      FinalizeOriginContentsResize();
+    }
     return;
   }
 
@@ -2288,6 +2321,9 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
   }
 
   SetExpandedWidth(dest_width);
+  if (done_resizing) {
+    FinalizeOriginContentsResize();
+  }
 }
 
 void BraveVerticalTabStripRegionView::AnimationProgressed(
@@ -2298,6 +2334,7 @@ void BraveVerticalTabStripRegionView::AnimationProgressed(
 void BraveVerticalTabStripRegionView::AnimationEnded(
     const gfx::Animation* animation) {
   PreferredSizeChanged();
+  FinalizeOriginContentsResize();
 
   if (state_ == State::kCollapsed) {
     OnCollapseAnimationEnded();

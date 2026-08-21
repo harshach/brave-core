@@ -75,6 +75,7 @@
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
+#include "ui/views/widget/widget.h"
 #include "ui/views/window/hit_test_utils.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -107,7 +108,7 @@
 namespace {
 constexpr int kLocationBarMaxWidth = 1080;
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-constexpr int kOriginLocationBarMaxWidth = 520;
+constexpr int kOriginLocationBarMaxWidth = 600;
 constexpr int kOriginLocationBarHeight = 28;
 constexpr SkColor kOriginToolbarControlColor = SkColorSetRGB(0x94, 0x96, 0x9C);
 #endif
@@ -843,7 +844,9 @@ void BraveToolbarView::ResetLocationBarBounds() {
     }
     int safe_right = page_right - 12;
     // FlexLayout has already placed the trailing actions at the far edge.
-    // Respect that cluster while centering the URL over the page canvas.
+    // Respect that cluster while centering the URL over the complete app
+    // window. Centering over only the page canvas adds half the sidebar width
+    // to the visual center and makes the unified titlebar look unbalanced.
     if (origin_shields_button_ && origin_shields_button_->GetVisible()) {
       safe_right =
           std::min(safe_right, origin_shields_button_->bounds().x() - 8);
@@ -853,8 +856,12 @@ void BraveToolbarView::ResetLocationBarBounds() {
     if (available_width >= minimum_width) {
       const int location_bar_width =
           std::min(kOriginLocationBarMaxWidth, available_width);
-      const int centered_x =
-          page_left + (page_right - page_left - location_bar_width) / 2;
+      gfx::Point toolbar_origin_in_screen;
+      views::View::ConvertPointToScreen(this, &toolbar_origin_in_screen);
+      const int app_center_x =
+          GetWidget()->GetWindowBoundsInScreen().CenterPoint().x() -
+          toolbar_origin_in_screen.x();
+      const int centered_x = app_center_x - location_bar_width / 2;
       const int location_bar_x =
           std::clamp(centered_x, safe_left, safe_right - location_bar_width);
       const int location_bar_height =

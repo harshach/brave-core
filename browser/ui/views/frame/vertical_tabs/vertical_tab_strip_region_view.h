@@ -179,6 +179,8 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   void SetExpandedWidth(int dest_width);
 
+  void FinalizeOriginContentsResize();
+
   void UpdateStateAfterDragAndDropFinished(State original_state);
 
   void OnShowVerticalTabsPrefChanged();
