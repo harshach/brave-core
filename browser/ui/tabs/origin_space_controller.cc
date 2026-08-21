@@ -20,9 +20,11 @@
 #include "chrome/browser/sessions/session_service.h"
 #include "chrome/browser/sessions/session_service_factory.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "components/sessions/content/session_tab_helper.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_user_data.h"
+#include "url/url_constants.h"
 
 namespace {
 
@@ -93,6 +95,11 @@ bool OriginSpaceController::SelectSpace(const std::string& space_id) {
   return true;
 }
 
+bool OriginSpaceController::SelectSpaceAtIndex(size_t index) {
+  const auto& spaces = workspace_service_->GetOriginSpaces();
+  return index < spaces.size() && SelectSpace(spaces[index].id);
+}
+
 std::string OriginSpaceController::GetSpaceIdForTab(
     content::WebContents* contents) const {
   if (const auto* data = OriginSpaceTabData::FromWebContents(contents)) {
@@ -104,6 +111,39 @@ std::string OriginSpaceController::GetSpaceIdForTab(
 bool OriginSpaceController::IsTabInActiveSpace(
     content::WebContents* contents) const {
   return GetSpaceIdForTab(contents) == active_space_id_;
+}
+
+bool OriginSpaceController::IsTabPlaceholder(
+    content::WebContents* contents) const {
+  if (!contents) {
+    return false;
+  }
+
+  const GURL& url = contents->GetVisibleURL();
+  return url.is_empty() || NewTabUI::IsNewTab(url) ||
+         url == GURL(url::kAboutBlankURL);
+}
+
+bool OriginSpaceController::ShouldShowTabInPageList(
+    content::WebContents* contents) const {
+  return IsTabInActiveSpace(contents) && !IsTabPlaceholder(contents);
+}
+
+size_t OriginSpaceController::GetPageCountForSpace(
+    const std::string& space_id) const {
+  size_t page_count = 0;
+  for (int index = 0; index < tab_strip_model_->count(); ++index) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(index);
+    // Pinned pages are presented in their own section and do not contribute
+    // to the Space's Pages count. This keeps the header count identical to the
+    // Pages section count shown in the sidebar.
+    if (GetSpaceIdForTab(contents) == space_id &&
+        !tab_strip_model_->IsTabPinned(index) &&
+        !IsTabPlaceholder(contents)) {
+      ++page_count;
+    }
+  }
+  return page_count;
 }
 
 bool OriginSpaceController::ActiveSpaceHasTabs() const {
@@ -155,6 +195,25 @@ bool OriginSpaceController::SelectAdjacentTab(bool next) {
   return true;
 }
 
+bool OriginSpaceController::SelectAdjacentSpace(bool next) {
+  const auto& spaces = workspace_service_->GetOriginSpaces();
+  if (spaces.empty()) {
+    return false;
+  }
+
+  const auto current =
+      std::ranges::find(spaces, active_space_id_, &OriginSpaceMetadata::id);
+  size_t target = 0;
+  if (current != spaces.end()) {
+    const size_t offset = static_cast<size_t>(current - spaces.begin());
+    target = next ? (offset + 1) % spaces.size()
+                  : (offset + spaces.size() - 1) % spaces.size();
+  } else if (!next) {
+    target = spaces.size() - 1;
+  }
+  return SelectSpace(spaces[target].id);
+}
+
 void OriginSpaceController::MaybePopulateTabExtraData(
     int index,
     std::map<std::string, std::string>* extra_data) {
@@ -172,7 +231,8 @@ void OriginSpaceController::MaybeRestoreTabSpace(
   const std::string* restored_space_id =
       base::FindOrNull(extra_data, kBraveOriginSpaceIdKey);
   const std::string space_id =
-      restored_space_id && workspace_service_->GetOriginSpace(*restored_space_id)
+      restored_space_id &&
+              workspace_service_->GetOriginSpace(*restored_space_id)
           ? *restored_space_id
           : DefaultSpaceId();
   MoveTabToSpace(restored_contents, space_id);
@@ -262,15 +322,13 @@ void OriginSpaceController::OnTabStripModelChanged(
       // after the current model notification finishes.
       base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
           FROM_HERE,
-          base::BindOnce(
-              &OriginSpaceController::EnsureActiveTabInActiveSpace,
-              weak_factory_.GetWeakPtr()));
+          base::BindOnce(&OriginSpaceController::EnsureActiveTabInActiveSpace,
+                         weak_factory_.GetWeakPtr()));
     } else if (!restoring_active_space_id_) {
       const std::string selected_space_id =
           EnsureSpaceForTab(selection.new_contents, active_space_id_);
       if (workspace_service_->GetOriginSpace(selected_space_id)) {
-        const bool active_space_changed =
-            active_space_id_ != selected_space_id;
+        const bool active_space_changed = active_space_id_ != selected_space_id;
         active_space_id_ = selected_space_id;
         if (active_space_changed) {
           WriteWindowSessionData();
@@ -284,6 +342,15 @@ void OriginSpaceController::OnTabStripModelChanged(
       selection.active_tab_changed()) {
     NotifyChanged();
   }
+}
+
+void OriginSpaceController::OnTabChangedAt(tabs::TabInterface* tab,
+                                           int index,
+                                           TabChangeType change_type) {
+  // Navigation can turn the hidden New Tab renderer into a real page (or the
+  // reverse) without changing TabStripModel membership. Refresh sidebar rows
+  // and counts whenever the tab's renderer data changes.
+  NotifyChanged();
 }
 
 void OriginSpaceController::OnOriginSpacesChanged() {
@@ -344,8 +411,7 @@ int OriginSpaceController::FindPreferredTabIndex(
     if (remembered == last_active_tab_by_space_.end()) {
       continue;
     }
-    const auto* helper =
-        sessions::SessionTabHelper::FromWebContents(contents);
+    const auto* helper = sessions::SessionTabHelper::FromWebContents(contents);
     if (helper && helper->session_id() == remembered->second) {
       return index;
     }
@@ -362,7 +428,7 @@ void OriginSpaceController::RememberActiveTab(content::WebContents* contents) {
     return;
   }
   last_active_tab_by_space_.insert_or_assign(GetSpaceIdForTab(contents),
-                                              helper->session_id());
+                                             helper->session_id());
 }
 
 void OriginSpaceController::EnsureActiveTabInActiveSpace() {
@@ -388,9 +454,9 @@ void OriginSpaceController::WriteTabSessionData(
   if (!session_service || !session_helper) {
     return;
   }
-  session_service->AddTabExtraData(
-      window_id_, session_helper->session_id(), kBraveOriginSpaceIdKey,
-      GetSpaceIdForTab(contents));
+  session_service->AddTabExtraData(window_id_, session_helper->session_id(),
+                                   kBraveOriginSpaceIdKey,
+                                   GetSpaceIdForTab(contents));
 }
 
 void OriginSpaceController::WriteWindowSessionData() {
@@ -399,8 +465,8 @@ void OriginSpaceController::WriteWindowSessionData() {
   if (!session_service) {
     return;
   }
-  session_service->AddWindowExtraData(
-      window_id_, kBraveOriginActiveSpaceIdKey, active_space_id_);
+  session_service->AddWindowExtraData(window_id_, kBraveOriginActiveSpaceIdKey,
+                                      active_space_id_);
 }
 
 void OriginSpaceController::NotifyChanged() {

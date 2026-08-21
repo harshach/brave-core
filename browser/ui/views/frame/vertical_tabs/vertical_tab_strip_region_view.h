@@ -25,7 +25,6 @@
 #include "components/prefs/pref_member.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/slide_animation.h"
-#include "ui/menus/simple_menu_model.h"
 #include "ui/views/animation/animation_delegate_views.h"
 #include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/resize_area_delegate.h"
@@ -59,8 +58,7 @@ class BraveVerticalTabStripRegionView : public views::View,
                                         public FocusModeController::Observer,
                                         public WorkspaceService::Observer,
                                         public OriginSpaceController::Observer,
-                                        public views::TextfieldController,
-                                        public ui::SimpleMenuModel::Delegate {
+                                        public views::TextfieldController {
   METADATA_HEADER(BraveVerticalTabStripRegionView, views::View)
  public:
   using views::TextfieldController::HandleMouseEvent;
@@ -169,6 +167,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            LayoutAfterFirstTabCreation);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, LayoutSanity);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginResizeHandleIsInteractive);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -191,7 +191,15 @@ class BraveVerticalTabStripRegionView : public views::View,
   void BeginOriginWorkspaceRename();
   void CommitOriginWorkspaceRename();
   void CancelOriginWorkspaceRename();
-  void ShowOriginWorkspaceMenu();
+  void SetOriginWorkspaceRenameMode(bool editing);
+  void ShowOriginWorkspaceIconPicker();
+  void SetOriginWorkspaceIcon(std::string icon);
+  void ShowOriginQuickOpen();
+  void ShowOriginShortcutHelp();
+  void ShowOriginThemePicker();
+  void SetOriginThemeMode(int mode);
+  void UpdateOriginWorkspaceMeta();
+  void EnsureOriginSpaceHasPage();
   void ApplyOriginWorkspaceTabs();
 
   // WorkspaceService::Observer:
@@ -203,10 +211,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   // views::TextfieldController:
   bool HandleKeyEvent(views::Textfield* sender,
                       const ui::KeyEvent& key_event) override;
-
-  // ui::SimpleMenuModel::Delegate:
-  bool IsCommandIdEnabled(int command_id) const override;
-  void ExecuteCommand(int command_id, int event_flags) override;
 
   void OnCollapsedPrefChanged();
   void OnFloatingModePrefChanged();
@@ -271,17 +275,28 @@ class BraveVerticalTabStripRegionView : public views::View,
   // These views are deliberately part of the native browser chrome so tabs,
   // split views, profiles, and Shields keep their normal browser semantics.
   raw_ptr<views::View> origin_workspace_rail_ = nullptr;
+  raw_ptr<views::View> origin_page_column_ = nullptr;
   raw_ptr<views::View> origin_workspace_header_ = nullptr;
   raw_ptr<views::View> origin_pages_header_ = nullptr;
   raw_ptr<views::LabelButton> origin_workspace_title_ = nullptr;
+  raw_ptr<views::Label> origin_workspace_meta_ = nullptr;
   raw_ptr<views::Textfield> origin_workspace_name_editor_ = nullptr;
   raw_ptr<views::LabelButton> origin_workspace_save_button_ = nullptr;
-  raw_ptr<views::LabelButton> origin_workspace_menu_button_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_icon_button_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_more_button_ = nullptr;
+  raw_ptr<views::View> origin_search_button_ = nullptr;
+  raw_ptr<views::View> origin_new_page_button_ = nullptr;
+  raw_ptr<views::View> origin_status_row_ = nullptr;
+  raw_ptr<views::View> origin_shortcut_button_ = nullptr;
+  raw_ptr<views::View> origin_theme_button_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
-  std::unique_ptr<ui::SimpleMenuModel> origin_workspace_menu_model_;
+  base::WeakPtr<views::Widget> origin_workspace_icon_picker_widget_;
+  base::WeakPtr<views::Widget> origin_shortcut_help_widget_;
+  base::WeakPtr<views::Widget> origin_theme_picker_widget_;
   raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
   raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
   std::string origin_active_workspace_id_;
+  bool origin_new_page_pending_ = false;
 
   // Separator between tabs and new tab button.
   raw_ptr<views::View> separator_ = nullptr;

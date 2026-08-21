@@ -39,19 +39,23 @@ primitives so Chromium security updates remain mergeable.
 - A page opened from another page is represented by Brave's native tree-tab
   parentage. Closing a branch and restoring it reuse the native historical-tab
   and tree-session data.
-- The workspace rail is 48 px, space controls are 32 px, the complete panel
-  starts at 280 px and resizes from 220 px to 420 px. The web canvas has an 8 px
+- The workspace rail is 56 px, space controls are 32 px, the complete panel
+  starts at 240 px and resizes from 220 px to 420 px. The web canvas has an 8 px
   separation and 10 px corners.
 - Chrome typography uses SF Pro Text on macOS, Segoe UI on Windows, and Inter on
   Linux. The sidebar contains only the selected space title and its pages; the
   duplicate footer-level New Page control is suppressed in Origin.
-- Navigation mode maps `j` and `k` to adjacent pages, `d` to close the selected
-  branch, `o` to the native Quick Open palette, `z` to restore, and `f` to focus
-  mode. `i` enters edit mode and `Escape` returns to navigation mode. Modified
-  keys and editable page fields continue to receive their original input.
+- Navigation mode maps the arrow keys (with `j` and `k` aliases) to adjacent
+  pages, Command/Ctrl+Up and Command/Ctrl+Down to adjacent spaces, Space and
+  `o` to the native Quick Open palette, `d` to close the selected branch, `z`
+  to restore, and `f` to focus mode. Command/Ctrl+K opens Brave Commander and
+  Command/Ctrl+Right closes the active split. `i` enters edit mode and `Escape`
+  returns to navigation mode. Editable page fields continue to receive their
+  original input.
 - Quick Open classifies its input through Brave's native autocomplete stack.
-  `Enter` opens the result as a new page, Replace navigates the selected page,
-  and Split Screen creates a native split page before navigating its new pane.
+  Replace and Split Screen are persistent modes for the next result or `Enter`;
+  the latter creates a native split page before navigating its new pane. Empty
+  input uses native zero-suggest history, and the footer enters Brave Commander.
 - Split pages use Brave's native split-tab commands and resizable
   `BraveMultiContentsView`. A page added to the sidebar opens as an independent,
   resizable right web panel, suitable for Spotify, YouTube, or another web app.

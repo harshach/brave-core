@@ -28,6 +28,7 @@ class BraveVPNButton;
 #endif
 
 class BraveBookmarkButton;
+class BraveShieldsToolbarButton;
 class ScreenshotButton;
 class SidePanelButton;
 class TabStripComboButton;
@@ -44,6 +45,9 @@ class BraveToolbarView : public ToolbarView,
   ~BraveToolbarView() override;
 
   BraveBookmarkButton* bookmark_button() const { return bookmark_; }
+  BraveShieldsToolbarButton* origin_shields_button() const {
+    return origin_shields_button_;
+  }
   WalletButton* wallet_button() const { return wallet_; }
   SidePanelButton* side_panel_button() const { return side_panel_; }
   ToolbarButton* vertical_tab_toggle_button() const {
@@ -66,6 +70,7 @@ class BraveToolbarView : public ToolbarView,
   void UpdateHorizontalPadding();
   void SetOriginPageChromeColors(SkColor surface,
                                  SkColor location_bar_color,
+                                 SkColor location_bar_ring,
                                  SkColor foreground);
 
   std::optional<SkColor> origin_page_chrome_color_for_testing() const {
@@ -97,6 +102,7 @@ class BraveToolbarView : public ToolbarView,
   void UpdateVerticalTabTogglePlacement();
   void UpdateVerticalTabToggleState();
   void OnVerticalTabTogglePressed();
+  void OnOriginQuickOpenPressed();
   void CreateWorkspaceButtonIfNeeded();
   void OnWorkspacesButtonPressed();
   void UpdateWorkspaceButtonVisibility();
@@ -120,8 +126,10 @@ class BraveToolbarView : public ToolbarView,
   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
 
   raw_ptr<ToolbarButton> vertical_tab_toggle_ = nullptr;
+  raw_ptr<ToolbarButton> origin_quick_open_button_ = nullptr;
   raw_ptr<ToolbarButton> workspaces_button_ = nullptr;
   raw_ptr<BraveBookmarkButton> bookmark_ = nullptr;
+  raw_ptr<BraveShieldsToolbarButton> origin_shields_button_ = nullptr;
   // Tracks the preference to determine whether bookmark editing is allowed.
   BooleanPrefMember edit_bookmarks_enabled_;
 
@@ -165,6 +173,7 @@ class BraveToolbarView : public ToolbarView,
   bool brave_initialized_ = false;
   std::optional<SkColor> origin_page_chrome_surface_;
   std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_location_bar_ring_;
   std::optional<SkColor> origin_page_chrome_foreground_;
   // Tracks profile count to determine whether profile switcher should be shown.
   base::ScopedObservation<ProfileAttributesStorage,

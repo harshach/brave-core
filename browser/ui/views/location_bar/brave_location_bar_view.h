@@ -110,7 +110,9 @@ class BraveLocationBarView : public LocationBarView {
   void FocusLocation(bool is_user_initiated,
                      bool clear_focus_if_failed) override;
 
-  void SetOriginPageChromeColors(SkColor background, SkColor foreground);
+  void SetOriginPageChromeColors(SkColor background,
+                                 SkColor ring,
+                                 SkColor foreground);
 
   SkPath GetFocusRingHighlightPath() const;
   ContentSettingImageView* GetContentSettingsImageViewForTesting(size_t idx);
@@ -159,6 +161,7 @@ class BraveLocationBarView : public LocationBarView {
   // See the comments of BraveToolbarView::Layout().
   bool ignore_layout_ = false;
   std::optional<SkColor> origin_page_chrome_background_;
+  std::optional<SkColor> origin_page_chrome_ring_;
   std::optional<SkColor> origin_page_chrome_foreground_;
   std::unique_ptr<ViewShadow> shadow_;
   raw_ptr<BraveActionsContainer> brave_actions_ = nullptr;

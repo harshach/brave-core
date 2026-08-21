@@ -6,6 +6,7 @@
 #ifndef BRAVE_BROWSER_UI_TABS_ORIGIN_SPACE_CONTROLLER_H_
 #define BRAVE_BROWSER_UI_TABS_ORIGIN_SPACE_CONTROLLER_H_
 
+#include <cstddef>
 #include <map>
 #include <optional>
 #include <string>
@@ -46,9 +47,17 @@ class OriginSpaceController : public TabStripModelObserver,
 
   const std::string& active_space_id() const { return active_space_id_; }
   bool SelectSpace(const std::string& space_id);
+  bool SelectSpaceAtIndex(size_t index);
 
   std::string GetSpaceIdForTab(content::WebContents* contents) const;
   bool IsTabInActiveSpace(content::WebContents* contents) const;
+  // The renderer backing a newly-created Space starts on Brave's New Tab
+  // page. Keep that renderer available as the Space canvas, but do not expose
+  // it as a page row or include it in the user-facing page count until it has
+  // navigated somewhere meaningful.
+  bool IsTabPlaceholder(content::WebContents* contents) const;
+  bool ShouldShowTabInPageList(content::WebContents* contents) const;
+  size_t GetPageCountForSpace(const std::string& space_id) const;
   bool ActiveSpaceHasTabs() const;
   void MoveTabToSpace(content::WebContents* contents,
                       const std::string& space_id);
@@ -56,6 +65,10 @@ class OriginSpaceController : public TabStripModelObserver,
   // Selects the previous/next page in the active space, skipping all tabs
   // belonging to other spaces. Navigation wraps at the ends.
   bool SelectAdjacentTab(bool next);
+
+  // Selects the previous/next space in profile order. Navigation wraps at the
+  // ends and restores the last selected page in the destination space.
+  bool SelectAdjacentSpace(bool next);
 
   void MaybePopulateTabExtraData(
       int index,
@@ -65,8 +78,7 @@ class OriginSpaceController : public TabStripModelObserver,
       const std::map<std::string, std::string>& extra_data);
   void MaybePopulateWindowExtraData(
       std::map<std::string, std::string>* extra_data) const;
-  void BeginWindowRestore(
-      const std::map<std::string, std::string>& extra_data);
+  void BeginWindowRestore(const std::map<std::string, std::string>& extra_data);
   void FinishWindowRestore();
 
   void AddObserver(Observer* observer);
@@ -78,6 +90,9 @@ class OriginSpaceController : public TabStripModelObserver,
       TabStripModel* tab_strip_model,
       const TabStripModelChange& change,
       const TabStripSelectionChange& selection) override;
+  void OnTabChangedAt(tabs::TabInterface* tab,
+                      int index,
+                      TabChangeType change_type) override;
 
   // WorkspaceService::Observer:
   void OnOriginSpacesChanged() override;

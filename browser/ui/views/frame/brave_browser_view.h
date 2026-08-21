@@ -18,6 +18,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
+#include "base/timer/timer.h"
 #include "brave/browser/ui/commands/accelerator_service.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
@@ -38,6 +39,7 @@
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 #include "brave/browser/ui/views/toolbar/brave_vpn_panel_controller.h"
@@ -117,6 +119,8 @@ class BraveBrowserView : public BrowserView,
       const BrowserWindowInterface* browser);
 
   void ShowUpdateChromeDialog() override;
+  void ShowOriginQuickOpen(
+      std::optional<ui::KeyboardCode> activation_key = std::nullopt);
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a
@@ -156,6 +160,7 @@ class BraveBrowserView : public BrowserView,
   void OnThemeChanged() override;
   void DidChangeThemeColor() override;
   void OnBackgroundColorChanged() override;
+  void DidStopLoading() override;
   content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
       const input::NativeWebKeyboardEvent& event) override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
@@ -322,6 +327,9 @@ class BraveBrowserView : public BrowserView,
   void OnCompactModePrefChanged();
   void OnPreferenceChanged(const std::string& pref_name);
   void UpdateOriginPageChromeColor(content::WebContents* contents);
+  void ScheduleOriginPageHeaderColorSample(content::WebContents* contents);
+  void SampleOriginPageHeaderColor(content::WebContents* contents,
+                                   const GURL& url);
   void OnWindowClosingConfirmResponse(bool allowed_to_close);
   BraveBrowser* GetBraveBrowser() const;
   void UpdateFocusModeState();
@@ -351,9 +359,8 @@ class BraveBrowserView : public BrowserView,
   // class's ctor body runs).
   void EnsureFindBarHostViewIsLastChild();
 
-  void ShowOriginQuickOpen(
-      std::optional<ui::KeyboardCode> activation_key = std::nullopt);
   void HideOriginQuickOpen();
+  void ShowOriginCommander();
   void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
                              OriginQuickOpenDisposition disposition);
 
@@ -383,7 +390,12 @@ class BraveBrowserView : public BrowserView,
   bool effective_focus_mode_state_initialized_ = false;
   std::optional<SkColor> origin_page_chrome_surface_;
   std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_location_bar_ring_;
   std::optional<SkColor> origin_page_chrome_foreground_;
+  std::optional<SkColor> origin_page_header_color_;
+  GURL origin_page_header_sampled_url_;
+  GURL origin_page_header_sample_pending_url_;
+  base::OneShotTimer origin_page_header_sample_timer_;
   raw_ptr<BraveHelpBubbleHostView> brave_help_bubble_host_view_ = nullptr;
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
   raw_ptr<views::View> contents_background_view_ = nullptr;

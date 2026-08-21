@@ -86,8 +86,8 @@ SkColor GetHoveredTabBackgroundColor(const ui::ColorProviderKey& key,
             color_utils::HSL{
                 .h = -1,
                 .s = 0.55,
-                .l = 0.52}}},  // Dark-mode: A little more saturation
-                               // and a little bit darker
+                .l = 0.52}}},  // Dark-mode: A little more
+                               // saturation and a little bit darker
       });
 
   const color_utils::HSL& shift =
@@ -207,31 +207,29 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
       ui::ColorTransform(apply_opacity_for_inactive_tab_foreground);
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin has two related surfaces: the workspace sidebar and the active-page
-  // column. Keeping their tones close makes the window feel integrated, while
-  // a small luminance step and a shared outline make the page/address-bar
-  // column read as one distinct canvas.
+  // Origin uses one shell surface across the frame, workspace sidebar, and
+  // toolbar. The rounded address field and web canvas supply the page layer.
   const bool dark = key.color_mode == ui::ColorProviderKey::ColorMode::kDark;
   const SkColor kWorkspaceSurface =
-      dark ? SkColorSetRGB(0x18, 0x18, 0x17) : SkColorSetRGB(0xF7, 0xF3, 0xEE);
-  const SkColor kPageChromeSurface =
-      dark ? SkColorSetRGB(0x10, 0x11, 0x11) : SkColorSetRGB(0xFD, 0xFC, 0xFA);
+      dark ? SkColorSetRGB(0x17, 0x19, 0x1E) : SK_ColorWHITE;
+  // The frame, toolbar, and sidebar are one shell. Page-derived colour belongs
+  // only to the rounded location bar and the web canvas layered above it.
+  const SkColor kPageChromeSurface = kWorkspaceSurface;
   const SkColor kWorkspaceSelection =
-      dark ? SkColorSetRGB(0x3A, 0x30, 0x2D) : SkColorSetRGB(0xF7, 0xDF, 0xCE);
+      dark ? SkColorSetRGB(0x3C, 0x22, 0x20) : SkColorSetRGB(0xFE, 0xF0, 0xEB);
   const SkColor kWorkspaceHover =
-      dark ? SkColorSetRGB(0x2C, 0x29, 0x27) : SkColorSetRGB(0xF2, 0xEA, 0xE2);
+      dark ? SkColorSetRGB(0x25, 0x27, 0x2C) : SkColorSetRGB(0xF5, 0xF5, 0xF5);
   const SkColor kWorkspaceText =
-      dark ? SkColorSetRGB(0xE9, 0xE5, 0xE1) : SkColorSetRGB(0x3B, 0x36, 0x32);
+      dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6) : SkColorSetRGB(0x18, 0x1D, 0x27);
   const SkColor kWorkspaceMutedText =
-      dark ? SkColorSetRGB(0xAA, 0xA4, 0x9F) : SkColorSetRGB(0x83, 0x7D, 0x77);
+      dark ? SkColorSetRGB(0x94, 0x96, 0x9C) : SkColorSetRGB(0x53, 0x58, 0x62);
   const SkColor kLocationBarSurface = kPageChromeSurface;
-  const SkColor kShellOutline =
-      dark ? SkColorSetRGB(0x4F, 0x4E, 0x4B) : SkColorSetRGB(0xD2, 0xC8, 0xBE);
+  const SkColor kShellOutline = dark ? SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF)
+                                     : SkColorSetRGB(0xE9, 0xEA, 0xEB);
   mixer[kColorBraveVerticalTabActiveBackground] = {kWorkspaceSelection};
   mixer[kColorBraveVerticalTabHoveredBackground] = {kWorkspaceHover};
   mixer[kColorBraveVerticalTabInactiveBackground] = {kWorkspaceSurface};
-  mixer[kColorBraveVerticalTabSeparator] = {
-      dark ? SkColorSetRGB(0x3B, 0x38, 0x35) : SkColorSetRGB(0xE8, 0xE0, 0xD8)};
+  mixer[kColorBraveVerticalTabSeparator] = {kWorkspaceSurface};
   mixer[kColorBraveVerticalTabNTBIconColor] = {kWorkspaceMutedText};
   mixer[kColorBraveVerticalTabNTBTextColor] = {kWorkspaceMutedText};
   mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {kWorkspaceMutedText};

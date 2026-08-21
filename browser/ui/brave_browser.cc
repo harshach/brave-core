@@ -91,6 +91,18 @@ BraveBrowser::BraveBrowser(const CreateParams& params) : Browser(params) {
 
 BraveBrowser::~BraveBrowser() = default;
 
+bool BraveBrowser::ShouldFocusLocationBarByDefault(
+    content::WebContents* source) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin starts in navigation mode. Keep automatic new-tab focus in the
+  // page so single-key commands such as `o` reach the browser view; explicit
+  // location-bar actions such as Command+L still focus the omnibox normally.
+  return false;
+#else
+  return Browser::ShouldFocusLocationBarByDefault(source);
+#endif
+}
+
 void BraveBrowser::ScheduleUIUpdate(content::WebContents* source,
                                     unsigned changed_flags) {
   Browser::ScheduleUIUpdate(source, changed_flags);

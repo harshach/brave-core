@@ -10,7 +10,8 @@
 inline constexpr char kWorkspacesMetadataPref[] = "brave.workspaces.metadata";
 
 // Ordered list of live Sigma-style spaces. Each entry contains a stable id,
-// display name, and emoji icon. This is intentionally separate from saved
+// display name, and stable vector-icon identifier. This is intentionally
+// separate from saved
 // workspace snapshots above.
 inline constexpr char kOriginSpacesPref[] = "brave.origin.spaces";
 

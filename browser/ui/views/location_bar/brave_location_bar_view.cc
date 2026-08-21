@@ -52,6 +52,7 @@
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/views/animation/ink_drop.h"
 #include "ui/views/background.h"
+#include "ui/views/border.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/view_utils.h"
 
@@ -159,6 +160,11 @@ void BraveLocationBarView::Init() {
   brave_actions_ = AddChildView(
       std::make_unique<BraveActionsContainer>(browser_, GetProfile()));
   brave_actions_->Init();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin presents Shields as a first-class titlebar control. Do not reserve
+  // a second action slot inside the compact URL capsule.
+  brave_actions_->SetShouldHide(true);
+#endif
   // Call Update again to cause a Layout
   Update(nullptr);
 
@@ -246,6 +252,9 @@ void BraveLocationBarView::OnVisibleBoundsChanged() {
 
 void BraveLocationBarView::OnChanged() {
   auto hide_page_actions = ShouldHidePageActionIcons();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  hide_page_actions = true;
+#endif
   if (brave_actions_) {
     brave_actions_->SetShouldHide(hide_page_actions);
   }
@@ -349,13 +358,16 @@ SkColor BraveLocationBarView::GetSecurityChipColor(
 }
 
 void BraveLocationBarView::SetOriginPageChromeColors(SkColor background,
+                                                     SkColor ring,
                                                      SkColor foreground) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (origin_page_chrome_background_ == background &&
+      origin_page_chrome_ring_ == ring &&
       origin_page_chrome_foreground_ == foreground) {
     return;
   }
   origin_page_chrome_background_ = background;
+  origin_page_chrome_ring_ = ring;
   origin_page_chrome_foreground_ = foreground;
   if (IsInitialized()) {
     RefreshBackground();
@@ -366,8 +378,7 @@ void BraveLocationBarView::SetOriginPageChromeColors(SkColor background,
 bool BraveLocationBarView::ShouldUseOriginPageChromeColors() const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   return origin_page_chrome_background_ && origin_page_chrome_foreground_ &&
-         IsInitialized() &&
-         !GetOmniboxController()->edit_model()->is_caret_visible();
+         origin_page_chrome_ring_ && IsInitialized();
 #else
   return false;
 #endif
@@ -384,9 +395,12 @@ void BraveLocationBarView::ApplyOriginPageChromeColors() {
     background_color_ = *origin_page_chrome_background_;
     SetBackground(views::CreateRoundedRectBackground(background_color_,
                                                      GetBorderRadius()));
+    SetBorder(views::CreateRoundedRectBorder(1, GetBorderRadius(),
+                                             *origin_page_chrome_ring_));
     omnibox_view_->SetBackgroundColor(background_color_);
     omnibox_view_->SetColor(*origin_page_chrome_foreground_);
   } else if (const ui::ColorProvider* colors = GetColorProvider()) {
+    SetBorder(nullptr);
     omnibox_view_->SetColor(colors->GetColor(kColorOmniboxText));
   }
 

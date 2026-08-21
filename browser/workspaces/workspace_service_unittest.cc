@@ -72,40 +72,54 @@ TEST_F(WorkspaceServiceTest, ListWorkspaces_InitiallyEmpty) {
   EXPECT_TRUE(service_->ListWorkspaces().empty());
 }
 
-TEST_F(WorkspaceServiceTest, OriginSpaces_StartWithPersistentHome) {
+TEST_F(WorkspaceServiceTest, OriginSpaces_StartWithPersistentDefaults) {
   const auto& spaces = service_->GetOriginSpaces();
-  ASSERT_EQ(spaces.size(), 1u);
+  ASSERT_EQ(spaces.size(), 5u);
   EXPECT_EQ(spaces[0].name, "Home");
-  EXPECT_EQ(spaces[0].icon, "🏠");
+  EXPECT_EQ(spaces[0].icon, kOriginSpaceIconHome);
+  EXPECT_EQ(spaces[1].name, "Work");
+  EXPECT_EQ(spaces[1].icon, kOriginSpaceIconWork);
+  EXPECT_EQ(spaces[2].name, "Playground");
+  EXPECT_EQ(spaces[2].icon, kOriginSpaceIconPlayground);
+  EXPECT_EQ(spaces[3].name, "Reading");
+  EXPECT_EQ(spaces[3].icon, kOriginSpaceIconReading);
+  EXPECT_EQ(spaces[4].name, "Dev");
+  EXPECT_EQ(spaces[4].icon, kOriginSpaceIconTerminal);
 
   const std::string home_id = spaces[0].id;
   service_ = std::make_unique<WorkspaceService>(*profile_);
-  ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 5u);
   EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
 }
 
 TEST_F(WorkspaceServiceTest, OriginSpaces_CRUDAndOrdering) {
   const std::string home_id = service_->GetOriginSpaces()[0].id;
-  const std::string work_id = service_->CreateOriginSpace("Work", "🔥");
-  const std::string play_id = service_->CreateOriginSpace("Play", "🌴");
-  ASSERT_EQ(service_->GetOriginSpaces().size(), 3u);
+  const std::string work_id =
+      service_->CreateOriginSpace("Work", kOriginSpaceIconWork);
+  const std::string play_id =
+      service_->CreateOriginSpace("Play", kOriginSpaceIconPlayground);
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 7u);
 
   OriginSpaceMetadata work = *service_->GetOriginSpace(work_id);
   work.name = "Design";
-  work.icon = "✏️";
+  work.icon = kOriginSpaceIconIdeas;
   EXPECT_TRUE(service_->UpdateOriginSpace(work));
   EXPECT_EQ(service_->GetOriginSpace(work_id)->name, "Design");
 
   EXPECT_TRUE(service_->ReorderOriginSpace(play_id, 0));
   EXPECT_EQ(service_->GetOriginSpaces()[0].id, play_id);
   EXPECT_TRUE(service_->DeleteOriginSpace(work_id));
-  EXPECT_EQ(service_->GetOriginSpaces().size(), 2u);
+  EXPECT_EQ(service_->GetOriginSpaces().size(), 6u);
   EXPECT_NE(service_->GetOriginSpace(home_id), nullptr);
   EXPECT_EQ(service_->GetOriginSpace(work_id), nullptr);
 }
 
 TEST_F(WorkspaceServiceTest, OriginSpaces_NeverDeleteLastSpace) {
   const std::string home_id = service_->GetOriginSpaces()[0].id;
+  while (service_->GetOriginSpaces().size() > 1u) {
+    ASSERT_TRUE(service_->DeleteOriginSpace(
+        service_->GetOriginSpaces().back().id));
+  }
   EXPECT_FALSE(service_->DeleteOriginSpace(home_id));
   ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
   EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);

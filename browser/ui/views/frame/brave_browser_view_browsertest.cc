@@ -6,14 +6,17 @@
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 
 #include <string>
+#include <utility>
 
 #include "base/functional/callback.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
@@ -21,6 +24,8 @@
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -61,9 +66,11 @@
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
 #include "ui/compositor/layer.h"
+#include "ui/events/event.h"
 #include "ui/events/event_constants.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
+#include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -151,8 +158,7 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
 };
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
-                       NewTabAcceleratorShowsOriginQuickOpen) {
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
   ASSERT_TRUE(origin_quick_open_view());
   EXPECT_FALSE(origin_quick_open_view()->GetVisible());
   const int initial_tab_count = browser()->tab_strip_model()->count();
@@ -169,6 +175,177 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
 
   origin_quick_open_view()->Dismiss();
   EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_K, kModifiers)));
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+  EXPECT_EQ(initial_tab_count, browser()->tab_strip_model()->count());
+
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_2, kModifiers)));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_1, kModifiers)));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[0].id,
+            controller->active_space_id());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenPromotesDirectSite) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"reddit");
+  quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& direct_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"reddit.com", direct_result.title);
+  EXPECT_EQ(GURL("https://www.reddit.com/"), direct_result.destination_url);
+  EXPECT_FALSE(direct_result.is_search);
+
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_TRUE(quick_open->query_results_[1][1].is_search);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"macrumors");
+  quick_open->ContentsChanged(quick_open->search_field_, u"macrumors");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& bare_domain_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"macrumors.com", bare_domain_result.title);
+  EXPECT_EQ(GURL("https://www.macrumors.com/"),
+            bare_domain_result.destination_url);
+  EXPECT_FALSE(bare_domain_result.icon_model.IsEmpty());
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_TRUE(quick_open->query_results_[1][1].is_search);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"flip");
+  quick_open->ContentsChanged(quick_open->search_field_, u"flip");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& flipboard_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"flipboard.com", flipboard_result.title);
+  EXPECT_EQ(GURL("https://flipboard.com/"),
+            flipboard_result.destination_url);
+  EXPECT_FALSE(flipboard_result.icon_model.IsEmpty());
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenCompletesPartialDomain) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"news.yc");
+  quick_open->ContentsChanged(quick_open->search_field_, u"news.yc");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  EXPECT_EQ(GURL("https://news.ycombinator.com/"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_NE(GURL("https://news.yc.com/"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_EQ(u"news.yc", quick_open->user_input_);
+  EXPECT_EQ(u"news.ycombinator.com", quick_open->search_field_->GetText());
+  EXPECT_EQ(quick_open->user_input_.size(),
+            quick_open->search_field_->GetSelectedRange().GetMin());
+  EXPECT_EQ(quick_open->search_field_->GetText().size(),
+            quick_open->search_field_->GetSelectedRange().GetMax());
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuickOpenPrefersOpenPage) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  OriginQuickOpenView::Result open_result;
+  open_result.title = u"Reddit — already open";
+  open_result.subtitle = u"— already open here";
+  open_result.badge = u"Switch  ›";
+  open_result.destination_url = GURL("https://www.reddit.com/r/brave_browser/");
+  open_result.switch_to_tab = true;
+  quick_open->open_tab_results_.insert(
+      quick_open->open_tab_results_.begin(),
+      OriginQuickOpenView::TimedResult{std::move(open_result),
+                                       base::Time::Now()});
+
+  quick_open->search_field_->SetText(u"red");
+  quick_open->ContentsChanged(quick_open->search_field_, u"red");
+
+  ASSERT_FALSE(quick_open->query_results_[0].empty());
+  const auto& selected_result = quick_open->query_results_[0][0];
+  EXPECT_TRUE(selected_result.switch_to_tab);
+  EXPECT_EQ(GURL("https://www.reddit.com/r/brave_browser/"),
+            selected_result.destination_url);
+  EXPECT_EQ(u"Switch to page  ↵", selected_result.badge);
+  ASSERT_FALSE(quick_open->visible_results_.empty());
+  EXPECT_EQ(0u, quick_open->visible_results_[0].first);
+  EXPECT_EQ(0u, quick_open->visible_results_[0].second);
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenRanksMatchingHistory) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"flip");
+  quick_open->ContentsChanged(quick_open->search_field_, u"flip");
+
+  OriginQuickOpenView::Result history_result;
+  history_result.title = u"Flipboard";
+  history_result.destination_url = GURL("https://flipboard.com/latest");
+  history_result.subtitle = u"— 2 days ago";
+  history_result.icon_model =
+      quick_open->GetFaviconModelForURL(history_result.destination_url);
+  quick_open->query_history_results_.push_back(
+      OriginQuickOpenView::TimedResult{std::move(history_result),
+                                       base::Time::Now()});
+  quick_open->RebuildResults();
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][0].badge.starts_with(u"History"));
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenNumberSendsToSpace) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(quick_open);
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"reddit");
+  quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
+  ASSERT_TRUE(quick_open->GetVisible());
+
+  const ui::KeyEvent key_event(ui::EventType::kKeyPressed, ui::VKEY_2,
+                               ui::EF_NONE);
+  EXPECT_TRUE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, key_event));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
+  EXPECT_FALSE(quick_open->GetVisible());
 }
 #endif
 

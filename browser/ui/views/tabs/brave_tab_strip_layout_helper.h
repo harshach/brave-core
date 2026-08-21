@@ -31,20 +31,24 @@ class TabStrip;
 
 namespace tabs {
 
-inline constexpr int kVerticalTabHeight = 32;
-inline constexpr int kVerticalTabMinWidth = kVerticalTabHeight;
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-// Sigma-style pages have a visibly separate rhythm rather than reading as a
-// dense continuous list.
-inline constexpr int kVerticalTabsSpacing = 8;
+// Page rows use a compact 32 px capsule on a 33 px rhythm. The horizontal
+// margin is independent of the vertical gap so section rows align to the
+// page-column's 8 px grid without introducing large gaps between pages.
+inline constexpr int kVerticalTabHeight = 32;
+inline constexpr int kVerticalTabsSpacing = 1;
+inline constexpr int kMarginForVerticalTabContainers = 8;
 #else
+inline constexpr int kVerticalTabHeight = 32;
 inline constexpr int kVerticalTabsSpacing = 4;
-#endif
 inline constexpr int kMarginForVerticalTabContainers = kVerticalTabsSpacing;
+#endif
+inline constexpr int kVerticalTabMinWidth = kVerticalTabHeight;
 inline constexpr int kPinnedUnpinnedSeparatorHeight = 1;
 
 // The base offset per level for vertical tabs in tree tabs
-inline constexpr int kBaseOffsetPerLevel = 20;
+inline constexpr int kBaseOffsetPerLevel =
+    BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED) ? 16 : 20;
 
 // Vertical gap between a tree-tab parent and its nested children so a
 // dragged subtree renders as a compact, overlapping pile instead of a

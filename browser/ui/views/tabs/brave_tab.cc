@@ -12,6 +12,7 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/strings/utf_string_conversions.h"
+#include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/containers/container_model.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -20,6 +21,7 @@
 #include "brave/browser/ui/views/tabs/accent_color/brave_tab_accent_color_palette.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
+#include "brave/components/vector_icons/vector_icons.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "cc/paint/paint_flags.h"
 #include "chrome/browser/profiles/profile.h"
@@ -44,6 +46,7 @@
 #include "ui/views/animation/ink_drop.h"
 #include "ui/views/bubble/bubble_border.h"
 #include "ui/views/controls/button/image_button.h"
+#include "ui/views/controls/image_view.h"
 #include "ui/views/controls/label.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
@@ -208,7 +211,7 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
 #else
       constexpr char kFamily[] = "Inter";
 #endif
-      title->SetFontList(gfx::FontList({kFamily}, gfx::Font::NORMAL, 14,
+      title->SetFontList(gfx::FontList({kFamily}, gfx::Font::NORMAL, 13,
                                        gfx::Font::Weight::NORMAL));
       // Origin's page list is intentionally narrow. Use a visible ellipsis
       // instead of Chromium's default fade so a truncated page title has a
@@ -217,6 +220,12 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
       break;
     }
   }
+  origin_pin_indicator_ = AddChildView(std::make_unique<views::ImageView>());
+  origin_pin_indicator_->SetImage(ui::ImageModel::FromVectorIcon(
+      kLeoPinIcon, kColorBraveVerticalTabNTBTextColor, 14));
+  origin_pin_indicator_->SetImageSize(gfx::Size(14, 14));
+  origin_pin_indicator_->SetCanProcessEventsWithinSubtree(false);
+  origin_pin_indicator_->SetVisible(false);
 #endif
   if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
     InitTreeToggleButton();
@@ -398,6 +407,16 @@ void BraveTab::UpdateIconVisibility() {
       return;
     }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Sigma treats pinned pages as full rows in an expanded Space, not as a
+    // favicon grid. Keep the conventional compact form only when the entire
+    // vertical strip has collapsed to icon width.
+    center_icon_ = false;
+    showing_icon_ = !showing_alert_indicator_;
+    showing_close_button_ = false;
+    return;
+#else
+
     // When we show only icon for pinned vertical tab, we want to keep it
     // centered all the time.
     if ((showing_icon_ || showing_alert_indicator_) &&
@@ -438,6 +457,7 @@ void BraveTab::UpdateIconVisibility() {
     }
 
     return;
+#endif
   }
 
   // To prevent flickering duing the toggle animation,
@@ -635,6 +655,28 @@ void BraveTab::Layout(PassKey) {
 
   LayoutSuperclass<Tab>(this);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_pin_indicator_) {
+    const bool show_pin = data().pinned &&
+                          !IsAtMinWidthForVerticalTabStrip() &&
+                          ShouldRenderAsNormalTab();
+    origin_pin_indicator_->SetVisible(show_pin);
+    if (show_pin) {
+      constexpr int kPinSize = 14;
+      constexpr int kPinRightInset = 10;
+      origin_pin_indicator_->SetBounds(
+          std::max(0, width() - kPinRightInset - kPinSize),
+          (height() - kPinSize) / 2, kPinSize, kPinSize);
+      if (title_->GetVisible()) {
+        gfx::Rect title_bounds = title_->bounds();
+        title_bounds.set_width(std::max(
+            0, origin_pin_indicator_->x() - 6 - title_bounds.x()));
+        title_->SetBoundsRect(title_bounds);
+      }
+    }
+  }
+#endif
+
   if (IsAtMinWidthForVerticalTabStrip()) {
     if (showing_close_button_) {
       close_button_->SetX(GetLocalBounds().CenterPoint().x() -
@@ -700,9 +742,13 @@ bool BraveTab::ShouldRenderAsNormalTab() const {
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs() && data().pinned &&
       !controller_->IsVerticalTabsFloating()) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    return true;
+#else
     // In cased of pinned vertical tabs, we never render as normal tab, i.e.
     // always show only icon.
     return false;
+#endif
   }
 
   return Tab::ShouldRenderAsNormalTab();

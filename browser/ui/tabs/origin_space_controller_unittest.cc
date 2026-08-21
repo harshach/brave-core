@@ -15,6 +15,7 @@
 #include "brave/browser/workspaces/features.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/components/constants/webui_url_constants.h"
 #include "chrome/browser/extensions/chrome_extension_web_contents_observer.h"
 #include "chrome/browser/extensions/test_extension_system.h"
 #include "chrome/browser/ui/browser.h"
@@ -100,6 +101,39 @@ TEST_F(OriginSpaceControllerTest, KeepsTabsIsolatedAndRemembersSelection) {
   EXPECT_EQ(browser()->tab_strip_model()->GetActiveWebContents(), home_first);
 }
 
+TEST_F(OriginSpaceControllerTest, AdjacentSpaceNavigationWraps) {
+  const std::string home_id = controller_->active_space_id();
+  const auto& spaces = workspace_service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 5u);
+
+  ASSERT_TRUE(controller_->SelectAdjacentSpace(/*next=*/true));
+  EXPECT_EQ(controller_->active_space_id(), spaces[1].id);
+  ASSERT_TRUE(controller_->SelectAdjacentSpace(/*next=*/true));
+  EXPECT_EQ(controller_->active_space_id(), spaces[2].id);
+
+  ASSERT_TRUE(controller_->SelectSpace(spaces.back().id));
+  ASSERT_TRUE(controller_->SelectAdjacentSpace(/*next=*/true));
+  EXPECT_EQ(controller_->active_space_id(), home_id);
+
+  ASSERT_TRUE(controller_->SelectAdjacentSpace(/*next=*/false));
+  EXPECT_EQ(controller_->active_space_id(), spaces.back().id);
+}
+
+TEST_F(OriginSpaceControllerTest, SelectsSpaceByRailPosition) {
+  const std::string home_id = controller_->active_space_id();
+  const auto& spaces = workspace_service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 5u);
+
+  EXPECT_TRUE(controller_->SelectSpaceAtIndex(1));
+  EXPECT_EQ(controller_->active_space_id(), spaces[1].id);
+  EXPECT_TRUE(controller_->SelectSpaceAtIndex(2));
+  EXPECT_EQ(controller_->active_space_id(), spaces[2].id);
+  EXPECT_TRUE(controller_->SelectSpaceAtIndex(0));
+  EXPECT_EQ(controller_->active_space_id(), home_id);
+  EXPECT_FALSE(controller_->SelectSpaceAtIndex(9));
+  EXPECT_EQ(controller_->active_space_id(), home_id);
+}
+
 TEST_F(OriginSpaceControllerTest, RestoresAnEmptySelectedSpaceForTheWindow) {
   const std::string home_id = controller_->active_space_id();
   const std::string empty_id =
@@ -133,6 +167,39 @@ TEST_F(OriginSpaceControllerTest, InvalidRestoreDataFallsBackToHome) {
   controller_->MaybeRestoreTabSpace(
       restored_tab, {{kBraveOriginSpaceIdKey, "missing-space"}});
   EXPECT_EQ(controller_->GetSpaceIdForTab(restored_tab), home_id);
+}
+
+TEST_F(OriginSpaceControllerTest, NewTabCanvasIsNotCountedAsAPage) {
+  content::WebContents* contents = AddTab(/*foreground=*/true);
+  auto* tester = content::WebContentsTester::For(contents);
+  tester->NavigateAndCommit(GURL(kBraveUINewTabURL));
+
+  EXPECT_TRUE(controller_->ActiveSpaceHasTabs());
+  EXPECT_TRUE(controller_->IsTabPlaceholder(contents));
+  EXPECT_FALSE(controller_->ShouldShowTabInPageList(contents));
+  EXPECT_EQ(controller_->GetPageCountForSpace(controller_->active_space_id()),
+            0u);
+
+  tester->NavigateAndCommit(GURL("https://example.com/"));
+  EXPECT_FALSE(controller_->IsTabPlaceholder(contents));
+  EXPECT_TRUE(controller_->ShouldShowTabInPageList(contents));
+  EXPECT_EQ(controller_->GetPageCountForSpace(controller_->active_space_id()),
+            1u);
+}
+
+TEST_F(OriginSpaceControllerTest, PinnedTabsUseTheirOwnSectionCount) {
+  content::WebContents* pinned = AddTab(/*foreground=*/true);
+  content::WebContentsTester::For(pinned)->NavigateAndCommit(
+      GURL("https://example.com/pinned"));
+  browser()->tab_strip_model()->SetTabPinned(0, true);
+
+  content::WebContents* page = AddTab(/*foreground=*/true);
+  content::WebContentsTester::For(page)->NavigateAndCommit(
+      GURL("https://example.com/page"));
+
+  EXPECT_TRUE(controller_->ShouldShowTabInPageList(pinned));
+  EXPECT_EQ(controller_->GetPageCountForSpace(controller_->active_space_id()),
+            1u);
 }
 
 }  // namespace

@@ -66,7 +66,7 @@ TEST(BraveTabPrefsTest, OriginUsesNativeTreeTabWorkspaceDefaults) {
             prefs.GetBoolean(brave_tabs::kVerticalTabsFloatingEnabled));
   EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsShowToggleButton));
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  EXPECT_EQ(280, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
+  EXPECT_EQ(306, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
 #else
   EXPECT_EQ(220, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
 #endif

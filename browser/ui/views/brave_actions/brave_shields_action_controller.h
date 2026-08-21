@@ -41,6 +41,7 @@ class BraveShieldsActionController
   enum class IconStyle {
     kLocationBar,
     kWebAppTitleBar,
+    kOriginTitleBar,
   };
 
   using CreateWebUIBubbleManagerCallback =
@@ -73,6 +74,8 @@ class BraveShieldsActionController
   // Updates |button| image for its current preferred size.
   void RefreshButtonImages(views::LabelButton* button);
   ui::ImageModel GetImageModel(const gfx::Size& preferred_size) const;
+  int GetTotalBlockedCount() const;
+  bool IsShieldsEnabled() const;
   std::u16string GetTooltipText() const;
   void OnButtonPressed();
   views::Widget* GetBubbleWidget();

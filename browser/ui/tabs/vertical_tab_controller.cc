@@ -127,9 +127,10 @@ bool VerticalTabController::IsVerticalTabOnRight() const {
 bool VerticalTabController::ShouldHideVerticalTabsCompletelyWhenCollapsed()
     const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin's sidebar is a complete workspace surface, not an icon-only tab
-  // rail. Collapsing it should return all of that width to the active page.
-  return true;
+  // Origin collapse is rail-only: the 56 px Space rail remains visible while
+  // the 250 px page column is hidden. This keeps Space switching and panel
+  // recovery available without putting controls in a second titlebar.
+  return false;
 #else
   return base::FeatureList::IsEnabled(tabs::kBraveVerticalTabHideCompletely) &&
          prefs_->GetBoolean(

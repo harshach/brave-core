@@ -307,6 +307,10 @@ bool BraveTabStrip::IsInCollapsedTreeTabNode(
 }
 
 bool BraveTabStrip::ShouldShowPinnedTabsInGrid() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Pinned pages are full-width rows under a Pinned heading, not favicon tiles.
+  return false;
+#else
   // Basically we don't want to layout pinned tabs in grid when vertical tabs
   // are floating. Otherwise, pinned tabs would jump to the top of tab strip
   // when mouse hovers over the pinned tabs, and requires extra mouse movement
@@ -326,6 +330,7 @@ bool BraveTabStrip::ShouldShowPinnedTabsInGrid() const {
   }
 
   return should_layout_pinned_tabs_in_grid;
+#endif
 }
 
 void BraveTabStrip::UpdateOrientation() {

@@ -135,7 +135,7 @@ void CalculateVerticalLayout(const std::vector<TabWidthConstraints>& tabs,
 
 int GetTabCornerRadius(const Tab& tab) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return 9;
+  return 8;
 #else
   if (!tabs::HorizontalTabsUpdateEnabled()) {
     return tab.data().pinned ? 8 : 4;
@@ -212,6 +212,7 @@ void CalculatePinnedTabsBoundsInGrid(
       continue;
     }
 
+    const int previous_right = result->back().right();
     i++;
     const auto tab_width =
         base_pinned_tab_width +
@@ -219,10 +220,10 @@ void CalculatePinnedTabsBoundsInGrid(
     rect.set_width(tab_width);
 
     // Update rect for the next pinned tabs. If overflowed, break into new line.
-    if (rect.right() + kVerticalTabMinWidth + kVerticalTabsSpacing +
-            kMarginForVerticalTabContainers <
+    if (previous_right + kVerticalTabsSpacing + tab_width +
+            kMarginForVerticalTabContainers <=
         width.value_or(tab_style->GetStandardWidth(/*is_split*/ true))) {
-      rect.set_x(rect.right() + kVerticalTabsSpacing);
+      rect.set_x(previous_right + kVerticalTabsSpacing);
     } else {
       // New line
       rect.set_x(kMarginForVerticalTabContainers);

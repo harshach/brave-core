@@ -1,10 +1,8 @@
 name: Origin Windows binary
 
 on:
+  workflow_call:
   workflow_dispatch:
-  push:
-    tags:
-      - "origin-v*"
 
 permissions:
   contents: read

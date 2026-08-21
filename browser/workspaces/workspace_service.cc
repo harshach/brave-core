@@ -6,8 +6,10 @@
 #include "brave/browser/workspaces/workspace_service.h"
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -15,6 +17,7 @@
 #include "base/functional/bind.h"
 #include "base/hash/hash.h"
 #include "base/logging.h"
+#include "base/strings/string_util.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
@@ -39,6 +42,65 @@ std::string ComputeKey(const std::string& name) {
 constexpr char kSpaceIdKey[] = "id";
 constexpr char kSpaceNameKey[] = "name";
 constexpr char kSpaceIconKey[] = "icon";
+
+struct DefaultOriginSpace {
+  std::string_view name;
+  std::string_view icon;
+};
+
+constexpr auto kDefaultOriginSpaces = std::to_array<DefaultOriginSpace>({
+    {"Home", kOriginSpaceIconHome},
+    {"Work", kOriginSpaceIconWork},
+    {"Playground", kOriginSpaceIconPlayground},
+    {"Reading", kOriginSpaceIconReading},
+    {"Dev", kOriginSpaceIconTerminal},
+});
+
+bool IsOriginSpaceIcon(std::string_view icon) {
+  constexpr auto kIconNames = std::to_array<std::string_view>({
+      kOriginSpaceIconHome,
+      kOriginSpaceIconWork,
+      kOriginSpaceIconPlayground,
+      kOriginSpaceIconReading,
+      kOriginSpaceIconTerminal,
+      kOriginSpaceIconIdeas,
+      kOriginSpaceIconMessages,
+      kOriginSpaceIconSchool,
+      kOriginSpaceIconShopping,
+      kOriginSpaceIconTravel,
+  });
+  return std::ranges::find(kIconNames, icon) != kIconNames.end();
+}
+
+std::string NormalizeOriginSpaceIcon(std::string_view icon,
+                                     std::string_view name) {
+  if (IsOriginSpaceIcon(icon)) {
+    return std::string(icon);
+  }
+
+  const std::string lower_name = base::ToLowerASCII(name);
+  if (lower_name.find("home") != std::string::npos ||
+      lower_name.find("personal") != std::string::npos) {
+    return kOriginSpaceIconHome;
+  }
+  if (lower_name.find("work") != std::string::npos ||
+      lower_name.find("design") != std::string::npos) {
+    return kOriginSpaceIconWork;
+  }
+  if (lower_name.find("play") != std::string::npos ||
+      lower_name.find("lab") != std::string::npos) {
+    return kOriginSpaceIconPlayground;
+  }
+  if (lower_name.find("read") != std::string::npos ||
+      lower_name.find("research") != std::string::npos) {
+    return kOriginSpaceIconReading;
+  }
+  if (lower_name.find("dev") != std::string::npos ||
+      lower_name.find("code") != std::string::npos) {
+    return kOriginSpaceIconTerminal;
+  }
+  return kOriginSpaceIconIdeas;
+}
 
 }  // namespace
 
@@ -72,10 +134,14 @@ const OriginSpaceMetadata* WorkspaceService::GetOriginSpace(
 
 std::string WorkspaceService::CreateOriginSpace(std::string name,
                                                 std::string icon) {
+  if (name.empty()) {
+    name = "Untitled";
+  }
+  icon = NormalizeOriginSpaceIcon(icon, name);
   OriginSpaceMetadata space{
       .id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
-      .name = name.empty() ? "Untitled" : std::move(name),
-      .icon = icon.empty() ? "✨" : std::move(icon)};
+      .name = std::move(name),
+      .icon = std::move(icon)};
   origin_spaces_.push_back(std::move(space));
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
@@ -89,7 +155,7 @@ bool WorkspaceService::UpdateOriginSpace(const OriginSpaceMetadata& space) {
     return false;
   }
   it->name = space.name.empty() ? "Untitled" : space.name;
-  it->icon = space.icon.empty() ? "✨" : space.icon;
+  it->icon = NormalizeOriginSpaceIcon(space.icon, it->name);
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
   return true;
@@ -135,6 +201,7 @@ void WorkspaceService::RemoveObserver(Observer* observer) {
 
 void WorkspaceService::LoadOriginSpaces() {
   origin_spaces_.clear();
+  bool migrated_icons = false;
   for (const auto& value : pref_service_->GetList(kOriginSpacesPref)) {
     const auto* dict = value.GetIfDict();
     if (!dict) {
@@ -146,13 +213,33 @@ void WorkspaceService::LoadOriginSpaces() {
     if (!id || id->empty() || !name || !icon) {
       continue;
     }
-    origin_spaces_.push_back({.id = *id, .name = *name, .icon = *icon});
+    std::string normalized_icon = NormalizeOriginSpaceIcon(*icon, *name);
+    migrated_icons |= normalized_icon != *icon;
+    origin_spaces_.push_back(
+        {.id = *id, .name = *name, .icon = std::move(normalized_icon)});
   }
   if (origin_spaces_.empty()) {
-    origin_spaces_.push_back(
-        {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
-         .name = "Home",
-         .icon = "🏠"});
+    for (const auto& default_space : kDefaultOriginSpaces) {
+      origin_spaces_.push_back(
+          {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
+           .name = std::string(default_space.name),
+           .icon = std::string(default_space.icon)});
+    }
+    SaveOriginSpaces();
+  } else if (origin_spaces_.size() == 1u &&
+             origin_spaces_.front().name == kDefaultOriginSpaces.front().name &&
+             origin_spaces_.front().icon == kDefaultOriginSpaces.front().icon) {
+    // Early Origin profiles shipped with only Home. Complete that untouched
+    // starter rail once so existing testers see the same defaults as a clean
+    // profile without replacing any custom spaces.
+    for (size_t i = 1; i < kDefaultOriginSpaces.size(); ++i) {
+      origin_spaces_.push_back(
+          {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
+           .name = std::string(kDefaultOriginSpaces[i].name),
+           .icon = std::string(kDefaultOriginSpaces[i].icon)});
+    }
+    SaveOriginSpaces();
+  } else if (migrated_icons) {
     SaveOriginSpaces();
   }
 }

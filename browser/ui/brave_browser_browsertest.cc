@@ -110,6 +110,16 @@ int NewTabModifier() {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       NewTabKeepsNavigationModeFocus) {
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));
+  content::WebContents* const contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(contents);
+  EXPECT_FALSE(static_cast<BraveBrowser*>(browser())
+                   ->ShouldFocusLocationBarByDefault(contents));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
                        PlainTargetBlankClickReusesCurrentPage) {
   ASSERT_TRUE(embedded_test_server()->Start());
   const GURL source_url = embedded_test_server()->GetURL("/empty.html");

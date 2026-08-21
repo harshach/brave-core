@@ -14,6 +14,7 @@
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/tabs/brave_split_tab_menu_model.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/views/brave_actions/brave_shields_toolbar_button.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/location_bar/brave_location_bar_view.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
@@ -203,11 +204,15 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
 
   auto location_index =
       toolbar_view_->GetIndexOf(toolbar_view_->location_bar_view());
+  auto shields_index =
+      toolbar_view_->GetIndexOf(toolbar_view_->origin_shields_button());
   auto bookmark_index =
       toolbar_view_->GetIndexOf(toolbar_view_->bookmark_button());
   ASSERT_TRUE(location_index.has_value());
+  ASSERT_TRUE(shields_index.has_value());
   ASSERT_TRUE(bookmark_index.has_value());
-  EXPECT_EQ(*location_index + 1, *bookmark_index);
+  EXPECT_EQ(*location_index + 1, *shields_index);
+  EXPECT_EQ(*shields_index + 1, *bookmark_index);
 }
 #endif
 

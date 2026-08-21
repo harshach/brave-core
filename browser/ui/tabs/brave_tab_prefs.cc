@@ -14,8 +14,10 @@
 namespace brave_tabs {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-// Includes the space rail plus a comfortable Sigma-style page column.
-constexpr int kDefaultVerticalTabsExpandedWidth = 280;
+// The Origin sidebar is a fixed 56 px space rail plus a 250 px page column.
+// Keeping this literal here makes the pref default agree with the native view's
+// layout contract and with the titlebar/web-canvas alignment.
+constexpr int kDefaultVerticalTabsExpandedWidth = 306;
 #else
 constexpr int kDefaultVerticalTabsExpandedWidth = 220;
 #endif

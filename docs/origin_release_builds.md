@@ -1,15 +1,17 @@
 # Origin Desktop Builds
 
-Origin has separate GitHub Actions workflows for unsigned Linux, Windows, and
-macOS developer packages:
+Origin has separate reusable GitHub Actions workflows for unsigned Linux,
+Windows, and macOS developer packages:
 
 - `origin-build-linux.yml` creates x64 Debian, RPM, and portable ZIP artifacts.
 - `origin-build-windows.yml` creates an x64 installer and portable ZIP.
 - `origin-build-macos.yml` creates a DMG and ZIP for ARM64 or Intel Macs.
 
-Each workflow can be started manually. Pushing a tag matching `origin-v*` starts
-Linux, Windows x64, and macOS ARM64 builds together. Artifacts are kept for 14
-days in the workflow run.
+Each platform workflow can be started manually and keeps its Actions artifact
+for 14 days. `origin-release.yml` runs all four platform builds, checks that
+each package exists, adds SHA-256 checksums, and publishes permanent downloads
+on a GitHub Release. It builds Linux x64, Windows x64, macOS Apple Silicon, and
+macOS Intel packages.
 
 ## Runtime performance
 
@@ -63,8 +65,22 @@ backed by protected GitHub environments and platform signing credentials.
 
 ## Manual dispatch
 
-After these workflows are present on the repository's default branch, start them
-from the Actions page or with GitHub CLI:
+After these workflows are present on the repository's default branch, publish
+a prerelease from the Actions page or with GitHub CLI:
+
+```sh
+gh workflow run origin-release.yml \
+  --ref master \
+  -f tag=origin-v0.1.0-preview.1 \
+  -f prerelease=true
+```
+
+Pushing a tag matching `origin-v*` also starts the complete release pipeline.
+Tags containing a suffix such as `-preview.1` become prereleases; other tags
+become latest releases.
+
+Use the individual build workflows when a temporary package for only one
+platform is sufficient:
 
 ```sh
 gh workflow run origin-build-linux.yml --ref master

@@ -1,6 +1,12 @@
 name: Origin macOS binary
 
 on:
+  workflow_call:
+    inputs:
+      architecture:
+        description: macOS architecture to build
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       architecture:
@@ -11,9 +17,6 @@ on:
         options:
           - ARM64
           - X64
-  push:
-    tags:
-      - "origin-v*"
 
 permissions:
   contents: read
@@ -26,6 +29,8 @@ env:
   CI: "true"
   GIT_CACHE_PATH: ${{ github.workspace }}/workspace/.git-cache
   NINJA_SUMMARIZE_BUILD: "1"
+  ADBLOCK_PACKAGER_COMMIT: c10192f81fe62893ad04370a128e7c4a13599588
+  ADBLOCK_LISTS_COMMIT: bc76984fbe2a054a5e1a51cd5ab9346db59aee45
 
 jobs:
   build:
@@ -55,6 +60,25 @@ jobs:
           version: 11.22.0
           run_install: false
 
+      - name: Check out Brave Ad Block packager
+        uses: actions/checkout@v7.0.1
+        with:
+          repository: brave/brave-core-crx-packager
+          ref: ${{ env.ADBLOCK_PACKAGER_COMMIT }}
+          fetch-depth: 1
+          submodules: true
+          path: workspace/adblock-packager
+
+      - name: Generate public Brave Ad Block components
+        working-directory: workspace/adblock-packager
+        run: |
+          npm ci
+          npm run data-files-ad-block-rust -- --commit-hash "$ADBLOCK_LISTS_COMMIT"
+          npm run generate-ad-block-manifests
+          npm run package-ad-block -- --local-run
+          mkdir -p ../src/brave/.origin-build
+          cp -R build/ad-block-updater ../src/brave/.origin-build/
+
       - name: Select architecture
         shell: bash
         run: |
@@ -73,14 +97,15 @@ jobs:
             'dcheck_always_on=false' \
             'brave_services_key=origin-community-build' \
             'service_key_search=origin-community-build' \
-            'service_key_stt=origin-community-build' > .env
+            'service_key_stt=origin-community-build' \
+            'origin_adblock_components_dir="//brave/.origin-build/ad-block-updater"' > .env
 
       - name: Initialize Chromium workspace
         working-directory: workspace/src/brave
         run: >-
           pnpm run init
           --target_os=mac
-          --target_arch=${TARGET_ARCH}
+          --target_arch="${TARGET_ARCH}"
           --no-history
 
       - name: Build unsigned Origin disk image
@@ -88,7 +113,7 @@ jobs:
         run: >-
           pnpm run create_dist Release
           --target_os=mac
-          --target_arch=${TARGET_ARCH}
+          --target_arch="${TARGET_ARCH}"
           --skip_signing
           --gn=should_generate_symbols:false
 

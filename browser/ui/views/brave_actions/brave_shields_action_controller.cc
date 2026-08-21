@@ -95,6 +95,9 @@ void BraveShieldsActionController::NotifyStateChanged() {
 }
 
 int BraveShieldsActionController::IconDimensionForLayout() const {
+  if (icon_style_ == IconStyle::kOriginTitleBar) {
+    return 16;
+  }
   if (icon_style_ == IconStyle::kWebAppTitleBar) {
     return GetLayoutConstant(LayoutConstant::kWebAppPageActionIconSize);
   }
@@ -131,6 +134,13 @@ gfx::ImageSkia BraveShieldsActionController::GetIconImage(
     bool is_enabled) const {
   const int icon_size = IconDimensionForLayout();
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (icon_style_ == IconStyle::kOriginTitleBar) {
+    return gfx::CreateVectorIcon(
+        is_enabled ? kLeoShieldDoneIcon : kLeoShieldDisableFilledIcon,
+        icon_size,
+        is_enabled ? SkColorSetRGB(0xFB, 0x54, 0x2B)
+                   : SkColorSetRGB(0x6B, 0x6E, 0x75));
+  }
   // In the Brave Origin standalone build the Shields icon is replaced with the
   // Brave Origin face icon, tinted to match the other location bar icons.
   const ui::ColorProvider* color_provider =
@@ -215,8 +225,36 @@ void BraveShieldsActionController::RefreshButtonImages(
   if (!button) {
     return;
   }
+  if (icon_style_ == IconStyle::kOriginTitleBar) {
+    button->SetImageModel(
+        views::Button::STATE_NORMAL,
+        ui::ImageModel::FromImageSkia(GetIconImage(IsShieldsEnabled())));
+    return;
+  }
   const gfx::Size preferred = button->GetPreferredSize();
   button->SetImageModel(views::Button::STATE_NORMAL, GetImageModel(preferred));
+}
+
+int BraveShieldsActionController::GetTotalBlockedCount() const {
+  content::WebContents* web_contents = tab_strip_model_->GetActiveWebContents();
+  auto* shields_data_controller =
+      web_contents
+          ? brave_shields::BraveShieldsTabHelper::FromWebContents(web_contents)
+          : nullptr;
+  return shields_data_controller
+             ? shields_data_controller->GetTotalBlockedCount()
+             : 0;
+}
+
+bool BraveShieldsActionController::IsShieldsEnabled() const {
+  content::WebContents* web_contents = tab_strip_model_->GetActiveWebContents();
+  auto* shields_data_controller =
+      web_contents
+          ? brave_shields::BraveShieldsTabHelper::FromWebContents(web_contents)
+          : nullptr;
+  return shields_data_controller &&
+         shields_data_controller->IsBraveShieldsEnabled() &&
+         !IsPageInReaderMode(web_contents);
 }
 
 void BraveShieldsActionController::OnButtonPressed() {

@@ -25,6 +25,7 @@
 
 namespace views {
 class ImageButton;
+class ImageView;
 }  // namespace views
 
 namespace tabs {
@@ -185,6 +186,7 @@ class BraveTab : public Tab
   bool IsTreeNodeCollapsed() const;
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
+  raw_ptr<views::ImageView> origin_pin_indicator_ = nullptr;
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;
