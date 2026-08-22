@@ -1342,7 +1342,7 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     std::u16string_view key;
     std::u16string_view description;
   };
-  constexpr std::array<ShortcutEntry, 14> kShortcuts = {{
+  constexpr std::array<ShortcutEntry, 15> kShortcuts = {{
       {u"O / N", u"Search or open a page"},
       {u"J / K", u"Next / previous page"},
       {u"1–5", u"Switch Space"},
@@ -1350,6 +1350,7 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
       {u"W", u"Close page"},
       {u"D", u"Close page tree"},
       {u"Z", u"Reopen closed page"},
+      {u"R", u"Reload page"},
       {u"[ / ]", u"Back / forward"},
       {u"I", u"Enter insert mode"},
       {u"Esc", u"Leave insert mode"},

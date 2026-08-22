@@ -66,12 +66,15 @@
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/infobars/core/confirm_infobar_delegate.h"
 #include "components/infobars/core/infobar.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
+#include "content/public/test/test_navigation_observer.h"
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
@@ -224,6 +227,27 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
       ui::Accelerator(ui::VKEY_1, kModifiers)));
   EXPECT_EQ(workspace_service->GetOriginSpaces()[0].id,
             controller->active_space_id());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL test_url = embedded_test_server()->GetURL("/title1.html");
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(contents, test_url));
+
+  content::TestNavigationObserver reload_observer(contents);
+  input::NativeWebKeyboardEvent reload_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  reload_event.windows_key_code = ui::VKEY_R;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(reload_event));
+  reload_observer.Wait();
+  EXPECT_TRUE(reload_observer.last_navigation_succeeded());
+  EXPECT_EQ(test_url, contents->GetLastCommittedURL());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,

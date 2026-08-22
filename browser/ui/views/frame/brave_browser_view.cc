@@ -2048,6 +2048,9 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         case ui::VKEY_Z:
           chrome::ExecuteCommand(browser(), IDC_RESTORE_TAB);
           return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_R:
+          chrome::ExecuteCommand(browser(), IDC_RELOAD);
+          return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_SPACE:
           ShowOriginQuickOpen(ui::VKEY_SPACE);
           return content::KeyboardEventProcessingResult::HANDLED;

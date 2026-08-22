@@ -48,10 +48,10 @@ primitives so Chromium security updates remain mergeable.
 - Navigation mode maps the arrow keys (with `j` and `k` aliases) to adjacent
   pages, Command/Ctrl+Up and Command/Ctrl+Down to adjacent spaces, Space and
   `o` to the native Quick Open palette, `d` to close the selected branch, `z`
-  to restore, and `f` to focus mode. Command/Ctrl+K opens Brave Commander and
-  Command/Ctrl+Right closes the active split. `i` enters edit mode and `Escape`
-  returns to navigation mode. Editable page fields continue to receive their
-  original input.
+  to restore, `r` to reload the active page, and `f` to focus mode.
+  Command/Ctrl+K opens Brave Commander and Command/Ctrl+Right closes the active
+  split. `i` enters edit mode and `Escape` returns to navigation mode. Editable
+  page fields continue to receive their original input.
 - Quick Open classifies its input through Brave's native autocomplete stack.
   Replace and Split Screen are persistent modes for the next result or `Enter`;
   the latter creates a native split page before navigating its new pane. Empty
