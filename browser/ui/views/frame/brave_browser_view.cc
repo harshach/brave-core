@@ -2093,6 +2093,17 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
   const bool has_command =
       FindCommandIdForAccelerator(accelerator, &command_id);
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // BrowserView registers Escape as a window-level accelerator so exclusive
+  // access modes can see both press and release events. Handle Quick Open
+  // before forwarding to BrowserView; otherwise the focused text field may
+  // never receive the key event that normally dismisses the overlay.
+  if (accelerator.modifiers() == ui::EF_NONE &&
+      accelerator.key_code() == ui::VKEY_ESCAPE && origin_quick_open_view_ &&
+      origin_quick_open_view_->GetVisible()) {
+    HideOriginQuickOpen();
+    return true;
+  }
+
   if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR) {
     if (accelerator.key_code() == ui::VKEY_T && origin_quick_open_view_) {
       ShowOriginQuickOpen();

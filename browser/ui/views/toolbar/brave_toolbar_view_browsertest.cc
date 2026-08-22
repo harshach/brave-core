@@ -11,6 +11,7 @@
 #include "base/i18n/base_i18n_switches.h"
 #include "base/i18n/rtl.h"
 #include "base/memory/raw_ptr.h"
+#include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/tabs/brave_split_tab_menu_model.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
@@ -30,6 +31,7 @@
 #include "brave/components/tor/buildflags/buildflags.h"
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/browser/browser_process.h"
+#include "chrome/browser/extensions/chrome_test_extension_loader.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/profiles/profile_manager.h"
@@ -47,6 +49,9 @@
 #include "chrome/browser/ui/side_panel/side_panel_entry_key.h"
 #include "chrome/browser/ui/tabs/split_tab_menu_model.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "chrome/browser/ui/toolbar/toolbar_actions_model.h"
+#include "chrome/browser/ui/views/extensions/extensions_toolbar_button.h"
+#include "chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/custom_corners_background.h"
 #include "chrome/browser/ui/views/frame/toolbar_button_provider.h"
@@ -55,6 +60,7 @@
 #include "chrome/browser/ui/views/toolbar/browser_app_menu_button.h"
 #include "chrome/browser/ui/views/toolbar/split_tabs_button.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
+#include "chrome/test/base/chrome_test_utils.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/search_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
@@ -66,6 +72,7 @@
 #include "components/prefs/pref_service.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/test_utils.h"
+#include "extensions/common/extension.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/views/view.h"
 #include "ui/views/widget/widget.h"
@@ -207,13 +214,61 @@ IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
       toolbar_view_->GetIndexOf(toolbar_view_->location_bar_view());
   auto shields_index =
       toolbar_view_->GetIndexOf(toolbar_view_->origin_shields_button());
+  auto* extensions = toolbar_view_->extensions_container();
+  ASSERT_TRUE(extensions);
+  auto extensions_index = toolbar_view_->GetIndexOf(extensions);
   auto bookmark_index =
       toolbar_view_->GetIndexOf(toolbar_view_->bookmark_button());
   ASSERT_TRUE(location_index.has_value());
+  ASSERT_TRUE(extensions_index.has_value());
   ASSERT_TRUE(shields_index.has_value());
   ASSERT_TRUE(bookmark_index.has_value());
-  EXPECT_EQ(*location_index + 1, *shields_index);
+  EXPECT_TRUE(extensions->GetVisible());
+  EXPECT_TRUE(extensions->GetExtensionsButton()->GetVisible());
+  EXPECT_EQ(*location_index + 1, *extensions_index);
+  EXPECT_EQ(*extensions_index + 1, *shields_index);
   EXPECT_EQ(*shields_index + 1, *bookmark_index);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,
+                       OriginExtensionsMenuAndPinning) {
+  auto* extensions = toolbar_view_->extensions_container();
+  ASSERT_TRUE(extensions);
+  EXPECT_TRUE(extensions->GetVisible());
+
+  extensions::ChromeTestExtensionLoader loader(browser()->GetProfile());
+  scoped_refptr<const extensions::Extension> extension = loader.LoadExtension(
+      chrome_test_utils::GetTestFilePath(
+          base::FilePath().AppendASCII("extensions"),
+          base::FilePath()
+              .AppendASCII("api_test")
+              .AppendASCII("extension_action")
+              .AppendASCII("stub_action")));
+  ASSERT_TRUE(extension);
+
+  ToolbarActionsModel* model =
+      ToolbarActionsModel::Get(browser()->GetProfile());
+  ASSERT_TRUE(model);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return extensions->GetViewForId(extension->id()) != nullptr; }));
+
+  if (model->IsActionPinned(extension->id())) {
+    model->SetActionVisibility(extension->id(), false);
+  }
+  ASSERT_FALSE(model->IsActionPinned(extension->id()));
+  model->SetActionVisibility(extension->id(), true);
+  EXPECT_TRUE(model->IsActionPinned(extension->id()));
+
+  auto* extension_view = extensions->GetViewForId(extension->id());
+  ASSERT_TRUE(extension_view);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return extension_view->GetVisible(); }));
+  auto extension_index = extensions->GetIndexOf(extension_view);
+  auto menu_index =
+      extensions->GetIndexOf(extensions->GetExtensionsButton());
+  ASSERT_TRUE(extension_index.has_value());
+  ASSERT_TRUE(menu_index.has_value());
+  EXPECT_LT(*extension_index, *menu_index);
 }
 
 IN_PROC_BROWSER_TEST_F(BraveToolbarViewTest,

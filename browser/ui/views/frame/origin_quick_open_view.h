@@ -39,17 +39,22 @@ struct FaviconRawBitmapResult;
 }  // namespace favicon_base
 
 namespace gfx {
+class Image;
 struct VectorIcon;
-} // namespace gfx
+}  // namespace gfx
 
 namespace history {
 class QueryResults;
-} // namespace history
+}  // namespace history
+
+namespace image_fetcher {
+struct RequestMetadata;
+}  // namespace image_fetcher
 
 namespace ui {
 class KeyEvent;
 class MouseEvent;
-} // namespace ui
+}  // namespace ui
 
 namespace views {
 class ImageView;
@@ -120,9 +125,11 @@ public:
 private:
   friend class BraveBrowserViewTest_OriginQuickOpenPromotesDirectSite_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenCompletesPartialDomain_Test;
+  friend class BraveBrowserViewTest_OriginQuickOpenShowsTopHits_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenPrefersOpenPage_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenRanksMatchingHistory_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenNumberSendsToSpace_Test;
+  friend class BraveBrowserViewTest_OriginQuickOpenFetchesMissingFavicon_Test;
 
   static constexpr size_t kSectionCount = 3;
 
@@ -160,9 +167,18 @@ private:
   void OnHistoryQueryComplete(std::u16string requested_input,
                               history::QueryResults results);
   ui::ImageModel GetFaviconModelForURL(const GURL& url) const;
-  void RequestFavicon(const GURL &url);
-  void OnFaviconLoaded(const GURL &url,
-                       const favicon_base::FaviconRawBitmapResult &bitmap_result);
+  void RequestFavicon(const GURL& url, bool allow_network_fetch = false);
+  void OnFaviconLoaded(
+      const GURL& url,
+      const favicon_base::FaviconRawBitmapResult& bitmap_result);
+  void RequestFaviconFromNetwork(const GURL& url,
+                                 bool allow_known_site_override = true);
+  void OnNetworkFaviconLoaded(
+      const GURL& url,
+      bool used_known_site_override,
+      const gfx::Image& image,
+      const image_fetcher::RequestMetadata& request_metadata);
+  void ApplyFavicon(const GURL& url, const gfx::Image& favicon);
   void UpdateResultRows();
   void UpdateSearchIcon();
   void RebuildSpaceControls();
@@ -207,6 +223,7 @@ private:
   bool result_navigation_active_ = false;
   std::map<std::string, ui::ImageModel> favicon_models_;
   std::set<std::string> pending_favicon_hosts_;
+  std::set<std::string> network_favicon_hosts_;
   base::CancelableTaskTracker task_tracker_;
   base::CancelableTaskTracker favicon_task_tracker_;
   base::WeakPtrFactory<OriginQuickOpenView> weak_factory_{this};

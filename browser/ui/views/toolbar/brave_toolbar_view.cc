@@ -51,6 +51,7 @@
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/bookmarks/bookmark_bubble_view.h"
+#include "chrome/browser/ui/views/extensions/extensions_toolbar_desktop.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/profiles/avatar_toolbar_button.h"
 #include "chrome/browser/ui/views/tabs/shared/tab_strip_combo_button.h"
@@ -501,6 +502,7 @@ void BraveToolbarView::Init() {
     UpdateVerticalTabTogglePlacement();
   }
 
+  EnsureOriginExtensionsToolbar();
   brave_initialized_ = true;
   UpdateHorizontalPadding();
 }
@@ -589,6 +591,8 @@ void BraveToolbarView::LoadImages() {
 
 void BraveToolbarView::Update(content::WebContents* tab) {
   ToolbarView::Update(tab);
+
+  EnsureOriginExtensionsToolbar();
 
   if (origin_shields_button_) {
     origin_shields_button_->Update();
@@ -687,6 +691,8 @@ void BraveToolbarView::Layout(PassKey) {
     return;
   }
 
+  EnsureOriginExtensionsToolbar();
+
   // In this Layout, location bar's rect is set twice.
   // First one is by upstream's flex layout.
   // That rect fits for wide address bar.
@@ -769,6 +775,28 @@ void BraveToolbarView::SetOriginPageChromeColors(SkColor surface,
 #endif
 }
 
+void BraveToolbarView::EnsureOriginExtensionsToolbar() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ExtensionsToolbarDesktop* extensions = extensions_container();
+  if (!extensions || !location_bar_view_) {
+    return;
+  }
+
+  // The native Chromium container owns the complete extension lifecycle:
+  // menu population, per-extension actions, pin persistence, drag ordering,
+  // and popups. Origin only gives that container a stable place in its compact
+  // titlebar. Keeping it visible also leaves Manage Extensions reachable on a
+  // clean profile instead of making the entry point appear only after install.
+  const std::optional<size_t> location_index = GetIndexOf(location_bar_view_);
+  const std::optional<size_t> extensions_index = GetIndexOf(extensions);
+  if (location_index && extensions_index &&
+      *extensions_index != *location_index + 1) {
+    ReorderChildView(extensions, *location_index + 1);
+  }
+  extensions->SetVisible(true);
+#endif
+}
+
 void BraveToolbarView::UpdateOriginPageChromeControls() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!origin_page_chrome_foreground_) {
@@ -847,7 +875,11 @@ void BraveToolbarView::ResetLocationBarBounds() {
     // Respect that cluster while centering the URL over the complete app
     // window. Centering over only the page canvas adds half the sidebar width
     // to the visual center and makes the unified titlebar look unbalanced.
-    if (origin_shields_button_ && origin_shields_button_->GetVisible()) {
+    ExtensionsToolbarDesktop* extensions = extensions_container();
+    if (extensions && extensions->GetVisible() && extensions->width() > 0) {
+      safe_right = std::min(safe_right, extensions->bounds().x() - 8);
+    } else if (origin_shields_button_ &&
+               origin_shields_button_->GetVisible()) {
       safe_right =
           std::min(safe_right, origin_shields_button_->bounds().x() - 8);
     }

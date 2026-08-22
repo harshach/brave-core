@@ -12,6 +12,7 @@
 #include "base/command_line.h"
 #include "base/strings/string_split.h"
 #include "base/strings/string_util.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/skus/common/skus_utils.h"
 #include "components/component_updater/component_updater_switches.h"
 #include "extensions/common/extension_urls.h"
@@ -20,6 +21,7 @@ namespace extensions {
 
 namespace {
 
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 std::string ParseUpdateUrlHost(std::string options) {
   std::vector<std::string> flags = base::SplitString(
       options, ",", base::KEEP_WHITESPACE, base::SPLIT_WANT_NONEMPTY);
@@ -42,6 +44,7 @@ std::string ParseUpdateUrlHost(std::string options) {
 
   return "";
 }
+#endif
 
 }  // namespace
 
@@ -49,12 +52,21 @@ BraveExtensionsClient::BraveExtensionsClient() = default;
 
 void BraveExtensionsClient::InitializeWebStoreUrls(
     base::CommandLine* command_line) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Brave's component updater is also used as the Chrome Web Store download
+  // proxy. It requires an authorized Brave service key, which community
+  // Origin builds intentionally do not ship. Use the public Chrome Web Store
+  // endpoint for extension installs and updates instead of sending an invalid
+  // placeholder credential to the Brave updater and receiving HTTP 403.
+  webstore_update_url_ = extension_urls::GetDefaultWebstoreUpdateUrl();
+#else
   if (command_line->HasSwitch(switches::kComponentUpdater)) {
     webstore_update_url_ = GURL(ParseUpdateUrlHost(
         command_line->GetSwitchValueASCII(switches::kComponentUpdater)));
   } else {
     webstore_update_url_ = extension_urls::GetDefaultWebstoreUpdateUrl();
   }
+#endif
   ChromeExtensionsClient::InitializeWebStoreUrls(command_line);
 }
 

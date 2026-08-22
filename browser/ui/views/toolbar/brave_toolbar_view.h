@@ -96,6 +96,7 @@ class BraveToolbarView : public ToolbarView,
   void LoadImages() override;
   void ResetLocationBarBounds();
   void ResetBookmarkButtonBounds();
+  void EnsureOriginExtensionsToolbar();
   void UpdateOriginPageChromeControls();
   void UpdateBookmarkVisibility();
   void UpdateVerticalTabToggleVisibility();

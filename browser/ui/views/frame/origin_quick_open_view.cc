@@ -34,7 +34,9 @@
 #include "chrome/browser/favicon/favicon_service_factory.h"
 #include "chrome/browser/favicon/favicon_utils.h"
 #include "chrome/browser/history/history_service_factory.h"
+#include "chrome/browser/image_fetcher/image_fetcher_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/profiles/profile_key.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -46,6 +48,8 @@
 #include "components/favicon_base/favicon_types.h"
 #include "components/history/core/browser/history_service.h"
 #include "components/history/core/browser/history_types.h"
+#include "components/image_fetcher/core/image_fetcher.h"
+#include "components/image_fetcher/core/image_fetcher_service.h"
 #include "components/keyed_service/core/service_access_type.h"
 #include "components/omnibox/browser/autocomplete_classifier.h"
 #include "components/omnibox/browser/autocomplete_controller_config.h"
@@ -54,13 +58,17 @@
 #include "components/omnibox/browser/autocomplete_match.h"
 #include "components/omnibox/browser/autocomplete_match_type.h"
 #include "components/omnibox/browser/autocomplete_result.h"
+#include "components/search_engines/template_url.h"
 #include "components/tabs/public/tab_interface.h"
 #include "components/vector_icons/vector_icons.h"
+#include "content/public/common/url_constants.h"
+#include "extensions/common/extension_urls.h"
 #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
+#include "net/traffic_annotation/network_traffic_annotation.h"
+#include "skia/ext/image_operations.h"
 #include "third_party/metrics_proto/omnibox_event.pb.h"
 #include "third_party/skia/include/core/SkBitmap.h"
 #include "third_party/skia/include/core/SkColor.h"
-#include "skia/ext/image_operations.h"
 #include "ui/base/l10n/time_format.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -98,8 +106,31 @@ constexpr size_t kSecondarySectionCapacity = 3;
 constexpr size_t kTertiarySectionCapacity = 3;
 constexpr size_t kMaxHistoryResults = 24;
 constexpr size_t kMaxQueryHistoryResults = 100;
+constexpr int64_t kMaxFaviconDownloadBytes = 1024 * 1024;
 constexpr float kPanelBlurSigma = 32.0f;
 constexpr float kPanelBackdropQuality = 0.40f;
+
+constexpr char kImageFetcherUmaClientName[] = "OriginQuickOpenFavicon";
+
+constexpr net::NetworkTrafficAnnotationTag kQuickOpenFaviconTrafficAnnotation =
+    net::DefineNetworkTrafficAnnotation("origin_quick_open_favicon", R"(
+      semantics {
+        sender: "Origin Quick Open"
+        description:
+          "Fetches a website favicon for a URL suggestion shown while the "
+          "user types in Origin Quick Open."
+        trigger:
+          "When the user types a website name or URL and no matching favicon "
+          "is available in the local favicon database."
+        data: "The URL of the website favicon."
+        destination: WEBSITE
+      }
+      policy {
+        cookies_allowed: NO
+        setting:
+          "This request is only made for a website suggestion derived from "
+          "the user's current Quick Open input."
+      })");
 
 constexpr SkColor kScrimColor = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12);
 constexpr SkColor kPanelColor = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25);
@@ -164,6 +195,13 @@ const gfx::VectorIcon& GetOriginQuickOpenSpaceIcon(std::string_view icon) {
 
 bool IsUsefulPageURL(const GURL& url) {
   return url.is_valid() && url.SchemeIsHTTPOrHTTPS();
+}
+
+bool IsQuickOpenNavigableURL(const GURL& url) {
+  return IsUsefulPageURL(url) ||
+         (url.is_valid() &&
+          (url.SchemeIs(content::kChromeUIScheme) ||
+           url.SchemeIs(content::kBraveUIScheme)));
 }
 
 ui::ImageModel GetOriginFallbackFaviconModel(const GURL& url) {
@@ -1205,7 +1243,8 @@ void OriginQuickOpenView::RebuildResults() {
   std::vector<RankedResult> navigation_results;
   std::map<std::string, size_t> navigation_indices;
   std::optional<Result> exact_search_result;
-  std::optional<Result> fallback_search_result;
+  std::vector<RankedResult> search_suggestion_results;
+  std::set<std::string> search_suggestion_keys;
 
   std::u16string trimmed_input;
   base::TrimWhitespace(user_input_, base::TrimPositions::TRIM_ALL,
@@ -1222,7 +1261,7 @@ void OriginQuickOpenView::RebuildResults() {
 
   const auto add_navigation_result = [&navigation_results, &navigation_indices](
                                          Result result, int score) {
-    if (!IsUsefulPageURL(result.destination_url) || score < 0) {
+    if (!IsQuickOpenNavigableURL(result.destination_url) || score < 0) {
       return;
     }
     // Treat the conventional www alias as one destination. Otherwise a bare
@@ -1314,8 +1353,15 @@ void OriginQuickOpenView::RebuildResults() {
       result.badge = u"Search";
       if (match.type == AutocompleteMatchType::SEARCH_WHAT_YOU_TYPED) {
         exact_search_result = std::move(result);
-      } else if (!fallback_search_result) {
-        fallback_search_result = std::move(result);
+      } else {
+        std::string key = result.destination_url.spec();
+        if (key.empty()) {
+          key = NormalizeMatchText(result.title);
+        }
+        if (search_suggestion_keys.insert(key).second) {
+          search_suggestion_results.push_back(
+              RankedResult{std::move(result), match.relevance});
+        }
       }
       continue;
     }
@@ -1336,7 +1382,7 @@ void OriginQuickOpenView::RebuildResults() {
       result.switch_to_tab = true;
       result.icon_model = open_tab->icon_model;
     } else {
-      RequestFavicon(result.destination_url);
+      RequestFavicon(result.destination_url, /*allow_network_fetch=*/true);
     }
 
     if (result.title.empty()) {
@@ -1346,6 +1392,38 @@ void OriginQuickOpenView::RebuildResults() {
         ScoreSiteMatch(normalized_input, result.title, result.destination_url),
         3500);
     add_navigation_result(std::move(result), match_score + match.relevance);
+  }
+
+  // Browser destinations are useful even in a clean profile where history
+  // cannot yet provide a match. Keep them in the same ranked Top Hits shelf
+  // as open pages, history, and omnibox navigation suggestions.
+  const int extension_query_score = std::max(
+      {ScoreCandidateText(normalized_input, "chrome extensions"),
+       ScoreCandidateText(normalized_input, "browser extensions"),
+       ScoreCandidateText(normalized_input, "extension store")});
+  if (extension_query_score >= 0) {
+    Result web_store_result;
+    web_store_result.title = u"Chrome Web Store — Extensions";
+    web_store_result.subtitle = u"chromewebstore.google.com";
+    web_store_result.badge = u"Open  ›";
+    web_store_result.destination_url =
+        extension_urls::GetWebstoreExtensionsCategoryURL();
+    web_store_result.icon_model =
+        GetFaviconModelForURL(web_store_result.destination_url);
+    RequestFavicon(web_store_result.destination_url,
+                   /*allow_network_fetch=*/true);
+    add_navigation_result(std::move(web_store_result),
+                          extension_query_score + 8000);
+
+    Result manage_extensions_result;
+    manage_extensions_result.title = u"Manage extensions";
+    manage_extensions_result.subtitle = u"Brave settings";
+    manage_extensions_result.badge = u"Open  ›";
+    manage_extensions_result.destination_url = GURL(
+        std::string(content::kBraveUIScheme) + "://extensions/");
+    manage_extensions_result.icon = &vector_icons::kChromeExtensionIcon;
+    add_navigation_result(std::move(manage_extensions_result),
+                          extension_query_score + 7000);
   }
 
   if (normalized_input.size() >= 2) {
@@ -1368,7 +1446,7 @@ void OriginQuickOpenView::RebuildResults() {
         result = *open_tab;
         result.badge = u"Switch  ›";
       } else {
-        RequestFavicon(destination_url);
+        RequestFavicon(destination_url, /*allow_network_fetch=*/true);
       }
       add_navigation_result(std::move(result), match_score + 6000);
     }
@@ -1385,7 +1463,7 @@ void OriginQuickOpenView::RebuildResults() {
       result = *open_tab;
       result.badge = u"Switch  ›";
     } else {
-      RequestFavicon(*typed_domain);
+      RequestFavicon(*typed_domain, /*allow_network_fetch=*/true);
     }
     add_navigation_result(std::move(result), 16000);
   }
@@ -1401,12 +1479,15 @@ void OriginQuickOpenView::RebuildResults() {
         }
         return left.result.title < right.result.title;
       });
+  std::stable_sort(
+      search_suggestion_results.begin(), search_suggestion_results.end(),
+      [](const RankedResult& left, const RankedResult& right) {
+        return left.score > right.score;
+      });
 
   Result search_result;
   if (exact_search_result) {
     search_result = std::move(*exact_search_result);
-  } else if (fallback_search_result) {
-    search_result = std::move(*fallback_search_result);
   } else {
     search_result.title = trimmed_input;
     search_result.subtitle = u"— on Brave Search";
@@ -1414,13 +1495,18 @@ void OriginQuickOpenView::RebuildResults() {
     search_result.is_search = true;
     search_result.icon = &vector_icons::kSearchIcon;
   }
+  query_results_[0].push_back(std::move(search_result));
 
+  bool prefer_top_hit = false;
+  std::optional<Result> open_as_new_result;
   if (!navigation_results.empty()) {
-    Result best_result = std::move(navigation_results.front().result);
-    navigation_results.erase(navigation_results.begin());
+    const Result& best_result = navigation_results.front().result;
+    const bool host_prefix =
+        normalized_input.find_first_of(" \t\r\n/:?#@") == std::string::npos &&
+        NormalizeHost(best_result.destination_url).starts_with(
+            normalized_input);
+    prefer_top_hit = best_result.switch_to_tab || host_prefix;
     if (best_result.switch_to_tab) {
-      // Enter switches to an existing page by default, while an explicit copy
-      // remains available in the next section for opening a duplicate.
       Result open_as_new = best_result;
       open_as_new.switch_to_tab = false;
       open_as_new.space_id.clear();
@@ -1428,34 +1514,43 @@ void OriginQuickOpenView::RebuildResults() {
           base::UTF8ToUTF16(NormalizeHost(open_as_new.destination_url));
       open_as_new.subtitle.clear();
       open_as_new.badge = u"Open URL";
-      best_result.badge = u"Switch to page  ↵";
-      query_results_[0].push_back(std::move(best_result));
-      query_results_[1].push_back(std::move(open_as_new));
-    } else {
-      if (best_result.badge.empty() || best_result.badge == u"Go  ›") {
-        best_result.badge = u"Open URL";
-      }
-      query_results_[1].push_back(std::move(best_result));
+      open_as_new_result = std::move(open_as_new);
+      navigation_results.front().result.badge = u"Switch to page  ↵";
     }
   }
 
-  // The design keeps the useful URL/history alternative beside the direct
-  // destination and search action under one "Open as new page" heading.
-  while (query_results_[1].size() < 2 && !navigation_results.empty()) {
+  while (query_results_[1].size() < kSecondarySectionCapacity &&
+         !navigation_results.empty()) {
     query_results_[1].push_back(
         std::move(navigation_results.front().result));
     navigation_results.erase(navigation_results.begin());
   }
-  query_results_[1].push_back(std::move(search_result));
-
-  for (RankedResult& ranked_result : navigation_results) {
-    query_results_[2].push_back(std::move(ranked_result.result));
-    if (query_results_[2].size() == kTertiarySectionCapacity) {
-      break;
-    }
+  while (query_results_[1].size() < kSecondarySectionCapacity &&
+         !search_suggestion_results.empty()) {
+    query_results_[1].push_back(
+        std::move(search_suggestion_results.front().result));
+    search_suggestion_results.erase(search_suggestion_results.begin());
   }
 
-  selected_result_ = 0;
+  if (open_as_new_result) {
+    query_results_[2].push_back(std::move(*open_as_new_result));
+  }
+  while (query_results_[2].size() < kTertiarySectionCapacity &&
+         !navigation_results.empty()) {
+    query_results_[2].push_back(
+        std::move(navigation_results.front().result));
+    navigation_results.erase(navigation_results.begin());
+  }
+  while (query_results_[2].size() < kTertiarySectionCapacity &&
+         !search_suggestion_results.empty()) {
+    query_results_[2].push_back(
+        std::move(search_suggestion_results.front().result));
+    search_suggestion_results.erase(search_suggestion_results.begin());
+  }
+
+  // Keep exact/direct destinations and already-open pages as Enter's default
+  // without moving the Search action out of its stable first visual section.
+  selected_result_ = prefer_top_hit && !query_results_[1].empty() ? 1 : 0;
   UpdateResultRows();
   ApplyInlineAutocomplete();
 }
@@ -1470,13 +1565,13 @@ void OriginQuickOpenView::ApplyInlineAutocomplete() {
   std::u16string completion;
   const std::string typed = base::ToLowerASCII(base::UTF16ToUTF8(user_input_));
   const Result* completion_result = nullptr;
-  if (!query_results_[0].empty()) {
-    completion_result = &query_results_[0].front();
-  } else {
+  for (size_t section : {1u, 2u}) {
     const auto navigation_result = std::ranges::find_if(
-        query_results_[1], [](const Result& result) { return !result.is_search; });
-    if (navigation_result != query_results_[1].end()) {
+        query_results_[section],
+        [](const Result& result) { return !result.is_search; });
+    if (navigation_result != query_results_[section].end()) {
       completion_result = &*navigation_result;
+      break;
     }
   }
   if (!suppress_inline_autocomplete_ && typed.size() >= 2 &&
@@ -1816,17 +1911,24 @@ ui::ImageModel OriginQuickOpenView::GetFaviconModelForURL(
              : favicon->second;
 }
 
-void OriginQuickOpenView::RequestFavicon(const GURL& url) {
+void OriginQuickOpenView::RequestFavicon(const GURL& url,
+                                         bool allow_network_fetch) {
   const std::string host = NormalizeHost(url);
-  if (host.empty() || favicon_models_.contains(host) ||
-      !pending_favicon_hosts_.insert(host).second) {
+  if (host.empty() || favicon_models_.contains(host) || !IsUsefulPageURL(url)) {
+    return;
+  }
+  if (allow_network_fetch) {
+    network_favicon_hosts_.insert(host);
+  }
+  if (!pending_favicon_hosts_.insert(host).second) {
     return;
   }
   favicon::FaviconService* favicon_service =
       FaviconServiceFactory::GetForProfile(profile_,
                                            ServiceAccessType::EXPLICIT_ACCESS);
-  if (!favicon_service || !IsUsefulPageURL(url)) {
+  if (!favicon_service) {
     pending_favicon_hosts_.erase(host);
+    network_favicon_hosts_.erase(host);
     return;
   }
   // Search results often identify a host before an exact page has been
@@ -1834,8 +1936,7 @@ void OriginQuickOpenView::RequestFavicon(const GURL& url) {
   // and permit a host match, then downsample it to the 16 px UI slot.
   favicon_service->GetRawFaviconForPageURL(
       url,
-      {favicon_base::IconType::kFavicon,
-       favicon_base::IconType::kTouchIcon,
+      {favicon_base::IconType::kFavicon, favicon_base::IconType::kTouchIcon,
        favicon_base::IconType::kTouchPrecomposedIcon,
        favicon_base::IconType::kWebManifestIcon},
       /*desired_size_in_pixel=*/0, /*fallback_to_host=*/true,
@@ -1848,21 +1949,81 @@ void OriginQuickOpenView::OnFaviconLoaded(
     const GURL& url,
     const favicon_base::FaviconRawBitmapResult& bitmap_result) {
   const std::string host = NormalizeHost(url);
-  pending_favicon_hosts_.erase(host);
-  if (!bitmap_result.is_valid()) {
+  if (bitmap_result.is_valid()) {
+    const gfx::Image favicon =
+        gfx::Image::CreateFrom1xPNGBytes(bitmap_result.bitmap_data);
+    if (!favicon.IsEmpty()) {
+      pending_favicon_hosts_.erase(host);
+      network_favicon_hosts_.erase(host);
+      ApplyFavicon(url, favicon);
+      return;
+    }
+  }
+
+  if (network_favicon_hosts_.contains(host)) {
+    RequestFaviconFromNetwork(url);
     return;
   }
 
-  const gfx::Image favicon =
-      gfx::Image::CreateFrom1xPNGBytes(bitmap_result.bitmap_data);
-  if (favicon.IsEmpty()) {
+  pending_favicon_hosts_.erase(host);
+}
+
+void OriginQuickOpenView::RequestFaviconFromNetwork(
+    const GURL& url,
+    bool allow_known_site_override) {
+  const std::string host = NormalizeHost(url);
+  image_fetcher::ImageFetcherService* service =
+      ImageFetcherServiceFactory::GetForKey(profile_->GetProfileKey());
+  image_fetcher::ImageFetcher* fetcher =
+      service ? service->GetImageFetcher(
+                    image_fetcher::ImageFetcherConfig::kDiskCacheOnly)
+              : nullptr;
+  if (!fetcher) {
+    pending_favicon_hosts_.erase(host);
+    network_favicon_hosts_.erase(host);
     return;
   }
+
+  image_fetcher::ImageFetcherParams params(kQuickOpenFaviconTrafficAnnotation,
+                                           kImageFetcherUmaClientName);
+  params.set_max_download_size(kMaxFaviconDownloadBytes);
+  params.set_frame_size(gfx::Size(32, 32));
+  const std::optional<GURL> known_site_favicon =
+      allow_known_site_override ? GetOriginKnownSiteFaviconURL(url)
+                                : std::nullopt;
+  fetcher->FetchImage(
+      known_site_favicon.value_or(TemplateURL::GenerateFaviconURL(url)),
+      base::BindOnce(&OriginQuickOpenView::OnNetworkFaviconLoaded,
+                     weak_factory_.GetWeakPtr(), url,
+                     known_site_favicon.has_value()),
+      std::move(params));
+}
+
+void OriginQuickOpenView::OnNetworkFaviconLoaded(
+    const GURL& url,
+    bool used_known_site_override,
+    const gfx::Image& image,
+    const image_fetcher::RequestMetadata& request_metadata) {
+  if (image.IsEmpty() && used_known_site_override) {
+    RequestFaviconFromNetwork(url, /*allow_known_site_override=*/false);
+    return;
+  }
+
+  const std::string host = NormalizeHost(url);
+  pending_favicon_hosts_.erase(host);
+  network_favicon_hosts_.erase(host);
+  if (!image.IsEmpty()) {
+    ApplyFavicon(url, image);
+  }
+}
+
+void OriginQuickOpenView::ApplyFavicon(const GURL& url,
+                                       const gfx::Image& favicon) {
+  const std::string host = NormalizeHost(url);
   gfx::ImageSkia resized = gfx::ImageSkiaOperations::CreateResizedImage(
       favicon.AsImageSkia(), skia::ImageOperations::RESIZE_BEST,
       gfx::Size(20, 20));
-  const ui::ImageModel image_model =
-      ui::ImageModel::FromImageSkia(resized);
+  const ui::ImageModel image_model = ui::ImageModel::FromImageSkia(resized);
   favicon_models_[host] = image_model;
   const auto apply_image = [&](auto& sections) {
     for (auto& section : sections) {
@@ -1898,7 +2059,7 @@ void OriginQuickOpenView::UpdateResultRows() {
   displayed_results_ = has_query ? query_results_ : zero_state_results_;
   const std::array<std::u16string, kSectionCount> labels =
       has_query ? std::array<std::u16string, kSectionCount>{
-                      u"Top hit", u"Open as new page", u"More results"}
+                      u"Search", u"Top Hits", u"More Results"}
                 : std::array<std::u16string, kSectionCount>{
                       u"Top Hits", u"Recent Workspaces", u"Recent Pages"};
 

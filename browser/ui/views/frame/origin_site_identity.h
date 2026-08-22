@@ -19,6 +19,10 @@ struct OriginPopularSite {
   std::string_view title;
   std::string_view url;
   SkColor accent;
+  // Some sites return an HTML challenge from /favicon.ico to Chromium's
+  // browser-process user agent even though their page advertises a stable
+  // cookie-free icon URL. Leave empty for the conventional root favicon.
+  std::string_view favicon_url = {};
 };
 
 // Clean profiles have no local history or favicon cache yet. These navigation
@@ -52,6 +56,10 @@ inline constexpr std::array kOriginPopularSites = {
                       SkColorSetRGB(0xEA, 0x43, 0x35)},
     OriginPopularSite{"linkedin", "linkedin.com", "https://www.linkedin.com/",
                       SkColorSetRGB(0x0A, 0x66, 0xC2)},
+    OriginPopularSite{
+        "instagram", "instagram.com", "https://www.instagram.com/",
+        SkColorSetRGB(0xE1, 0x30, 0x6C),
+        "https://static.cdninstagram.com/rsrc.php/yr/r/rzWiSjZRxk5.webp"},
 };
 
 inline std::optional<SkColor> GetOriginKnownSiteAccent(const GURL& url) {
@@ -71,6 +79,31 @@ inline std::optional<SkColor> GetOriginKnownSiteAccent(const GURL& url) {
     }
     if (host == popular_host) {
       return site.accent;
+    }
+  }
+  return std::nullopt;
+}
+
+inline std::optional<GURL> GetOriginKnownSiteFaviconURL(const GURL& url) {
+  if (!url.is_valid()) {
+    return std::nullopt;
+  }
+
+  std::string host(url.host());
+  if (host.starts_with("www.")) {
+    host.erase(0, 4);
+  }
+  for (const OriginPopularSite& site : kOriginPopularSites) {
+    const GURL popular_url(site.url);
+    std::string popular_host(popular_url.host());
+    if (popular_host.starts_with("www.")) {
+      popular_host.erase(0, 4);
+    }
+    if (host == popular_host && !site.favicon_url.empty()) {
+      const GURL favicon_url(site.favicon_url);
+      if (favicon_url.is_valid()) {
+        return favicon_url;
+      }
     }
   }
   return std::nullopt;

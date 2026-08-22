@@ -5,9 +5,13 @@
 
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 
+#include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
+#include "base/base64.h"
+#include "base/check.h"
 #include "base/functional/callback.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
@@ -21,6 +25,7 @@
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
+#include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
@@ -65,12 +70,15 @@
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
+#include "net/test/embedded_test_server/http_request.h"
+#include "net/test/embedded_test_server/http_response.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
 #include "ui/views/controls/textfield/textfield.h"
+#include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -107,6 +115,25 @@ class TestInfoBarDelegate : public ConfirmInfoBarDelegate {
     return u"This is a test InfoBar injected from a browser test.";
   }
 };
+
+std::unique_ptr<net::test_server::HttpResponse>
+HandleOriginQuickOpenFaviconRequest(
+    const net::test_server::HttpRequest& request) {
+  if (request.relative_url != "/favicon.ico") {
+    return nullptr;
+  }
+
+  auto response = std::make_unique<net::test_server::BasicHttpResponse>();
+  response->set_content_type("image/png");
+  std::string favicon;
+  const bool decoded = base::Base64Decode(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2NIbbj6HwAF"
+      "wgK6ho3LlwAAAABJRU5ErkJggg==",
+      &favicon);
+  CHECK(decoded);
+  response->set_content(favicon);
+  return response;
+}
 
 }  // namespace
 
@@ -173,7 +200,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
   EXPECT_TRUE(origin_quick_open_view()->GetVisible());
   EXPECT_EQ(initial_tab_count, browser()->tab_strip_model()->count());
 
-  origin_quick_open_view()->Dismiss();
+  EXPECT_TRUE(brave_browser_view()->GetFocusManager()->ProcessAccelerator(
+      ui::Accelerator(ui::VKEY_ESCAPE, ui::EF_NONE)));
   EXPECT_FALSE(origin_quick_open_view()->GetVisible());
 
   EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
@@ -207,14 +235,13 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   quick_open->search_field_->SetText(u"reddit");
   quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
 
+  ASSERT_EQ(1u, quick_open->query_results_[0].size());
+  EXPECT_TRUE(quick_open->query_results_[0][0].is_search);
   ASSERT_FALSE(quick_open->query_results_[1].empty());
   const auto& direct_result = quick_open->query_results_[1][0];
   EXPECT_EQ(u"reddit.com", direct_result.title);
   EXPECT_EQ(GURL("https://www.reddit.com/"), direct_result.destination_url);
   EXPECT_FALSE(direct_result.is_search);
-
-  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
-  EXPECT_TRUE(quick_open->query_results_[1][1].is_search);
 
   quick_open->ShowAndFocus();
   quick_open->search_field_->SetText(u"macrumors");
@@ -226,8 +253,6 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(GURL("https://www.macrumors.com/"),
             bare_domain_result.destination_url);
   EXPECT_FALSE(bare_domain_result.icon_model.IsEmpty());
-  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
-  EXPECT_TRUE(quick_open->query_results_[1][1].is_search);
 
   quick_open->ShowAndFocus();
   quick_open->search_field_->SetText(u"flip");
@@ -239,7 +264,58 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(GURL("https://flipboard.com/"),
             flipboard_result.destination_url);
   EXPECT_FALSE(flipboard_result.icon_model.IsEmpty());
+
+  const std::optional<GURL> instagram_favicon =
+      GetOriginKnownSiteFaviconURL(GURL("https://instagram.com/"));
+  ASSERT_TRUE(instagram_favicon);
+  EXPECT_EQ(
+      GURL("https://static.cdninstagram.com/rsrc.php/yr/r/rzWiSjZRxk5.webp"),
+      *instagram_favicon);
   quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenShowsTopHits) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"chrome extensions");
+  quick_open->ContentsChanged(quick_open->search_field_,
+                              u"chrome extensions");
+
+  ASSERT_EQ(1u, quick_open->query_results_[0].size());
+  EXPECT_TRUE(quick_open->query_results_[0][0].is_search);
+  EXPECT_EQ(u"Search", quick_open->section_labels_[0]->GetText());
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(u"Top Hits", quick_open->section_labels_[1]->GetText());
+  EXPECT_EQ(GURL("https://chromewebstore.google.com/category/extensions"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_EQ(GURL("brave://extensions/"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_EQ(0u, quick_open->selected_result_);
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenFetchesMissingFavicon) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  embedded_test_server()->RegisterRequestHandler(
+      base::BindRepeating(&HandleOriginQuickOpenFaviconRequest));
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL page_url = embedded_test_server()->GetURL("/article");
+  const std::string host(page_url.host());
+
+  ASSERT_FALSE(quick_open->favicon_models_.contains(host));
+  quick_open->RequestFavicon(page_url, /*allow_network_fetch=*/true);
+
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return quick_open->favicon_models_.contains(host); }));
+  EXPECT_FALSE(quick_open->favicon_models_.at(host).IsEmpty());
+  EXPECT_FALSE(quick_open->pending_favicon_hosts_.contains(host));
+  EXPECT_FALSE(quick_open->network_favicon_hosts_.contains(host));
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
@@ -284,15 +360,16 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuickOpenPrefersOpenPage) {
   quick_open->search_field_->SetText(u"red");
   quick_open->ContentsChanged(quick_open->search_field_, u"red");
 
-  ASSERT_FALSE(quick_open->query_results_[0].empty());
-  const auto& selected_result = quick_open->query_results_[0][0];
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& selected_result = quick_open->query_results_[1][0];
   EXPECT_TRUE(selected_result.switch_to_tab);
   EXPECT_EQ(GURL("https://www.reddit.com/r/brave_browser/"),
             selected_result.destination_url);
   EXPECT_EQ(u"Switch to page  ↵", selected_result.badge);
-  ASSERT_FALSE(quick_open->visible_results_.empty());
-  EXPECT_EQ(0u, quick_open->visible_results_[0].first);
-  EXPECT_EQ(0u, quick_open->visible_results_[0].second);
+  ASSERT_GE(quick_open->visible_results_.size(), 2u);
+  EXPECT_EQ(1u, quick_open->selected_result_);
+  EXPECT_EQ(1u, quick_open->visible_results_[1].first);
+  EXPECT_EQ(0u, quick_open->visible_results_[1].second);
   quick_open->Dismiss();
 }
 
