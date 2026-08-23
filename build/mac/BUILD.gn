@@ -341,7 +341,7 @@ if (install_omaha4_with_pkg) {
   }
 }
 
-if (is_official_build && !skip_signing) {
+if (is_official_build && !skip_signing && !is_socket_branded) {
   if (is_release_channel) {
     provisionprofile_basename = "release"
   } else {
@@ -356,9 +356,11 @@ if (is_official_build && !skip_signing) {
 action("package") {
   outputs = [
     dmg_path,
-    "$packaged_basename.pkg",
     zip_path,
   ]
+  if (!is_socket_branded) {
+    outputs += [ "$packaged_basename.pkg" ]
+  }
   deps = [
     ":copy_browser_install_script",
     ":copy_dmg_background_image",
@@ -374,7 +376,10 @@ action("package") {
   ]
   script = "$packaging_dir/sign_chrome.py"
   installer_identity = mac_installer_signing_identifier
-  if (skip_signing && installer_identity == "") {
+  if (is_socket_branded && installer_identity == "") {
+    # Socket publishes a DMG, so an Installer identity is not required.
+    installer_identity = mac_signing_identifier
+  } else if (skip_signing && installer_identity == "") {
     # Prevent an AssertionError in upstream:
     installer_identity = "stub"
   }
@@ -393,20 +398,32 @@ action("package") {
   }
   if (skip_signing) {
     args += [ "--skip_signing" ]
-  } else if (is_official_build) {
+  } else if (is_official_build && !is_socket_branded) {
     deps += [ ":copy_provisionprofile" ]
     args += [ "--provisioning_profile_basename=$provisionprofile_basename" ]
   }
+  if (is_socket_branded) {
+    args += [ "--dmg_only" ]
+  }
   if (notarize) {
     args += [ "--notarize" ]
-    notary_args = [
-      "--apple-id",
-      notary_user,
-      "--password",
-      notary_password,
-      "--team-id",
-      chrome_mac_team_id,
-    ]
+    if (mac_notary_keychain_profile != "") {
+      notary_args = [
+        "--keychain-profile",
+        mac_notary_keychain_profile,
+        "--keychain",
+        keychain_db,
+      ]
+    } else {
+      notary_args = [
+        "--apple-id",
+        notary_user,
+        "--password",
+        notary_password,
+        "--team-id",
+        chrome_mac_team_id,
+      ]
+    }
     foreach(arg, notary_args) {
       args += [ "--notary-arg=$arg" ]
     }

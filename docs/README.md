@@ -37,6 +37,8 @@ resources outside this repository, go to:
   tabs, split views, web side pages, keyboard modes, and upstream maintenance.
 - [Origin Desktop Builds](origin_release_builds.md) - Build and retrieve
   unsigned Linux, Windows, and macOS packages using GitHub Actions.
+- [Socket macOS releases](socket_macos_release.md) - Build, sign, notarize, and
+  publish the independent macOS DMG.
 - [Running test suites](running_test_suites.md) - Selectively execute unit,
   browser and typescript tests.
 - [`gni` notes](gni_sources.md) - Brief notes on the use of `source.gni` files

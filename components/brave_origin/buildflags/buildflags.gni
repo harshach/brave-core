@@ -5,7 +5,11 @@
 
 declare_args() {
   is_brave_origin_branded = false
+  is_socket_branded = false
 }
+
+assert(!is_socket_branded || is_brave_origin_branded,
+       "Socket builds require Brave Origin branding")
 
 assert(!(is_brave_origin_branded && is_android),
        "Brave Origin branding is not supported on Android")

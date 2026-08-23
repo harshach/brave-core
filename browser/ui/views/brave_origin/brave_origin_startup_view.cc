@@ -18,6 +18,7 @@
 #include "base/task/thread_pool.h"
 #include "brave/brave_domains/service_domains.h"
 #include "brave/browser/ui/webui/brave_origin_startup/brave_origin_startup_ui.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_origin/pref_names.h"
 #include "brave/components/skus/browser/pref_names.h"
 #include "build/build_config.h"
@@ -85,6 +86,10 @@ bool HasOriginSkuCredentials(PrefService* local_state) {
 
 // static
 bool BraveOriginStartupView::ShouldShowDialog(PrefService* local_state) {
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  return false;
+#endif
+
   if (g_should_show_dialog_override.has_value()) {
     return *g_should_show_dialog_override;
   }

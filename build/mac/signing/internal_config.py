@@ -33,7 +33,7 @@ class InternalCodeSignConfig(ChromiumCodeSignConfig):
         return [
             Distribution(channel=BRAVE_CHANNEL,
                          package_as_dmg=True,
-                         package_as_pkg=True,
+                         package_as_pkg=not self.invoker.args.dmg_only,
                          package_as_zip=True)
         ]
 

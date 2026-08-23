@@ -18,6 +18,7 @@ class Invoker(standard_invoker.Invoker):
     @staticmethod
     def register_arguments(parser):
         standard_invoker.Invoker.register_arguments(parser)
+        parser.add_argument("--dmg_only", action="store_true")
         parser.add_argument("--skip_signing", action="store_true")
         parser.add_argument("--universal", action="store_true")
         parser.add_argument("--provisioning_profile_basename")
