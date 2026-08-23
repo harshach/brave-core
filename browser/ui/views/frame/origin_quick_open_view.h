@@ -129,7 +129,8 @@ private:
   friend class BraveBrowserViewTest_OriginQuickOpenShowsTopHits_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenPrefersOpenPage_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenRanksMatchingHistory_Test;
-  friend class BraveBrowserViewTest_OriginQuickOpenNumberSendsToSpace_Test;
+  friend class
+      BraveBrowserViewTest_OriginQuickOpenNumberTypesUntilResultNavigation_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenFetchesMissingFavicon_Test;
 
   static constexpr size_t kSectionCount = 3;

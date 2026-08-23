@@ -1195,10 +1195,10 @@ bool OriginQuickOpenView::HandleKeyEvent(views::Textfield* sender,
       result_navigation_active_ = true;
       return true;
     default:
-      if (HasQuery() && key_event.key_code() >= ui::VKEY_1 &&
+      if (result_navigation_active_ && HasQuery() &&
+          key_event.key_code() >= ui::VKEY_1 &&
           key_event.key_code() <= ui::VKEY_5) {
-        SubmitToSpace(
-            static_cast<size_t>(key_event.key_code() - ui::VKEY_1));
+        SubmitToSpace(static_cast<size_t>(key_event.key_code() - ui::VKEY_1));
         return true;
       }
       return false;

@@ -497,7 +497,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
-                       OriginQuickOpenNumberSendsToSpace) {
+                       OriginQuickOpenNumberTypesUntilResultNavigation) {
   OriginQuickOpenView* quick_open = origin_quick_open_view();
   auto* controller = browser()->GetFeatures().origin_space_controller();
   auto* workspace_service =
@@ -512,10 +512,20 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
   ASSERT_TRUE(quick_open->GetVisible());
 
-  const ui::KeyEvent key_event(ui::EventType::kKeyPressed, ui::VKEY_2,
-                               ui::EF_NONE);
+  const std::string initial_space_id = controller->active_space_id();
+  const ui::KeyEvent number_event(ui::EventType::kKeyPressed, ui::VKEY_2,
+                                  ui::EF_NONE);
+  EXPECT_FALSE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, number_event));
+  EXPECT_EQ(initial_space_id, controller->active_space_id());
+  EXPECT_TRUE(quick_open->GetVisible());
+
+  const ui::KeyEvent down_event(ui::EventType::kKeyPressed, ui::VKEY_DOWN,
+                                ui::EF_NONE);
   EXPECT_TRUE(
-      quick_open->HandleKeyEvent(quick_open->search_field_, key_event));
+      quick_open->HandleKeyEvent(quick_open->search_field_, down_event));
+  EXPECT_TRUE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, number_event));
   EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
             controller->active_space_id());
   EXPECT_FALSE(quick_open->GetVisible());
