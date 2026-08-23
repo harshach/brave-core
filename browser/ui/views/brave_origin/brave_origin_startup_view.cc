@@ -7,20 +7,15 @@
 
 #include <utility>
 
-#include "base/command_line.h"
 #include "base/files/file_path.h"
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
-#include "base/json/json_reader.h"
 #include "base/path_service.h"
 #include "base/strings/strcat.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/task/thread_pool.h"
 #include "brave/brave_domains/service_domains.h"
 #include "brave/browser/ui/webui/brave_origin_startup/brave_origin_startup_ui.h"
-#include "brave/components/brave_origin/buildflags/buildflags.h"
-#include "brave/components/brave_origin/pref_names.h"
-#include "brave/components/skus/browser/pref_names.h"
 #include "build/build_config.h"
 #include "chrome/browser/profiles/keep_alive/profile_keep_alive_types.h"
 #include "chrome/browser/profiles/keep_alive/scoped_profile_keep_alive.h"
@@ -35,17 +30,12 @@
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_ui.h"
-#include "content/public/common/content_switches.h"
 #include "ui/base/resource/resource_bundle.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/views/controls/webview/webview.h"
 #include "ui/views/widget/widget.h"
 #include "url/gurl.h"
 #include "url/url_constants.h"
-
-#if BUILDFLAG(IS_LINUX)
-#include "brave/components/brave_origin/switches.h"
-#endif
 
 namespace {
 
@@ -59,60 +49,14 @@ constexpr int kDialogHeight = 500;
 BraveOriginStartupView* g_startup_view = nullptr;
 std::optional<bool> g_should_show_dialog_override;
 
-bool HasOriginSkuCredentials(PrefService* local_state) {
-  const auto& skus_state = local_state->GetDict(skus::prefs::kSkusState);
-  for (const auto [env_key, env_value] : skus_state) {
-    if (!env_value.is_string()) {
-      continue;
-    }
-    auto parsed =
-        base::JSONReader::ReadDict(env_value.GetString(), base::JSON_PARSE_RFC);
-    if (!parsed) {
-      continue;
-    }
-    const auto* credentials = parsed->FindDict("credentials");
-    if (!credentials) {
-      continue;
-    }
-    const auto* items = credentials->FindDict("items");
-    if (items && !items->empty()) {
-      return true;
-    }
-  }
-  return false;
-}
-
 }  // namespace
 
 // static
-bool BraveOriginStartupView::ShouldShowDialog(PrefService* local_state) {
-#if BUILDFLAG(IS_SOCKET_BRANDED)
-  return false;
-#endif
-
+bool BraveOriginStartupView::ShouldShowDialog(PrefService*) {
   if (g_should_show_dialog_override.has_value()) {
     return *g_should_show_dialog_override;
   }
-
-  // Skip the dialog when running under test infrastructure.
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch(switches::kTestType)) {
-    return false;
-  }
-
-#if BUILDFLAG(IS_LINUX)
-  if (base::CommandLine::ForCurrentProcess()->HasSwitch(
-          brave_origin::switches::kSkipOriginStartupDialog)) {
-    // Persist acceptance so future launches without the switch also skip
-    // the dialog.
-    local_state->SetBoolean(brave_origin::kOriginFreeTierAccepted, true);
-  }
-  if (local_state->GetBoolean(brave_origin::kOriginFreeTierAccepted)) {
-    return false;
-  }
-#endif
-
-  return !local_state->GetBoolean(brave_origin::kOriginPurchaseValidated) ||
-         !HasOriginSkuCredentials(local_state);
+  return false;
 }
 
 // static
