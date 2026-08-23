@@ -80,9 +80,8 @@ class BraveOriginStartupView : public views::WidgetDelegate,
 #endif
   };
 
-  // Returns true if the startup dialog should be shown (purchase not yet
-  // validated or SKU credentials missing). Also returns false when running
-  // under test infrastructure (--test-type flag).
+  // The startup purchase gate is disabled for normal browser launches. The
+  // dialog can still be enabled explicitly through the testing override.
   static bool ShouldShowDialog(PrefService* local_state);
 
   // Override ShouldShowDialog() result for testing. Pass std::nullopt to

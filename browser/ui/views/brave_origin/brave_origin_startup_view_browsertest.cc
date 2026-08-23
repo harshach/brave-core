@@ -14,8 +14,6 @@
 #include "base/test/bind.h"
 #include "base/test/run_until.h"
 #include "base/threading/thread_restrictions.h"
-#include "brave/components/brave_origin/pref_names.h"
-#include "brave/components/skus/browser/pref_names.h"
 #include "build/build_config.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile_manager.h"
@@ -149,7 +147,7 @@ IN_PROC_BROWSER_TEST_F(BraveOriginStartupViewBrowserTest,
                        ShouldShowDialogTestingOverride) {
   PrefService* local_state = g_browser_process->local_state();
 
-  // Default in tests: --test-type flag makes it return false.
+  // The purchase gate is disabled for normal launches.
   EXPECT_FALSE(BraveOriginStartupView::ShouldShowDialog(local_state));
 
   // Override to force show.
@@ -218,26 +216,11 @@ IN_PROC_BROWSER_TEST_F(BraveOriginStartupViewBrowserTest,
   EXPECT_TRUE(base::PathExists(sentinel));
 }
 
-// Verifies that when the purchase is validated and SKU credentials exist,
-// the dialog does not appear and the browser window opens normally.
+// Verifies that purchase state does not gate browser startup.
 IN_PROC_BROWSER_TEST_F(BraveOriginStartupViewBrowserTest,
-                       PaidUserSkipsDialogAndGetsBrowser) {
+                       PurchaseGateIsDisabled) {
   PrefService* local_state = g_browser_process->local_state();
 
-  // Simulate a paid user: set validated pref and add SKU credentials.
-  local_state->SetBoolean(brave_origin::kOriginPurchaseValidated, true);
-  base::DictValue skus_state;
-  skus_state.Set("production", R"({
-    "credentials": {
-      "items": {
-        "origin": "some-credential-value"
-      }
-    }
-  })");
-  local_state->SetDict(skus::prefs::kSkusState, std::move(skus_state));
-
-  // With valid purchase state, ShouldShowDialog returns false (even without
-  // the --test-type override).
   BraveOriginStartupView::SetShouldShowDialogForTesting(std::nullopt);
   EXPECT_FALSE(BraveOriginStartupView::ShouldShowDialog(local_state));
 
@@ -246,22 +229,6 @@ IN_PROC_BROWSER_TEST_F(BraveOriginStartupViewBrowserTest,
   EXPECT_FALSE(BraveOriginStartupView::IsShowing());
   EXPECT_TRUE(browser() != nullptr);
 }
-
-#if BUILDFLAG(IS_LINUX)
-// Verifies that a free tier user (accepted free tier but no purchase)
-// skips the dialog on subsequent launches.
-IN_PROC_BROWSER_TEST_F(BraveOriginStartupViewBrowserTest,
-                       FreeTierUserSkipsDialog) {
-  PrefService* local_state = g_browser_process->local_state();
-
-  // Simulate a free tier user: accepted free tier but not purchased.
-  local_state->SetBoolean(brave_origin::kOriginFreeTierAccepted, true);
-  EXPECT_FALSE(local_state->GetBoolean(brave_origin::kOriginPurchaseValidated));
-
-  BraveOriginStartupView::SetShouldShowDialogForTesting(std::nullopt);
-  EXPECT_FALSE(BraveOriginStartupView::ShouldShowDialog(local_state));
-}
-#endif
 
 // --------------------------------------------------------------------------
 // Integration tests for the StartupBrowserCreator::Start override.
