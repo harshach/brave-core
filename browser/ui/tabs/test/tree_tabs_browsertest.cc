@@ -3872,3 +3872,52 @@ IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
 
   CloseBrowserSynchronously(new_browser);
 }
+
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       OriginDropOnPageNestsSubtreeAndDragToRootPromotesIt) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const parent = tab_strip_model().GetTabAtIndex(0);
+
+  auto child_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  tab_strip_model().AddTab(std::move(child_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const child = tab_strip_model().GetTabAtIndex(1);
+
+  auto grandchild_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  grandchild_model->set_opener(child);
+  tab_strip_model().AddTab(std::move(grandchild_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const grandchild = tab_strip_model().GetTabAtIndex(2);
+
+  auto sibling_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  tab_strip_model().AddTab(std::move(sibling_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const sibling = tab_strip_model().GetTabAtIndex(3);
+
+  ASSERT_TRUE(tab_strip_model().NestTabUnder(child->GetContents(),
+                                             parent->GetContents()));
+  ASSERT_EQ(child->GetParentCollection()->GetParentCollection(),
+            parent->GetParentCollection());
+  EXPECT_EQ(grandchild->GetParentCollection()->GetParentCollection(),
+            child->GetParentCollection());
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(0), parent);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(1), child);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(2), grandchild);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(3), sibling);
+
+  // Dropping a parent into its own descendant would create a cycle.
+  EXPECT_FALSE(tab_strip_model().NestTabUnder(parent->GetContents(),
+                                              grandchild->GetContents()));
+
+  ASSERT_TRUE(tab_strip_model().PromoteSelectedTreeTabsToRoot());
+  EXPECT_EQ(child->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+  EXPECT_EQ(grandchild->GetParentCollection()->GetParentCollection(),
+            child->GetParentCollection());
+  EXPECT_EQ(parent->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+}

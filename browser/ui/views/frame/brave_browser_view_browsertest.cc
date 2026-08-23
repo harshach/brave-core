@@ -259,6 +259,43 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
   EXPECT_EQ(test_url, contents->GetLastCommittedURL());
 }
 
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginSingleKeyCloseSelectsNextPage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  const int initial_tab_count = model->count();
+  content::WebContents* first = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      first, embedded_test_server()->GetURL("/title1.html")));
+
+  chrome::AddTabAt(browser(), embedded_test_server()->GetURL("/title2.html"),
+                   -1, /*foreground=*/false);
+  ASSERT_EQ(model->count(), initial_tab_count + 1);
+  content::WebContents* second = model->GetWebContentsAt(model->count() - 1);
+  ASSERT_TRUE(content::WaitForLoadStop(second));
+
+  chrome::AddTabAt(browser(), embedded_test_server()->GetURL("/title3.html"),
+                   -1, /*foreground=*/false);
+  ASSERT_EQ(model->count(), initial_tab_count + 2);
+  content::WebContents* third = model->GetWebContentsAt(model->count() - 1);
+  ASSERT_TRUE(content::WaitForLoadStop(third));
+
+  model->ActivateTabAt(model->GetIndexOfWebContents(second));
+  ASSERT_EQ(model->GetActiveWebContents(), second);
+
+  input::NativeWebKeyboardEvent close_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  close_event.windows_key_code = ui::VKEY_D;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(close_event));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->count() == initial_tab_count + 1; }));
+  EXPECT_EQ(model->GetActiveWebContents(), third);
+}
+
 class OriginExtensionInputShortcutBrowserTest
     : public extensions::ExtensionApiTest {};
 

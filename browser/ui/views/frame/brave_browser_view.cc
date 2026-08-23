@@ -2042,6 +2042,7 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           std::vector<int> indices =
               model->GetTreeTabDescendantIndices(model->active_index());
           indices.push_back(model->active_index());
+          controller->SelectReplacementTabForClose(indices);
           model->CloseTabs(indices);
           return content::KeyboardEventProcessingResult::HANDLED;
         }

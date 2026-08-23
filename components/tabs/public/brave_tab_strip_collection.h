@@ -74,6 +74,10 @@ class BraveTabStripCollection : public TabStripCollection {
       const TabCollection::TypeEnumSet retain_collection_types,
       base::PassKey<BraveTabStripCollectionDelegate> pass_key);
 
+  // Reparents the complete tree node containing `child` beneath `parent`.
+  // This is a no-op when tree tabs are disabled or the move is invalid.
+  bool ReparentTreeTabNode(TabInterface* child, TabInterface* parent);
+
   // TabStripCollection:
   void AddTabRecursive(std::unique_ptr<TabInterface> tab,
                        size_t index,

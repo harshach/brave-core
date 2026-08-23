@@ -8,6 +8,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "base/memory/raw_ptr.h"
 #include "base/test/scoped_feature_list.h"
@@ -57,6 +58,13 @@ class OriginSpaceControllerTest : public BrowserWithTestWindowTest {
   }
 
  protected:
+  struct CloseSelectionPages {
+    raw_ptr<content::WebContents> placeholder;
+    raw_ptr<content::WebContents> first;
+    raw_ptr<content::WebContents> middle;
+    raw_ptr<content::WebContents> last;
+  };
+
   content::WebContents* AddTab(bool foreground) {
     auto contents = content::WebContentsTester::CreateTestWebContents(
         profile(), /*site_instance=*/nullptr);
@@ -66,6 +74,33 @@ class OriginSpaceControllerTest : public BrowserWithTestWindowTest {
     browser()->tab_strip_model()->AppendWebContents(std::move(contents),
                                                     foreground);
     return raw_contents;
+  }
+
+  CloseSelectionPages AddCloseSelectionPages() {
+    CloseSelectionPages pages{
+        .placeholder = AddTab(/*foreground=*/false),
+        .first = AddTab(/*foreground=*/false),
+        .middle = AddTab(/*foreground=*/false),
+        .last = AddTab(/*foreground=*/false),
+    };
+    content::WebContentsTester::For(pages.placeholder)
+        ->NavigateAndCommit(GURL(kBraveUINewTabURL));
+    content::WebContentsTester::For(pages.first)
+        ->NavigateAndCommit(GURL("https://example.com/first"));
+    content::WebContentsTester::For(pages.middle)
+        ->NavigateAndCommit(GURL("https://example.com/middle"));
+    content::WebContentsTester::For(pages.last)
+        ->NavigateAndCommit(GURL("https://example.com/last"));
+    return pages;
+  }
+
+  void ClosePageWithReplacement(content::WebContents* contents) {
+    auto* model = browser()->tab_strip_model();
+    const int closing_index = model->GetIndexOfWebContents(contents);
+    ASSERT_NE(closing_index, TabStripModel::kNoTab);
+    const std::vector<int> closing_indices{closing_index};
+    ASSERT_TRUE(controller_->SelectReplacementTabForClose(closing_indices));
+    model->CloseWebContentsAt(closing_index, TabCloseTypes::CLOSE_NONE);
   }
 
   base::test::ScopedFeatureList feature_list_;
@@ -200,6 +235,64 @@ TEST_F(OriginSpaceControllerTest, PinnedTabsUseTheirOwnSectionCount) {
   EXPECT_TRUE(controller_->ShouldShowTabInPageList(pinned));
   EXPECT_EQ(controller_->GetPageCountForSpace(controller_->active_space_id()),
             1u);
+}
+
+TEST_F(OriginSpaceControllerTest,
+       MovesDraggedSubtreeTogetherAndKeepsSourceSpaceActive) {
+  const std::string home_id = controller_->active_space_id();
+  const std::string work_id =
+      workspace_service_->CreateOriginSpace("Work", "briefcase");
+  content::WebContents* home_page = AddTab(/*foreground=*/true);
+  content::WebContents* subtree_parent = AddTab(/*foreground=*/false);
+  content::WebContents* subtree_child = AddTab(/*foreground=*/false);
+
+  auto* model = browser()->tab_strip_model();
+  model->ActivateTabAt(model->GetIndexOfWebContents(subtree_parent));
+  ASSERT_EQ(model->GetActiveWebContents(), subtree_parent);
+
+  std::vector<content::WebContents*> subtree{subtree_parent, subtree_child};
+  controller_->MoveTabsToSpace(subtree, work_id);
+
+  EXPECT_EQ(controller_->GetSpaceIdForTab(subtree_parent), work_id);
+  EXPECT_EQ(controller_->GetSpaceIdForTab(subtree_child), work_id);
+  EXPECT_EQ(controller_->active_space_id(), home_id);
+  EXPECT_EQ(model->GetActiveWebContents(), home_page);
+}
+
+TEST_F(OriginSpaceControllerTest, ClosingFirstPageSelectsNextPage) {
+  const CloseSelectionPages pages = AddCloseSelectionPages();
+  browser()->tab_strip_model()->ActivateTabAt(
+      browser()->tab_strip_model()->GetIndexOfWebContents(pages.first));
+
+  ClosePageWithReplacement(pages.first);
+
+  EXPECT_EQ(browser()->tab_strip_model()->GetActiveWebContents(), pages.middle);
+  EXPECT_FALSE(controller_->IsTabPlaceholder(
+      browser()->tab_strip_model()->GetActiveWebContents()));
+}
+
+TEST_F(OriginSpaceControllerTest, ClosingMiddlePageSelectsNextPage) {
+  const CloseSelectionPages pages = AddCloseSelectionPages();
+  browser()->tab_strip_model()->ActivateTabAt(
+      browser()->tab_strip_model()->GetIndexOfWebContents(pages.middle));
+
+  ClosePageWithReplacement(pages.middle);
+
+  EXPECT_EQ(browser()->tab_strip_model()->GetActiveWebContents(), pages.last);
+  EXPECT_FALSE(controller_->IsTabPlaceholder(
+      browser()->tab_strip_model()->GetActiveWebContents()));
+}
+
+TEST_F(OriginSpaceControllerTest, ClosingLastPageSelectsPreviousPage) {
+  const CloseSelectionPages pages = AddCloseSelectionPages();
+  browser()->tab_strip_model()->ActivateTabAt(
+      browser()->tab_strip_model()->GetIndexOfWebContents(pages.last));
+
+  ClosePageWithReplacement(pages.last);
+
+  EXPECT_EQ(browser()->tab_strip_model()->GetActiveWebContents(), pages.middle);
+  EXPECT_FALSE(controller_->IsTabPlaceholder(
+      browser()->tab_strip_model()->GetActiveWebContents()));
 }
 
 }  // namespace

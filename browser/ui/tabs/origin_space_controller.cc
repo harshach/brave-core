@@ -157,17 +157,48 @@ bool OriginSpaceController::ActiveSpaceHasTabs() const {
 
 void OriginSpaceController::MoveTabToSpace(content::WebContents* contents,
                                            const std::string& space_id) {
+  MoveTabsToSpace(base::span_from_ref(contents), space_id);
+}
+
+void OriginSpaceController::MoveTabsToSpace(
+    base::span<content::WebContents* const> contents,
+    const std::string& space_id) {
   if (!workspace_service_->GetOriginSpace(space_id)) {
     return;
   }
-  auto* data = OriginSpaceTabData::FromWebContents(contents);
-  if (!data) {
-    OriginSpaceTabData::CreateForWebContents(contents, space_id);
-  } else {
-    data->set_space_id(space_id);
+
+  content::WebContents* active_contents =
+      tab_strip_model_->GetActiveWebContents();
+  bool moved_active_out_of_space = false;
+  bool changed = false;
+  for (content::WebContents* tab_contents : contents) {
+    if (!tab_contents ||
+        tab_strip_model_->GetIndexOfWebContents(tab_contents) ==
+            TabStripModel::kNoTab ||
+        GetSpaceIdForTab(tab_contents) == space_id) {
+      continue;
+    }
+
+    moved_active_out_of_space |=
+        tab_contents == active_contents && space_id != active_space_id_;
+    auto* data = OriginSpaceTabData::FromWebContents(tab_contents);
+    if (!data) {
+      OriginSpaceTabData::CreateForWebContents(tab_contents, space_id);
+    } else {
+      data->set_space_id(space_id);
+    }
+    WriteTabSessionData(tab_contents);
+    changed = true;
   }
-  WriteTabSessionData(contents);
-  NotifyChanged();
+
+  if (!changed) {
+    return;
+  }
+  if (moved_active_out_of_space) {
+    EnsureActiveTabInActiveSpace();
+  } else {
+    NotifyChanged();
+  }
 }
 
 bool OriginSpaceController::SelectAdjacentTab(bool next) {
@@ -192,6 +223,52 @@ bool OriginSpaceController::SelectAdjacentTab(bool next) {
     target = indices.size() - 1;
   }
   tab_strip_model_->ActivateTabAt(indices[target]);
+  return true;
+}
+
+bool OriginSpaceController::SelectReplacementTabForClose(
+    base::span<const int> closing_indices) {
+  const int active_index = tab_strip_model_->active_index();
+  if (active_index == TabStripModel::kNoTab) {
+    return false;
+  }
+
+  const auto is_closing = [&closing_indices](int index) {
+    return std::ranges::find(closing_indices, index) != closing_indices.end();
+  };
+  const auto find_replacement = [&](bool visible_page_only) {
+    const auto is_candidate = [&](int index) {
+      if (is_closing(index)) {
+        return false;
+      }
+      auto* contents = tab_strip_model_->GetWebContentsAt(index);
+      return visible_page_only ? ShouldShowTabInPageList(contents)
+                               : IsTabInActiveSpace(contents);
+    };
+
+    for (int index = active_index + 1; index < tab_strip_model_->count();
+         ++index) {
+      if (is_candidate(index)) {
+        return index;
+      }
+    }
+    for (int index = active_index - 1; index >= 0; --index) {
+      if (is_candidate(index)) {
+        return index;
+      }
+    }
+    return TabStripModel::kNoTab;
+  };
+
+  int replacement_index = find_replacement(/*visible_page_only=*/true);
+  if (replacement_index == TabStripModel::kNoTab) {
+    replacement_index = find_replacement(/*visible_page_only=*/false);
+  }
+  if (replacement_index == TabStripModel::kNoTab) {
+    return false;
+  }
+
+  tab_strip_model_->ActivateTabAt(replacement_index);
   return true;
 }
 

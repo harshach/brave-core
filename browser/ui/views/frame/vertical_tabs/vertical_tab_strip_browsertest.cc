@@ -70,6 +70,7 @@
 #include "ui/events/event.h"
 #include "ui/gfx/animation/animation_test_api.h"
 #include "ui/gfx/geometry/skia_conversions.h"
+#include "ui/views/controls/button/label_button.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/test/views_test_utils.h"
@@ -397,6 +398,24 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   EXPECT_FALSE(region->resize_area_->GetEnabled());
   region->SetState(BraveVerticalTabStripRegionView::State::kFloating);
   EXPECT_TRUE(region->resize_area_->GetEnabled());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSpaceRailIsNativeTabDropTarget) {
+  ToggleVerticalTabStrip();
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  ASSERT_GE(region->origin_workspace_buttons_.size(), 2u);
+  views::LabelButton* destination = region->origin_workspace_buttons_[1];
+  ASSERT_TRUE(destination);
+  const gfx::Point destination_center =
+      destination->GetBoundsInScreen().CenterPoint();
+
+  EXPECT_EQ(region, region->GetOriginTabDragTarget(destination_center));
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
