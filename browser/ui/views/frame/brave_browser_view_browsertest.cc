@@ -5,25 +5,45 @@
 
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 
+#include <memory>
+#include <optional>
 #include <string>
+#include <utility>
 
+#include "base/base64.h"
+#include "base/check.h"
 #include "base/functional/callback.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/origin_quick_open_view.h"
+#include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "chrome/browser/extensions/extension_apitest.h"
+#include "chrome/browser/extensions/extension_view_host.h"
+#include "chrome/browser/ui/extensions/extension_action_test_helper.h"
+#include "chrome/browser/ui/views/extensions/extension_popup.h"
+#include "extensions/browser/extension_host_test_helper.h"
+#include "extensions/common/mojom/view_type.mojom.h"
+#include "extensions/test/test_extension_dir.h"
+#endif
 #include "build/build_config.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
@@ -55,13 +75,22 @@
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/infobars/core/confirm_infobar_delegate.h"
 #include "components/infobars/core/infobar.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
+#include "content/public/test/test_navigation_observer.h"
+#include "net/test/embedded_test_server/http_request.h"
+#include "net/test/embedded_test_server/http_response.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
 #include "ui/compositor/layer.h"
+#include "ui/events/event.h"
+#include "ui/events/event_constants.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
+#include "ui/views/controls/textfield/textfield.h"
+#include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
@@ -98,6 +127,25 @@ class TestInfoBarDelegate : public ConfirmInfoBarDelegate {
     return u"This is a test InfoBar injected from a browser test.";
   }
 };
+
+std::unique_ptr<net::test_server::HttpResponse>
+HandleOriginQuickOpenFaviconRequest(
+    const net::test_server::HttpRequest& request) {
+  if (request.relative_url != "/favicon.ico") {
+    return nullptr;
+  }
+
+  auto response = std::make_unique<net::test_server::BasicHttpResponse>();
+  response->set_content_type("image/png");
+  std::string favicon;
+  const bool decoded = base::Base64Decode(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2NIbbj6HwAF"
+      "wgK6ho3LlwAAAABJRU5ErkJggg==",
+      &favicon);
+  CHECK(decoded);
+  response->set_content(favicon);
+  return response;
+}
 
 }  // namespace
 
@@ -140,7 +188,349 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
   }
 
   BookmarkBarView* bookmark_bar() { return browser_view()->bookmark_bar(); }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  OriginQuickOpenView* origin_quick_open_view() {
+    return brave_browser_view()->origin_quick_open_view_;
+  }
+#endif
 };
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
+  ASSERT_TRUE(origin_quick_open_view());
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+  const int initial_tab_count = browser()->tab_strip_model()->count();
+
+#if BUILDFLAG(IS_MAC)
+  constexpr int kModifiers = ui::EF_COMMAND_DOWN;
+#else
+  constexpr int kModifiers = ui::EF_CONTROL_DOWN;
+#endif
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_T, kModifiers)));
+  EXPECT_TRUE(origin_quick_open_view()->GetVisible());
+  EXPECT_EQ(initial_tab_count, browser()->tab_strip_model()->count());
+
+  EXPECT_TRUE(brave_browser_view()->GetFocusManager()->ProcessAccelerator(
+      ui::Accelerator(ui::VKEY_ESCAPE, ui::EF_NONE)));
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_K, kModifiers)));
+  EXPECT_FALSE(origin_quick_open_view()->GetVisible());
+  EXPECT_EQ(initial_tab_count, browser()->tab_strip_model()->count());
+
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_2, kModifiers)));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_1, kModifiers)));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[0].id,
+            controller->active_space_id());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL test_url = embedded_test_server()->GetURL("/title1.html");
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(contents, test_url));
+
+  content::TestNavigationObserver reload_observer(contents);
+  input::NativeWebKeyboardEvent reload_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  reload_event.windows_key_code = ui::VKEY_R;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(reload_event));
+  reload_observer.Wait();
+  EXPECT_TRUE(reload_observer.last_navigation_succeeded());
+  EXPECT_EQ(test_url, contents->GetLastCommittedURL());
+}
+
+class OriginExtensionInputShortcutBrowserTest
+    : public extensions::ExtensionApiTest {};
+
+IN_PROC_BROWSER_TEST_F(OriginExtensionInputShortcutBrowserTest,
+                       EditablePopupOwnsSingleKeyShortcuts) {
+  static constexpr char kManifest[] = R"({
+    "name": "Editable Popup",
+    "manifest_version": 3,
+    "action": { "default_popup": "popup.html" },
+    "version": "0.1"
+  })";
+
+  extensions::TestExtensionDir test_dir;
+  test_dir.WriteManifest(kManifest);
+  test_dir.WriteFile(FILE_PATH_LITERAL("popup.html"),
+                     "<input id='password' type='password' autofocus>");
+  const extensions::Extension* extension =
+      LoadExtension(test_dir.UnpackedPath());
+  ASSERT_TRUE(extension);
+
+  extensions::ExtensionHostTestHelper popup_waiter(profile(), extension->id());
+  popup_waiter.RestrictToType(extensions::mojom::ViewType::kExtensionPopup);
+  ExtensionActionTestHelper::Create(browser())->Press(extension->id());
+  popup_waiter.WaitForHostCompletedFirstLoad();
+
+  ExtensionPopup* popup = ExtensionPopup::last_popup_for_testing();
+  ASSERT_TRUE(popup);
+  content::WebContents* popup_contents = popup->host()->host_contents();
+  ASSERT_TRUE(popup_contents);
+  ASSERT_TRUE(content::ExecJs(popup_contents,
+                              "document.querySelector('#password').focus();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return popup_contents->IsFocusedElementEditable(); }));
+
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+  ASSERT_TRUE(controller->SelectSpaceAtIndex(0));
+  const std::string initial_space_id = controller->active_space_id();
+
+  input::NativeWebKeyboardEvent number_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  number_event.windows_key_code = ui::VKEY_2;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
+            browser()->PreHandleKeyboardEvent(popup_contents, number_event));
+  EXPECT_EQ(initial_space_id, controller->active_space_id());
+
+  ASSERT_TRUE(content::ExecJs(popup_contents,
+                              "document.querySelector('#password').blur();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !popup_contents->IsFocusedElementEditable(); }));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            browser()->PreHandleKeyboardEvent(popup_contents, number_event));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenPromotesDirectSite) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"reddit");
+  quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
+
+  ASSERT_EQ(1u, quick_open->query_results_[0].size());
+  EXPECT_TRUE(quick_open->query_results_[0][0].is_search);
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& direct_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"reddit.com", direct_result.title);
+  EXPECT_EQ(GURL("https://www.reddit.com/"), direct_result.destination_url);
+  EXPECT_FALSE(direct_result.is_search);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"macrumors");
+  quick_open->ContentsChanged(quick_open->search_field_, u"macrumors");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& bare_domain_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"macrumors.com", bare_domain_result.title);
+  EXPECT_EQ(GURL("https://www.macrumors.com/"),
+            bare_domain_result.destination_url);
+  EXPECT_FALSE(bare_domain_result.icon_model.IsEmpty());
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"flip");
+  quick_open->ContentsChanged(quick_open->search_field_, u"flip");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& flipboard_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"flipboard.com", flipboard_result.title);
+  EXPECT_EQ(GURL("https://flipboard.com/"),
+            flipboard_result.destination_url);
+  EXPECT_FALSE(flipboard_result.icon_model.IsEmpty());
+
+  const std::optional<GURL> instagram_favicon =
+      GetOriginKnownSiteFaviconURL(GURL("https://instagram.com/"));
+  ASSERT_TRUE(instagram_favicon);
+  EXPECT_EQ(
+      GURL("https://static.cdninstagram.com/rsrc.php/yr/r/rzWiSjZRxk5.webp"),
+      *instagram_favicon);
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenShowsTopHits) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"chrome extensions");
+  quick_open->ContentsChanged(quick_open->search_field_,
+                              u"chrome extensions");
+
+  ASSERT_EQ(1u, quick_open->query_results_[0].size());
+  EXPECT_TRUE(quick_open->query_results_[0][0].is_search);
+  EXPECT_EQ(u"Search", quick_open->section_labels_[0]->GetText());
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(u"Top Hits", quick_open->section_labels_[1]->GetText());
+  EXPECT_EQ(GURL("https://chromewebstore.google.com/category/extensions"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_EQ(GURL("brave://extensions/"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_EQ(0u, quick_open->selected_result_);
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenFetchesMissingFavicon) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  embedded_test_server()->RegisterRequestHandler(
+      base::BindRepeating(&HandleOriginQuickOpenFaviconRequest));
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL page_url = embedded_test_server()->GetURL("/article");
+  const std::string host(page_url.host());
+
+  ASSERT_FALSE(quick_open->favicon_models_.contains(host));
+  quick_open->RequestFavicon(page_url, /*allow_network_fetch=*/true);
+
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return quick_open->favicon_models_.contains(host); }));
+  EXPECT_FALSE(quick_open->favicon_models_.at(host).IsEmpty());
+  EXPECT_FALSE(quick_open->pending_favicon_hosts_.contains(host));
+  EXPECT_FALSE(quick_open->network_favicon_hosts_.contains(host));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenCompletesPartialDomain) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"news.yc");
+  quick_open->ContentsChanged(quick_open->search_field_, u"news.yc");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  EXPECT_EQ(GURL("https://news.ycombinator.com/"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_NE(GURL("https://news.yc.com/"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_EQ(u"news.yc", quick_open->user_input_);
+  EXPECT_EQ(u"news.ycombinator.com", quick_open->search_field_->GetText());
+  EXPECT_EQ(quick_open->user_input_.size(),
+            quick_open->search_field_->GetSelectedRange().GetMin());
+  EXPECT_EQ(quick_open->search_field_->GetText().size(),
+            quick_open->search_field_->GetSelectedRange().GetMax());
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuickOpenPrefersOpenPage) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  OriginQuickOpenView::Result open_result;
+  open_result.title = u"Reddit — already open";
+  open_result.subtitle = u"— already open here";
+  open_result.badge = u"Switch  ›";
+  open_result.destination_url = GURL("https://www.reddit.com/r/brave_browser/");
+  open_result.switch_to_tab = true;
+  quick_open->open_tab_results_.insert(
+      quick_open->open_tab_results_.begin(),
+      OriginQuickOpenView::TimedResult{std::move(open_result),
+                                       base::Time::Now()});
+
+  quick_open->search_field_->SetText(u"red");
+  quick_open->ContentsChanged(quick_open->search_field_, u"red");
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& selected_result = quick_open->query_results_[1][0];
+  EXPECT_TRUE(selected_result.switch_to_tab);
+  EXPECT_EQ(GURL("https://www.reddit.com/r/brave_browser/"),
+            selected_result.destination_url);
+  EXPECT_EQ(u"Switch to page  ↵", selected_result.badge);
+  ASSERT_GE(quick_open->visible_results_.size(), 2u);
+  EXPECT_EQ(1u, quick_open->selected_result_);
+  EXPECT_EQ(1u, quick_open->visible_results_[1].first);
+  EXPECT_EQ(0u, quick_open->visible_results_[1].second);
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenRanksMatchingHistory) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"flip");
+  quick_open->ContentsChanged(quick_open->search_field_, u"flip");
+
+  OriginQuickOpenView::Result history_result;
+  history_result.title = u"Flipboard";
+  history_result.destination_url = GURL("https://flipboard.com/latest");
+  history_result.subtitle = u"— 2 days ago";
+  history_result.icon_model =
+      quick_open->GetFaviconModelForURL(history_result.destination_url);
+  quick_open->query_history_results_.push_back(
+      OriginQuickOpenView::TimedResult{std::move(history_result),
+                                       base::Time::Now()});
+  quick_open->RebuildResults();
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+            quick_open->query_results_[1][0].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][0].badge.starts_with(u"History"));
+  quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginQuickOpenNumberTypesUntilResultNavigation) {
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(quick_open);
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"reddit");
+  quick_open->ContentsChanged(quick_open->search_field_, u"reddit");
+  ASSERT_TRUE(quick_open->GetVisible());
+
+  const std::string initial_space_id = controller->active_space_id();
+  const ui::KeyEvent number_event(ui::EventType::kKeyPressed, ui::VKEY_2,
+                                  ui::EF_NONE);
+  EXPECT_FALSE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, number_event));
+  EXPECT_EQ(initial_space_id, controller->active_space_id());
+  EXPECT_TRUE(quick_open->GetVisible());
+
+  const ui::KeyEvent down_event(ui::EventType::kKeyPressed, ui::VKEY_DOWN,
+                                ui::EF_NONE);
+  EXPECT_TRUE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, down_event));
+  EXPECT_TRUE(
+      quick_open->HandleKeyEvent(quick_open->search_field_, number_event));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
+  EXPECT_FALSE(quick_open->GetVisible());
+}
+#endif
 
 // Tests bookmark/infobar/contents container layout with vertical tab.
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, LayoutWithVerticalTabTest) {
@@ -361,7 +751,13 @@ class BraveBrowserViewWithRoundedCornersTest
     return container_view->vertical_tab_strip_region_view();
   }
 
-  bool IsRoundedCornersEnabled() const { return GetParam(); }
+  bool IsRoundedCornersEnabled() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    return true;
+#else
+    return GetParam();
+#endif
+  }
 
  protected:
   // Helper methods to get metrics

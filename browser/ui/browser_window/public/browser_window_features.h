@@ -9,6 +9,7 @@
 #include <memory>
 
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/email_aliases/buildflags/buildflags.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 
@@ -17,6 +18,7 @@ class BraveShieldsUIContentsCache;
 class BraveNonClientHitTestHelper;
 class BraveVPNController;
 class FocusModeController;
+class OriginSpaceController;
 class PlaylistSidePanelCoordinator;
 class TreeTabSessionManager;
 class VerticalTabController;
@@ -104,6 +106,16 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
     return tree_tab_session_manager_.get();
   }
 
+  // Available for normal Brave Origin windows. Owns live tab membership and
+  // the selected space for this browser window.
+  OriginSpaceController* origin_space_controller() {
+    return origin_space_controller_.get();
+  }
+
+  const OriginSpaceController* origin_space_controller() const {
+    return origin_space_controller_.get();
+  }
+
   screenshot::ScreenshotController* screenshot_controller() {
     return screenshot_controller_.get();
   }
@@ -145,6 +157,7 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
   std::unique_ptr<BraveNonClientHitTestHelper>
       brave_non_client_hit_test_helper_;
   std::unique_ptr<TreeTabSessionManager> tree_tab_session_manager_;
+  std::unique_ptr<OriginSpaceController> origin_space_controller_;
   std::unique_ptr<screenshot::ScreenshotController> screenshot_controller_;
   std::unique_ptr<VerticalTabController> vertical_tab_controller_;
   std::unique_ptr<WorkspacesBubbleController> workspaces_bubble_controller_;

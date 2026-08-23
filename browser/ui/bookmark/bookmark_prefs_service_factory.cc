@@ -9,6 +9,7 @@
 
 #include "base/no_destructor.h"
 #include "brave/browser/ui/bookmark/bookmark_prefs_service.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/incognito_helpers.h"
 #include "chrome/browser/profiles/profile.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
@@ -54,5 +55,5 @@ bool BookmarkPrefsServiceFactory::ServiceIsCreatedWithBrowserContext() const {
 void BookmarkPrefsServiceFactory::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterBooleanPref(bookmarks::prefs::kAlwaysShowBookmarkBarOnNTP,
-                                true);
+                                !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
 }

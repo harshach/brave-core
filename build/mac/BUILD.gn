@@ -87,6 +87,37 @@ if (is_universal_binary) {
   }
 }
 
+if (is_brave_origin_branded && origin_adblock_components_dir != "") {
+  origin_adblock_libraries_dir =
+      "$unsigned_app_path/Contents/Frameworks/$chrome_product_full_name " +
+      "Framework.framework/Versions/$chrome_version_full/Libraries"
+  origin_adblock_components_stamp =
+      "$origin_adblock_libraries_dir/.origin-adblock-components"
+
+  action("install_origin_adblock_components") {
+    script = "install_origin_adblock_components.py"
+    args = [
+      "--source",
+      rebase_path(origin_adblock_components_dir, root_build_dir),
+      "--destination",
+      rebase_path(origin_adblock_libraries_dir, root_build_dir),
+      "--stamp",
+      rebase_path(origin_adblock_components_stamp, root_build_dir),
+    ]
+    inputs = [
+      "$origin_adblock_components_dir/gkboaolpopklhgplhaaiboijnklogmbc/list_catalog.json",
+      "$origin_adblock_components_dir/gkboaolpopklhgplhaaiboijnklogmbc/manifest.json",
+      "$origin_adblock_components_dir/gkboaolpopklhgplhaaiboijnklogmbc/regional_catalog.json",
+      "$origin_adblock_components_dir/iodkpdagapdfkphljnddpjlldadblomo/list.txt",
+      "$origin_adblock_components_dir/iodkpdagapdfkphljnddpjlldadblomo/manifest.json",
+      "$origin_adblock_components_dir/mfddibmblmbccpadfndgakiopmmhebop/manifest.json",
+      "$origin_adblock_components_dir/mfddibmblmbccpadfndgakiopmmhebop/resources.json",
+    ]
+    outputs = [ origin_adblock_components_stamp ]
+    deps = [ "//chrome:chrome_app" ]
+  }
+}
+
 # //brave depends on this via "build/$target_os:brave".
 group("brave") {
   exe_path = "$unsigned_app_path/Contents/MacOS/$chrome_product_full_name"
@@ -94,6 +125,14 @@ group("brave") {
   # start.js uses this file to know which binary to run.
   write_file("$root_out_dir/brave_helper",
              [ string_replace(rebase_path(exe_path), " ", "\\ ") ])
+
+  # `ninja brave` is the normal local-development build and must produce the
+  # same functional app as the release packaging target. Without this edge,
+  # only `:package` installed Origin's bundled filter lists, leaving locally
+  # launched apps with an enabled Shields UI but no rules to enforce.
+  if (is_brave_origin_branded && origin_adblock_components_dir != "") {
+    deps = [ ":install_origin_adblock_components" ]
+  }
 }
 
 action("generate_dsa_sig_for_dmg") {
@@ -375,6 +414,9 @@ action("package") {
   if (is_universal_binary) {
     args += [ "--universal" ]
     deps += [ ":universalize" ]
+  }
+  if (is_brave_origin_branded && origin_adblock_components_dir != "") {
+    deps += [ ":install_origin_adblock_components" ]
   }
 }
 

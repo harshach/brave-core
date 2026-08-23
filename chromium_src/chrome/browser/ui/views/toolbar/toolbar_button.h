@@ -35,6 +35,9 @@ class ToolbarButton : public ToolbarButton_ChromiumImpl,
   bool HasIconEnabledColorsOverride() const {
     return icon_enabled_colors_override_.has_value();
   }
+  const std::optional<SkColor>& icon_enabled_colors_override() const {
+    return icon_enabled_colors_override_;
+  }
 
   // ToolbarButton_ChromiumImpl overrides:
   void OnThemeChanged() override;

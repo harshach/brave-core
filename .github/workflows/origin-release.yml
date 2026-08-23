@@ -1,0 +1,183 @@
+name: Publish Origin desktop release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example origin-v0.1.0-preview.1
+        required: true
+        type: string
+      prerelease:
+        description: Mark this as a prerelease
+        required: true
+        default: true
+        type: boolean
+  push:
+    tags:
+      - "origin-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: origin-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - name: Resolve release settings
+        id: release
+        shell: bash
+        env:
+          DISPATCH_PRERELEASE: ${{ inputs.prerelease }}
+          DISPATCH_TAG: ${{ inputs.tag }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            release_tag="$DISPATCH_TAG"
+            prerelease="$DISPATCH_PRERELEASE"
+          else
+            release_tag="$GITHUB_REF_NAME"
+            version="${release_tag#origin-v}"
+            if [[ "$version" == *-* ]]; then
+              prerelease=true
+            else
+              prerelease=false
+            fi
+          fi
+
+          if [[ ! "$release_tag" =~ ^origin-v[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "Release tag must start with origin-v and contain only letters, numbers, '.', '_' or '-'." >&2
+            exit 1
+          fi
+
+          echo "prerelease=$prerelease" >> "$GITHUB_OUTPUT"
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+
+  linux_x64:
+    name: Build Linux x64
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/origin-build-linux.yml
+
+  windows_x64:
+    name: Build Windows x64
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/origin-build-windows.yml
+
+  macos_arm64:
+    name: Build macOS Apple Silicon
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/origin-build-macos.yml
+    with:
+      architecture: ARM64
+
+  macos_x64:
+    name: Build macOS Intel
+    needs: validate
+    permissions:
+      contents: read
+    uses: ./.github/workflows/origin-build-macos.yml
+    with:
+      architecture: X64
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - validate
+      - linux_x64
+      - windows_x64
+      - macos_arm64
+      - macos_x64
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download packaged browsers
+        uses: actions/download-artifact@v8.0.1
+        with:
+          path: downloaded-packages
+          pattern: origin-*-${{ github.sha }}
+
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          mkdir -p release-assets
+
+          while IFS= read -r -d '' package; do
+            relative_path="${package#downloaded-packages/}"
+            artifact_name="${relative_path%%/*}"
+            platform="${artifact_name%-*}"
+            package_name="$(basename "$package")"
+            safe_name="${package_name// /-}"
+            destination="release-assets/$platform-$safe_name"
+
+            if [[ -e "$destination" ]]; then
+              checksum="$(sha256sum "$package" | cut -c1-12)"
+              destination="release-assets/$platform-$checksum-$safe_name"
+            fi
+
+            install -m 0644 "$package" "$destination"
+          done < <(
+            find downloaded-packages -type f \
+              \( -name '*.deb' -o -name '*.rpm' -o -name '*.zip' \
+                 -o -name '*.dmg' -o -name '*.exe' \) -print0
+          )
+
+          for platform in \
+            origin-linux-x64 \
+            origin-windows-x64 \
+            origin-macos-ARM64 \
+            origin-macos-X64; do
+            if ! compgen -G "release-assets/$platform-*" > /dev/null; then
+              echo "No release package found for $platform." >&2
+              exit 1
+            fi
+          done
+
+          cd release-assets
+          sha256sum ./* > SHA256SUMS
+
+      - name: Create or update GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
+          RELEASE_TAG: ${{ needs.validate.outputs.tag }}
+        run: |
+          title="Origin ${RELEASE_TAG#origin-v}"
+          notes="Unsigned Origin community builds. macOS Gatekeeper and Windows SmartScreen may require manual confirmation. Verify downloads with SHA256SUMS."
+
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* \
+              --clobber \
+              --repo "$GITHUB_REPOSITORY"
+            exit 0
+          fi
+
+          release_args=(
+            --generate-notes
+            --notes "$notes"
+            --repo "$GITHUB_REPOSITORY"
+            --target "$GITHUB_SHA"
+            --title "$title"
+          )
+          if [[ "$PRERELEASE" == "true" ]]; then
+            release_args+=(--prerelease --latest=false)
+          else
+            release_args+=(--latest)
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            "${release_args[@]}" \
+            release-assets/*

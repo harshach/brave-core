@@ -8,6 +8,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -17,6 +18,7 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
+#include "base/timer/timer.h"
 #include "brave/browser/ui/commands/accelerator_service.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
@@ -35,7 +37,9 @@
 #include "components/tabs/public/tab_interface.h"
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
 #include "brave/browser/ui/views/toolbar/brave_vpn_panel_controller.h"
@@ -78,10 +82,13 @@ class BrowserWindowInterface;
 class ContentsLayoutManager;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
+class OriginQuickOpenView;
+struct OriginQuickOpenSelection;
 class SidebarContainerView;
 class SidePanelEntry;
 class TabStripPlacementCoordinator;
 class BraveVerticalTabStripContainerView;
+enum class OriginQuickOpenDisposition;
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 class WalletButton;
@@ -112,6 +119,8 @@ class BraveBrowserView : public BrowserView,
       const BrowserWindowInterface* browser);
 
   void ShowUpdateChromeDialog() override;
+  void ShowOriginQuickOpen(
+      std::optional<ui::KeyboardCode> activation_key = std::nullopt);
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a
@@ -148,6 +157,12 @@ class BraveBrowserView : public BrowserView,
                           int reason) override;
   void UpdateToolbar(content::WebContents* contents) override;
   bool UpdateToolbarSecurityState() override;
+  void OnThemeChanged() override;
+  void DidChangeThemeColor() override;
+  void OnBackgroundColorChanged() override;
+  void DidStopLoading() override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      const input::NativeWebKeyboardEvent& event) override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;
   bool IsInTabDragging() const override;
   void ReadyToListenFullscreenChanges() override;
@@ -195,6 +210,16 @@ class BraveBrowserView : public BrowserView,
   void UpdateRoundedCornersUI();
   void UpdateVerticalTabStripBorder();
   void UpdateSidebarBorder();
+
+  // Completes a width change of Origin's workspace sidebar. The renderer is a
+  // native child view on macOS, so its holder needs one non-animated layout at
+  // the destination bounds after the sidebar animation or resize gesture.
+  void FinalizeOriginContentsResize();
+
+  // Covers the underlying renderer when the selected Origin space has no
+  // pages. Chromium always retains an active WebContents, but an empty space
+  // must not leak a page from another space into the canvas.
+  void SetOriginSpaceEmpty(bool empty);
 
   // Re-applies the side panel border so the content corner radii track the
   // sidebar control view's visibility. Wired as SidebarContainerView's
@@ -278,6 +303,7 @@ class BraveBrowserView : public BrowserView,
   static void SetDownloadConfirmReturnForTesting(bool allow);
 
   // BrowserView overrides:
+  void Layout(PassKey) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
   void LoadAccelerators() override;
@@ -305,6 +331,10 @@ class BraveBrowserView : public BrowserView,
   void StopTabCycling();
   void OnCompactModePrefChanged();
   void OnPreferenceChanged(const std::string& pref_name);
+  void UpdateOriginPageChromeColor(content::WebContents* contents);
+  void ScheduleOriginPageHeaderColorSample(content::WebContents* contents);
+  void SampleOriginPageHeaderColor(content::WebContents* contents,
+                                   const GURL& url);
   void OnWindowClosingConfirmResponse(bool allowed_to_close);
   BraveBrowser* GetBraveBrowser() const;
   void UpdateFocusModeState();
@@ -334,6 +364,11 @@ class BraveBrowserView : public BrowserView,
   // class's ctor body runs).
   void EnsureFindBarHostViewIsLastChild();
 
+  void HideOriginQuickOpen();
+  void ShowOriginCommander();
+  void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
+                             OriginQuickOpenDisposition disposition);
+
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
   bool HasSelectedURL() const override;
@@ -354,9 +389,23 @@ class BraveBrowserView : public BrowserView,
 
   bool closing_confirm_dialog_activated_ = false;
   bool show_active_contents_domain_ = false;
+  // Toolbar updates are frequent while a page is loading. Cache the effective
+  // focus-mode state so unchanged updates do not relayout the browser chrome.
+  bool effective_focus_mode_enabled_ = false;
+  bool effective_focus_mode_state_initialized_ = false;
+  std::optional<SkColor> origin_page_chrome_surface_;
+  std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_location_bar_ring_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
+  std::optional<SkColor> origin_page_header_color_;
+  GURL origin_page_header_sampled_url_;
+  GURL origin_page_header_sample_pending_url_;
+  base::OneShotTimer origin_page_header_sample_timer_;
   raw_ptr<BraveHelpBubbleHostView> brave_help_bubble_host_view_ = nullptr;
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
   raw_ptr<views::View> contents_background_view_ = nullptr;
+  raw_ptr<views::View> origin_empty_space_view_ = nullptr;
+  raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>
       vertical_tab_strip_container_view_ = nullptr;
@@ -397,6 +446,8 @@ class BraveBrowserView : public BrowserView,
       bookmark_tab_helper_observation_{this};
   base::CallbackListSubscription active_tab_will_discard_contents_subscription_;
   base::CallbackListSubscription active_tab_will_detach_subscription_;
+
+  bool origin_insert_mode_ = false;
 
   base::WeakPtrFactory<BraveBrowserView> weak_ptr_{this};
 };

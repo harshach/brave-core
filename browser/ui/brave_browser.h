@@ -44,6 +44,10 @@ class BraveBrowser : public Browser {
       const blink::mojom::WindowFeatures& window_features,
       bool user_gesture,
       bool* was_blocked) override;
+  bool ShouldFocusLocationBarByDefault(content::WebContents* source) override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      content::WebContents* source,
+      const input::NativeWebKeyboardEvent& event) override;
 
   void OnTabClosing(tabs::TabInterface* tab,
                     bool* had_active_modal_dialog) override;

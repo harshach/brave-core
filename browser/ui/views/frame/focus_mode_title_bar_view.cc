@@ -67,6 +67,10 @@ FocusModeTitleBarView::FocusModeTitleBarView() {
 FocusModeTitleBarView::~FocusModeTitleBarView() = default;
 
 void FocusModeTitleBarView::SetTab(tabs::TabInterface* tab) {
+  if (tab_ == tab) {
+    return;
+  }
+
   tab_ui_updated_subscription_ = {};
   tab_will_detach_subscription_ = {};
   tab_ = tab;

@@ -41,6 +41,7 @@ source_set("workspaces") {
     "//components/keyed_service/core",
     "//components/pref_registry",
     "//components/sessions",
+    "//brave/components/brave_origin/buildflags",
   ]
 }
 

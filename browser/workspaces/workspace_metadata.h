@@ -19,4 +19,25 @@ struct WorkspaceMetadata {
   int number_of_tabs = 0;
 };
 
+struct OriginSpaceMetadata {
+  std::string id;
+  std::string name;
+  std::string icon;
+
+  bool operator==(const OriginSpaceMetadata&) const = default;
+};
+
+// Stable vector-icon identifiers shared by the Origin rail, page-list header,
+// and Quick Open destination chips.
+inline constexpr char kOriginSpaceIconHome[] = "home";
+inline constexpr char kOriginSpaceIconWork[] = "work";
+inline constexpr char kOriginSpaceIconPlayground[] = "playground";
+inline constexpr char kOriginSpaceIconReading[] = "reading";
+inline constexpr char kOriginSpaceIconTerminal[] = "terminal";
+inline constexpr char kOriginSpaceIconIdeas[] = "ideas";
+inline constexpr char kOriginSpaceIconMessages[] = "messages";
+inline constexpr char kOriginSpaceIconSchool[] = "school";
+inline constexpr char kOriginSpaceIconShopping[] = "shopping";
+inline constexpr char kOriginSpaceIconTravel[] = "travel";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_WORKSPACE_METADATA_H_

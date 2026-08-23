@@ -23,23 +23,29 @@ index a3a2000fe57f7095a85dbbcbbff473d41fdb83b5..00f27d30f059c349586d2f445167a73e
  
    WebContents::CreateParams create_params(
        params.browser->GetProfile(), initial_site_instance_for_new_contents);
-@@ -851,6 +856,9 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -851,6 +856,13 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
           params->user_gesture)) {
        tab_to_insert->set_opener(
            tabs::TabInterface::MaybeGetFromContents(params->source_contents));
-+      if (params->navigation_initiated_from_sync) {            
-+        tab_to_insert->set_opener_was_set_for_empty_new_tab(); 
++      // Tree tabs should only inherit hierarchy from a genuine page-created
++      // navigation. Browser commands such as Ctrl+T, Quick Open, and typed
++      // address-bar navigations receive the active tab as source context too,
++      // but that is not a parent/child relationship.
++      if (params->navigation_initiated_from_sync || user_initiated) {
++        tab_to_insert->set_opener_was_set_for_empty_new_tab();
 +      }
      }
    }
  
-@@ -868,6 +876,9 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -868,6 +880,11 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
             params->user_gesture)) {
          tab_to_insert->set_opener(
              tabs::TabInterface::MaybeGetFromContents(params->source_contents));
-+      if (params->navigation_initiated_from_sync) {            
-+        tab_to_insert->set_opener_was_set_for_empty_new_tab(); 
-+      }
++        // See the contents-to-insert path above. Web-triggerable link opens
++        // keep their opener and therefore remain nested under their source.
++        if (params->navigation_initiated_from_sync || user_initiated) {
++          tab_to_insert->set_opener_was_set_for_empty_new_tab();
++        }
        }
        contents_to_navigate_or_insert = tab_to_insert->GetContents();
  

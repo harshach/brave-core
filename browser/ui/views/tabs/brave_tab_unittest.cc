@@ -11,6 +11,7 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
 #include "brave/browser/ui/views/tabs/mock_browser_window_interface_with_vertical_tab_controller.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
 #include "brave/components/tabs/public/tree_tab_node_id.h"
 #include "brave/components/tabs/public/tree_tab_node_tab_collection.h"
@@ -20,6 +21,7 @@
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/views/tabs/fake_tab_slot_controller.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_close_button.h"
+#include "chrome/browser/ui/views/tabs/tab/tab_title.h"
 #include "chrome/browser/ui/views/tabs/tab_style_views.h"
 #include "chrome/test/base/testing_profile.h"
 #include "chrome/test/views/chrome_views_test_base.h"
@@ -36,6 +38,7 @@
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/bubble/bubble_border.h"
 #include "ui/views/test/views_test_utils.h"
+#include "ui/views/view_utils.h"
 
 class MockTabSlotController : public FakeTabSlotController {
  public:
@@ -129,6 +132,24 @@ TEST_F(BraveTabTest, ExtraPaddingLayoutTest) {
   LayoutAndCheckBorder(&tab, {0, 0, 150, 50});
   LayoutAndCheckBorder(&tab, {0, 0, 30, 50});
 }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+TEST_F(BraveTabTest, OriginPageTitleUsesVisibleTailEllipsis) {
+  FakeTabSlotController tab_slot_controller;
+  BraveTab tab(tabs::TabHandle(1), &tab_slot_controller);
+
+  TabTitle* title = nullptr;
+  for (const auto& child : tab.children()) {
+    if (auto* candidate = views::AsViewClass<TabTitle>(child.get())) {
+      title = candidate;
+      break;
+    }
+  }
+
+  ASSERT_TRUE(title);
+  EXPECT_EQ(gfx::ELIDE_TAIL, title->GetElideBehavior());
+}
+#endif
 
 // Check tab's region inside of vertical padding.
 TEST_F(BraveTabTest, TabHeightTest) {

@@ -6,6 +6,8 @@
 #ifndef BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 #define BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 
+#include <optional>
+
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
@@ -14,6 +16,7 @@
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "components/prefs/pref_member.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -25,6 +28,7 @@ class BraveVPNButton;
 #endif
 
 class BraveBookmarkButton;
+class BraveShieldsToolbarButton;
 class ScreenshotButton;
 class SidePanelButton;
 class TabStripComboButton;
@@ -41,6 +45,9 @@ class BraveToolbarView : public ToolbarView,
   ~BraveToolbarView() override;
 
   BraveBookmarkButton* bookmark_button() const { return bookmark_; }
+  BraveShieldsToolbarButton* origin_shields_button() const {
+    return origin_shields_button_;
+  }
   WalletButton* wallet_button() const { return wallet_; }
   SidePanelButton* side_panel_button() const { return side_panel_; }
   ToolbarButton* vertical_tab_toggle_button() const {
@@ -61,9 +68,18 @@ class BraveToolbarView : public ToolbarView,
 #endif
 
   void UpdateHorizontalPadding();
+  void SetOriginPageChromeColors(SkColor surface,
+                                 SkColor location_bar_color,
+                                 SkColor location_bar_ring,
+                                 SkColor foreground);
+
+  std::optional<SkColor> origin_page_chrome_color_for_testing() const {
+    return origin_page_chrome_surface_;
+  }
 
   void Init() override;
   void Layout(PassKey) override;
+  void OnPaintBackground(gfx::Canvas* canvas) override;
   void Update(content::WebContents* tab) override;
   void OnThemeChanged() override;
   void OnEditBookmarksEnabledChanged();
@@ -80,11 +96,14 @@ class BraveToolbarView : public ToolbarView,
   void LoadImages() override;
   void ResetLocationBarBounds();
   void ResetBookmarkButtonBounds();
+  void EnsureOriginExtensionsToolbar();
+  void UpdateOriginPageChromeControls();
   void UpdateBookmarkVisibility();
   void UpdateVerticalTabToggleVisibility();
   void UpdateVerticalTabTogglePlacement();
   void UpdateVerticalTabToggleState();
   void OnVerticalTabTogglePressed();
+  void OnOriginQuickOpenPressed();
   void CreateWorkspaceButtonIfNeeded();
   void OnWorkspacesButtonPressed();
   void UpdateWorkspaceButtonVisibility();
@@ -108,8 +127,10 @@ class BraveToolbarView : public ToolbarView,
   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
 
   raw_ptr<ToolbarButton> vertical_tab_toggle_ = nullptr;
+  raw_ptr<ToolbarButton> origin_quick_open_button_ = nullptr;
   raw_ptr<ToolbarButton> workspaces_button_ = nullptr;
   raw_ptr<BraveBookmarkButton> bookmark_ = nullptr;
+  raw_ptr<BraveShieldsToolbarButton> origin_shields_button_ = nullptr;
   // Tracks the preference to determine whether bookmark editing is allowed.
   BooleanPrefMember edit_bookmarks_enabled_;
 
@@ -151,6 +172,10 @@ class BraveToolbarView : public ToolbarView,
 
   // Whether this toolbar has been initialized.
   bool brave_initialized_ = false;
+  std::optional<SkColor> origin_page_chrome_surface_;
+  std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_location_bar_ring_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
   // Tracks profile count to determine whether profile switcher should be shown.
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorage::Observer>

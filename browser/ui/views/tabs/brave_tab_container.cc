@@ -18,8 +18,10 @@
 #include "base/debug/stack_trace.h"
 #include "base/feature_list.h"
 #include "base/notimplemented.h"
+#include "base/strings/string_number_conversions.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
@@ -27,6 +29,8 @@
 #include "brave/browser/ui/views/tabs/brave_tab_group_header.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+#include "brave/components/vector_icons/vector_icons.h"
 #include "brave/ui/color/nala/nala_color_id.h"
 #include "cc/paint/paint_flags.h"
 #include "chrome/browser/profiles/profile.h"
@@ -35,6 +39,7 @@
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
+#include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/views/tabs/dragging/tab_drag_controller.h"
 #include "chrome/browser/ui/views/tabs/tab_container.h"
@@ -47,6 +52,7 @@
 #include "components/tabs/public/split_tab_data.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/base/models/image_model.h"
 #include "ui/color/color_id.h"
 #include "ui/compositor/paint_recorder.h"
 #include "ui/display/screen.h"
@@ -56,6 +62,9 @@
 #include "ui/gfx/scoped_canvas.h"
 #include "ui/gfx/skbitmap_operations.h"
 #include "ui/views/background.h"
+#include "ui/views/controls/image_view.h"
+#include "ui/views/controls/label.h"
+#include "ui/views/layout/box_layout.h"
 #include "ui/views/style/platform_style.h"
 #include "ui/views/view_utils.h"
 
@@ -65,6 +74,20 @@ using BrowserRootView::DropIndex::RelativeToIndex::kInsertBeforeIndex;
 using BrowserRootView::DropIndex::RelativeToIndex::kReplaceIndex;
 
 namespace {
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+constexpr int kOriginSectionHeaderHeight = 24;
+constexpr int kOriginSectionHorizontalInset = 12;
+constexpr int kOriginSplitSectionTopInset = 8;
+constexpr int kOriginSplitSectionBottomInset = 2;
+constexpr int kOriginNewPageHorizontalInset = 8;
+constexpr int kOriginNewPageTopInset = 4;
+
+constexpr int GetOriginSplitSectionExtraHeight() {
+  return kOriginSplitSectionTopInset + kOriginSectionHeaderHeight +
+         kOriginSplitSectionBottomInset;
+}
+#endif
 
 // Calculates the scroll offset for horizontal tabs from both horizontal and
 // vertical scroll events. Prioritizes horizontal scroll, falls back to
@@ -133,6 +156,77 @@ BraveTabContainer::BraveTabContainer(
       base::BindRepeating(&BraveTabContainer::UpdateScrollBarVisibility,
                           base::Unretained(this)));
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_pinned_section_header_ = AddChildView(std::make_unique<views::View>());
+  origin_pinned_section_header_->SetVisible(false);
+  origin_pinned_section_header_->SetCanProcessEventsWithinSubtree(false);
+  auto* pinned_section_layout = origin_pinned_section_header_->SetLayoutManager(
+      std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::VH(0, kOriginSectionHorizontalInset), 6));
+  pinned_section_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  auto* pinned_section_label = origin_pinned_section_header_->AddChildView(
+      std::make_unique<views::Label>(u"Pinned"));
+  pinned_section_label->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  pinned_section_label->SetFontList(views::Label::GetDefaultFontList().Derive(
+      -1, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
+  pinned_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+
+  origin_pages_section_header_ = AddChildView(std::make_unique<views::View>());
+  origin_pages_section_header_->SetVisible(false);
+  origin_pages_section_header_->SetCanProcessEventsWithinSubtree(false);
+  auto* pages_section_layout = origin_pages_section_header_->SetLayoutManager(
+      std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::VH(0, kOriginSectionHorizontalInset), 6));
+  pages_section_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  auto* pages_section_label = origin_pages_section_header_->AddChildView(
+      std::make_unique<views::Label>(u"Pages"));
+  pages_section_label->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  pages_section_label->SetFontList(views::Label::GetDefaultFontList().Derive(
+      -1, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
+  pages_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+  pages_section_layout->SetFlexForView(pages_section_label, 1);
+  auto* pages_navigation_hint = origin_pages_section_header_->AddChildView(
+      std::make_unique<views::Label>(u"J  K"));
+  pages_navigation_hint->SetFontList(
+      views::Label::GetDefaultFontList().Derive(
+          -2, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
+  pages_navigation_hint->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+  origin_pages_count_ = origin_pages_section_header_->AddChildView(
+      std::make_unique<views::Label>());
+  origin_pages_count_->SetFontList(views::Label::GetDefaultFontList().Derive(
+      -1, gfx::Font::NORMAL, gfx::Font::Weight::NORMAL));
+  origin_pages_count_->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+
+  origin_split_section_header_ = AddChildView(std::make_unique<views::View>());
+  origin_split_section_header_->SetVisible(false);
+  origin_split_section_header_->SetCanProcessEventsWithinSubtree(false);
+  auto* split_section_layout = origin_split_section_header_->SetLayoutManager(
+      std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::VH(0, kOriginSectionHorizontalInset), 6));
+  split_section_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+
+  auto* split_section_label = origin_split_section_header_->AddChildView(
+      std::make_unique<views::Label>(u"Split"));
+  split_section_label->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  split_section_label->SetFontList(views::Label::GetDefaultFontList().Derive(
+      -1, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
+  split_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+
+  auto* split_section_icon = origin_split_section_header_->AddChildView(
+      std::make_unique<views::ImageView>());
+  split_section_icon->SetImage(ui::ImageModel::FromVectorIcon(
+      kLeoBrowserSidebarRightIcon, kColorBraveVerticalTabNTBIconColor, 14));
+#endif
+
   // Create separator view between pinned and unpinned tabs
   separator_ = AddChildView(std::make_unique<views::View>());
   separator_->SetBackground(
@@ -176,6 +270,15 @@ bool BraveTabContainer::ShouldShowVerticalTabs() const {
 void BraveTabContainer::SetVerticalTabStripRegionView(
     BraveVerticalTabStripRegionView* region_view) {
   vertical_tab_strip_region_view_ = region_view;
+}
+
+views::View* BraveTabContainer::SetOriginNewPageButton(
+    std::unique_ptr<views::View> button) {
+  CHECK(button);
+  CHECK(!origin_new_page_button_);
+  origin_new_page_button_ = AddChildView(std::move(button));
+  InvalidateIdealBounds();
+  return origin_new_page_button_;
 }
 
 views::ScrollView::ScrollBarMode BraveTabContainer::GetScrollBarMode() const {
@@ -243,6 +346,34 @@ gfx::Size BraveTabContainer::CalculatePreferredSize(
   height =
       std::max(height, slots_bounds.empty() ? 0 : slots_bounds.back().bottom());
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  bool has_visible_pinned_page = false;
+  bool has_visible_regular_page = false;
+  const std::vector<size_t> side_tab_indices = GetOriginSideTabIndices();
+  const base::flat_set<size_t> side_tab_index_set(side_tab_indices.begin(),
+                                                  side_tab_indices.end());
+  for (size_t i = 0; i < tabs_view_model_.view_size(); ++i) {
+    const Tab* tab = tabs_view_model_.view_at(i);
+    if (!IsOriginTabInActiveSpace(i)) {
+      continue;
+    }
+    if (tab->data().pinned) {
+      has_visible_pinned_page = true;
+    } else if (!side_tab_index_set.contains(i)) {
+      has_visible_regular_page = true;
+    }
+  }
+  if (has_visible_pinned_page) {
+    height += kOriginSectionHeaderHeight;
+  }
+  if (has_visible_regular_page) {
+    height += kOriginSectionHeaderHeight;
+  }
+  if (HasVisibleOriginSideTabs()) {
+    height += GetOriginSplitSectionExtraHeight();
+  }
+#endif
+
   if (tab_count) {
     height += tabs::kMarginForVerticalTabContainers;
   }
@@ -301,6 +432,16 @@ bool BraveTabContainer::ShouldTabBeVisible(const Tab* tab) const {
     if (tab->dragging() || tab->detached()) {
       return true;
     }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // The generic visibility pass runs after several tab animations. Keep it
+    // from making a pinned page from another Space visible again after the
+    // Space controller has hidden it.
+    if (auto tab_index = tabs_view_model_.GetIndexOfView(tab);
+        tab_index && !IsOriginTabInActiveSpace(*tab_index)) {
+      return false;
+    }
+#endif
 
     // Handle pinned tabs in vertical tabs mode - pinned tabs should always be
     // visible
@@ -447,7 +588,78 @@ void BraveTabContainer::OnBoundsChanged(const gfx::Rect& previous_bounds) {
   TabContainerImpl::OnBoundsChanged(previous_bounds);
 }
 
+std::vector<size_t> BraveTabContainer::GetOriginSideTabIndices() const {
+  std::vector<size_t> side_tab_indices;
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* browser = tab_slot_controller_->GetBrowserWindowInterface();
+  if (!browser) {
+    return side_tab_indices;
+  }
+
+  auto* tab_strip_model = browser->GetTabStripModel();
+  for (const split_tabs::SplitTabId& split_id : tab_strip_model->ListSplits()) {
+    const split_tabs::SplitTabData* split_data =
+        tab_strip_model->GetSplitData(split_id);
+    if (!split_data) {
+      continue;
+    }
+
+    const std::vector<tabs::TabInterface*> split_tabs = split_data->ListTabs();
+    if (split_tabs.size() != 2u) {
+      continue;
+    }
+
+    // SplitTabData orders its pages in visual order. Keep the first (left or
+    // top) page in Main and place the second (right or bottom) page in Side.
+    const int model_index = tab_strip_model->GetIndexOfTab(split_tabs.back());
+    if (model_index < 0 || model_index >= GetTabCount() ||
+        GetTabAtModelIndex(model_index)->data().pinned) {
+      continue;
+    }
+    side_tab_indices.push_back(static_cast<size_t>(model_index));
+  }
+
+  std::ranges::sort(side_tab_indices);
+#endif
+  return side_tab_indices;
+}
+
+bool BraveTabContainer::HasVisibleOriginSideTabs() const {
+  for (const size_t index : GetOriginSideTabIndices()) {
+    if (index < tabs_view_model_.view_size() &&
+        IsOriginTabInActiveSpace(index)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool BraveTabContainer::IsOriginTabInActiveSpace(size_t index) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* browser = tab_slot_controller_->GetBrowserWindowInterface();
+  if (!browser) {
+    return true;
+  }
+  auto* model = browser->GetTabStripModel();
+  auto* controller = browser->GetFeatures().origin_space_controller();
+  return index < static_cast<size_t>(model->count()) && controller &&
+         controller->ShouldShowTabInPageList(
+             model->GetWebContentsAt(static_cast<int>(index)));
+#else
+  return true;
+#endif
+}
+
 void BraveTabContainer::PaintBoundingBoxForSplitTabs(gfx::Canvas& canvas) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The right-hand page is presented in its own Side section. Painting the
+  // regular split pair tile would otherwise draw one enormous rounded box
+  // from the main page row down to the separated side page row.
+  if (ShouldShowVerticalTabs()) {
+    return;
+  }
+#endif
+
   auto* tab_strip_model =
       tab_slot_controller_->GetBrowserWindowInterface()->GetTabStripModel();
   // Cache unique ids to avoid paiting same split tab twice.
@@ -606,6 +818,26 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
     child.view()->Paint(paint_info);
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  for (views::View* section_header :
+       {origin_pinned_section_header_, origin_pages_section_header_,
+        origin_split_section_header_}) {
+    if (section_header && section_header->GetVisible()) {
+      section_header->Paint(paint_info);
+    }
+  }
+  if (origin_new_page_button_ && origin_new_page_button_->GetVisible()) {
+    origin_new_page_button_->Paint(paint_info);
+  }
+  {
+    ui::PaintRecorder recorder(paint_info.context(),
+                               paint_info.paint_recording_size(),
+                               paint_info.paint_recording_scale_x(),
+                               paint_info.paint_recording_scale_y(), nullptr);
+    PaintOriginHierarchyMarkers(*recorder.canvas());
+  }
+#endif
+
   if (!ShouldShowVerticalTabs()) {
     return;
   }
@@ -619,6 +851,70 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
   if (!scroll_bar_->layer() && scroll_bar_->GetVisible()) {
     scroll_bar_->Paint(paint_info);
   }
+}
+
+void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!ShouldShowVerticalTabs()) {
+    return;
+  }
+
+  std::vector<BraveTab*> visible_tabs;
+  for (Tab* tab : layout_helper_->GetTabs()) {
+    auto* brave_tab = views::AsViewClass<BraveTab>(tab);
+    if (brave_tab && brave_tab->GetVisible() && !tab->data().pinned &&
+        tab->width() > tabs::kVerticalTabMinWidth) {
+      visible_tabs.push_back(brave_tab);
+    }
+  }
+  std::stable_sort(visible_tabs.begin(), visible_tabs.end(),
+                   [](const BraveTab* left, const BraveTab* right) {
+                     return left->bounds().y() < right->bounds().y();
+                   });
+
+  cc::PaintFlags flags;
+  flags.setAntiAlias(true);
+  flags.setStyle(cc::PaintFlags::kFill_Style);
+
+  for (size_t index = 0; index < visible_tabs.size(); ++index) {
+    BraveTab* brave_tab = visible_tabs[index];
+    const TabNestingInfo nesting = brave_tab->GetTabNestingInfo();
+    const SkColor foreground =
+        brave_tab->tab_style_views()->CalculateTargetColors().foreground_color;
+    flags.setColor(
+        SkColorSetA(foreground, brave_tab->IsActive() ? 0x48 : 0x2E));
+
+    // Draw a continuous one-pixel guide for each ancestor level. Repeating the
+    // segment on every 32 px row makes a subtree read as one hierarchy instead
+    // of the disconnected dotted-L marks used previously.
+    if (nesting.level > 0) {
+      flags.setStyle(cc::PaintFlags::kStroke_Style);
+      flags.setStrokeWidth(1.0f);
+      const float center_y = brave_tab->bounds().CenterPoint().y();
+      const int next_level =
+          index + 1 < visible_tabs.size()
+              ? visible_tabs[index + 1]->GetTabNestingInfo().level
+              : 0;
+      for (int level = 1; level <= nesting.level; ++level) {
+        const float guide_x =
+            tabs::kMarginForVerticalTabContainers +
+            level * tabs::kBaseOffsetPerLevel -
+            tabs::kBaseOffsetPerLevel / 2.0f + 0.5f;
+        float guide_bottom = brave_tab->bounds().bottom() + 1.0f;
+        if (next_level < level) {
+          guide_bottom = center_y;
+        }
+        canvas.DrawLine(gfx::PointF(guide_x, brave_tab->y() - 1.0f),
+                        gfx::PointF(guide_x, guide_bottom), flags);
+        if (level == nesting.level) {
+          canvas.DrawLine(gfx::PointF(guide_x, center_y),
+                          gfx::PointF(brave_tab->x() + 5.0f, center_y), flags);
+        }
+      }
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+    }
+  }
+#endif
 }
 
 void BraveTabContainer::SetTabSlotVisibility() {
@@ -880,15 +1176,27 @@ std::optional<views::LayoutOrientation> BraveTabContainer::GetScrollDirection()
 
 void BraveTabContainer::OnSplitCreated(const std::vector<int>& indices) {
   UpdateTabsBorderInSplitTab(indices);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  PreferredSizeChanged();
+  InvalidateLayout();
+#endif
 }
 
 void BraveTabContainer::OnSplitRemoved(const std::vector<int>& indices) {
   UpdateTabsBorderInSplitTab(indices);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  PreferredSizeChanged();
+  InvalidateLayout();
+#endif
 }
 
 void BraveTabContainer::OnSplitContentsChanged(
     const std::vector<int>& indices) {
   UpdateTabsBorderInSplitTab(indices);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  PreferredSizeChanged();
+  InvalidateLayout();
+#endif
 }
 
 bool BraveTabContainer::OnMouseWheel(const ui::MouseWheelEvent& event) {
@@ -925,6 +1233,15 @@ views::View* BraveTabContainer::TargetForRect(views::View* root,
   if (!scroll_direction) {
     return TabContainerImpl::TargetForRect(root, rect);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_new_page_button_ && origin_new_page_button_->GetVisible() &&
+      origin_new_page_button_->bounds().Intersects(rect)) {
+    const gfx::Rect local_rect = views::View::ConvertRectToTarget(
+        this, origin_new_page_button_, rect);
+    return origin_new_page_button_->GetEventHandlerForRect(local_rect);
+  }
+#endif
 
   if (scroll_bar_ && scroll_bar_->GetVisible() &&
       scroll_bar_->bounds().Intersects(rect)) {
@@ -1012,6 +1329,116 @@ void BraveTabContainer::UpdateIdealBounds() {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (scroll_direction == views::LayoutOrientation::kVertical) {
+    const std::vector<size_t> side_tab_indices = GetOriginSideTabIndices();
+    const base::flat_set<size_t> side_tab_index_set(side_tab_indices.begin(),
+                                                    side_tab_indices.end());
+    std::vector<size_t> visible_pinned_tab_indices;
+    std::vector<size_t> visible_page_tab_indices;
+    std::vector<size_t> visible_side_tab_indices;
+
+    int compact_y =
+        tabs_view_model_.view_size() ? tabs_view_model_.ideal_bounds(0).y() : 0;
+    for (size_t i = 0; i < tabs_view_model_.view_size(); ++i) {
+      gfx::Rect bounds = tabs_view_model_.ideal_bounds(i);
+      const Tab* tab = tabs_view_model_.view_at(i);
+      if (!IsOriginTabInActiveSpace(i) || tab->closing()) {
+        bounds.set_height(0);
+        tabs_view_model_.set_ideal_bounds(i, bounds);
+        continue;
+      }
+      // Cross-Space filtering deliberately sets hidden rows to zero height.
+      // Chromium's next layout pass can preserve that cached zero, so restore
+      // the standard row height when the Space becomes active again. Keep
+      // genuinely collapsed tab-group children hidden.
+      const bool collapsed_group_child =
+          tab->group().has_value() &&
+          controller_->IsGroupCollapsed(*tab->group());
+      if (bounds.height() == 0 && !collapsed_group_child) {
+        bounds.set_height(tabs::kVerticalTabHeight);
+        tabs_view_model_.set_ideal_bounds(i, bounds);
+      }
+      if (bounds.height() == 0) {
+        continue;
+      }
+      if (tab->data().pinned) {
+        visible_pinned_tab_indices.push_back(i);
+      } else if (side_tab_index_set.contains(i)) {
+        visible_side_tab_indices.push_back(i);
+      } else {
+        visible_page_tab_indices.push_back(i);
+      }
+    }
+
+    const bool show_pinned_section = !visible_pinned_tab_indices.empty();
+    origin_pinned_section_header_->SetVisible(show_pinned_section);
+    if (show_pinned_section) {
+      origin_pinned_section_header_->SetBounds(0, compact_y, width(),
+                                               kOriginSectionHeaderHeight);
+      compact_y += kOriginSectionHeaderHeight;
+      for (const size_t index : visible_pinned_tab_indices) {
+        gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
+        bounds.set_x(tabs::kMarginForVerticalTabContainers);
+        bounds.set_width(
+            std::max(0, width() - 2 * tabs::kMarginForVerticalTabContainers));
+        bounds.set_height(tabs::kVerticalTabHeight);
+        bounds.set_y(compact_y);
+        compact_y += bounds.height();
+        tabs_view_model_.set_ideal_bounds(index, bounds);
+      }
+    } else {
+      origin_pinned_section_header_->SetBoundsRect(gfx::Rect());
+    }
+
+    const bool show_pages_section = !visible_page_tab_indices.empty();
+    origin_pages_section_header_->SetVisible(show_pages_section);
+    if (show_pages_section) {
+      origin_pages_count_->SetText(base::NumberToString16(
+          visible_page_tab_indices.size() + visible_side_tab_indices.size()));
+      origin_pages_section_header_->SetBounds(
+          0, compact_y, width(), kOriginSectionHeaderHeight);
+      compact_y += kOriginSectionHeaderHeight;
+    } else {
+      origin_pages_section_header_->SetBoundsRect(gfx::Rect());
+    }
+    for (const size_t index : visible_page_tab_indices) {
+      gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
+      bounds.set_y(compact_y);
+      compact_y += bounds.height();
+      tabs_view_model_.set_ideal_bounds(index, bounds);
+    }
+
+    const bool show_split_section = !visible_side_tab_indices.empty();
+    origin_split_section_header_->SetVisible(show_split_section);
+    if (show_split_section) {
+      compact_y += kOriginSplitSectionTopInset;
+      origin_split_section_header_->SetBounds(0, compact_y, width(),
+                                              kOriginSectionHeaderHeight);
+      compact_y += kOriginSectionHeaderHeight + kOriginSplitSectionBottomInset;
+
+      for (const size_t index : visible_side_tab_indices) {
+        gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
+        bounds.set_y(compact_y);
+        compact_y += bounds.height();
+        tabs_view_model_.set_ideal_bounds(index, bounds);
+      }
+    } else {
+      origin_split_section_header_->SetBoundsRect(gfx::Rect());
+    }
+
+    if (origin_new_page_button_) {
+      const int action_height =
+          origin_new_page_button_->GetPreferredSize().height();
+      origin_new_page_button_->SetVisible(true);
+      origin_new_page_button_->SetBounds(
+          kOriginNewPageHorizontalInset, compact_y + kOriginNewPageTopInset,
+          std::max(0, width() - 2 * kOriginNewPageHorizontalInset),
+          action_height);
+    }
+  }
+#endif
+
   // Adjust ideal bounds of unpinned tabs by scroll_offset_
   int tab_count = GetTabCount();
   for (int i = 0; i < tab_count; ++i) {
@@ -1029,6 +1456,24 @@ void BraveTabContainer::UpdateIdealBounds() {
     }
     tabs_view_model_.set_ideal_bounds(i, bounds);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (scroll_direction == views::LayoutOrientation::kVertical) {
+    for (views::View* section_header : {origin_split_section_header_}) {
+      if (!section_header || !section_header->GetVisible()) {
+        continue;
+      }
+      gfx::Rect bounds = section_header->bounds();
+      bounds.Offset(0, -scroll_offset_);
+      section_header->SetBoundsRect(bounds);
+    }
+    if (origin_new_page_button_) {
+      gfx::Rect bounds = origin_new_page_button_->bounds();
+      bounds.Offset(0, -scroll_offset_);
+      origin_new_page_button_->SetBoundsRect(bounds);
+    }
+  }
+#endif
 
   // Also move group views by scroll_offset
   for (auto& [group_id, _] : group_views_) {
@@ -1097,6 +1542,19 @@ std::optional<BrowserRootView::DropIndex> BraveTabContainer::GetDropIndex(
   const int y = event.y();
 
   std::vector<TabSlotView*> views = layout_helper_->GetTabSlotViews();
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's Side pages are laid out after Main without changing the model's
+  // split-pair adjacency. Hit-test drops in their visual order so a side row
+  // cannot intercept a drop aimed at an earlier Main row.
+  std::stable_sort(views.begin(), views.end(),
+                   [](TabSlotView* lhs, TabSlotView* rhs) {
+                     if (lhs->y() != rhs->y()) {
+                       return lhs->y() < rhs->y();
+                     }
+                     return lhs->x() < rhs->x();
+                   });
+#endif
 
   // Loop until we find a tab or group header that intersects |event|'s
   // location.
@@ -1413,14 +1871,34 @@ void BraveTabContainer::UpdateTabsBorderInSplitTab(
 }
 
 int BraveTabContainer::GetPinnedTabsAreaBottom() const {
+  // Note that we should use ideal bounds instead of current bounds of the
+  // last pinned tab because the pinned tab could be being dragged over
+  // unpinned tab area.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  int active_pinned_bottom = 0;
+  bool has_active_pinned_page = false;
+  bool has_active_unpinned_page = false;
+  for (size_t index = 0; index < tabs_view_model_.view_size(); ++index) {
+    const Tab* tab = tabs_view_model_.view_at(index);
+    const gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
+    if (!IsOriginTabInActiveSpace(index) || bounds.height() == 0) {
+      continue;
+    }
+    if (tab->data().pinned) {
+      has_active_pinned_page = true;
+      active_pinned_bottom = std::max(active_pinned_bottom, bounds.bottom());
+    } else {
+      has_active_unpinned_page = true;
+    }
+  }
+  return has_active_pinned_page
+             ? active_pinned_bottom + (has_active_unpinned_page ? 2 : 0)
+             : 0;
+#else
   const int pinned_tab_count = layout_helper_->GetPinnedTabCount();
   if (pinned_tab_count == 0) {
     return 0;
   }
-
-  // Note that we should use ideal bounds instead of current bounds of the
-  // last pinned tab because the pinned tab could be being dragged over
-  // unpinned tab area.
   int bottom = GetIdealBounds(pinned_tab_count - 1).bottom() +
                tabs::kMarginForVerticalTabContainers;  // spacing after the last
                                                        // pinned tab
@@ -1433,6 +1911,7 @@ int BraveTabContainer::GetPinnedTabsAreaBottom() const {
   }
 
   return bottom;
+#endif
 }
 
 int BraveTabContainer::GetPinnedTabsAreaBoundary() const {
@@ -1563,6 +2042,46 @@ gfx::Rect BraveTabContainer::GetIdealBoundsOf(TabSlotView* slot_view) const {
 }
 
 int BraveTabContainer::GetUnpinnedTabsTotalHeight() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldShowVerticalTabs()) {
+    std::optional<int> first_y;
+    int last_bottom = 0;
+    for (size_t i = 0; i < tabs_view_model_.view_size(); ++i) {
+      const Tab* tab = tabs_view_model_.view_at(i);
+      const gfx::Rect bounds = tabs_view_model_.ideal_bounds(i);
+      if (tab->data().pinned || tab->closing() || bounds.height() == 0) {
+        continue;
+      }
+      first_y = first_y ? std::min(*first_y, bounds.y()) : bounds.y();
+      last_bottom = std::max(last_bottom, bounds.bottom());
+    }
+
+    for (views::View* section_header :
+         {origin_pages_section_header_, origin_split_section_header_}) {
+      if (!section_header || !section_header->GetVisible()) {
+        continue;
+      }
+      const gfx::Rect header_bounds = section_header->bounds();
+      first_y =
+          first_y ? std::min(*first_y, header_bounds.y()) : header_bounds.y();
+      last_bottom = std::max(last_bottom, header_bounds.bottom());
+    }
+
+    if (origin_new_page_button_ && origin_new_page_button_->GetVisible()) {
+      const gfx::Rect action_bounds = origin_new_page_button_->bounds();
+      first_y = first_y ? std::min(*first_y, action_bounds.y())
+                        : action_bounds.y();
+      last_bottom = std::max(last_bottom, action_bounds.bottom());
+    }
+
+    if (!first_y) {
+      return 0;
+    }
+    return std::max(0, last_bottom - *first_y) +
+           2 * tabs::kMarginForVerticalTabContainers;
+  }
+#endif
+
   const int pinned_tab_count = layout_helper_->GetPinnedTabCount();
   const int tab_count = GetTabCount();
   if (tab_count == pinned_tab_count) {
@@ -1674,6 +2193,19 @@ void BraveTabContainer::UpdateClipPathForSlotViews() {
 
     UpdateClipPathForChildren(tab, pinned_tabs_area_boundary);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  for (views::View* section_header :
+       {origin_pages_section_header_, origin_split_section_header_}) {
+    if (section_header) {
+      UpdateClipPathForChildren(section_header, pinned_tabs_area_boundary);
+    }
+  }
+  if (origin_new_page_button_) {
+    UpdateClipPathForChildren(origin_new_page_button_,
+                              pinned_tabs_area_boundary);
+  }
+#endif
 
   // Also clip group views
   for (auto& [_, group_views] : group_views_) {
@@ -1792,6 +2324,11 @@ void BraveTabContainer::UpdatePinnedUnpinnedSeparator() {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Section labels provide structure without dividing the continuous panel
+  // surface with a legacy tab-strip rule.
+  separator_->SetVisible(false);
+#else
   const int pinned_tab_count = layout_helper_->GetPinnedTabCount();
   const int total_tab_count = GetTabCount();
 
@@ -1811,12 +2348,19 @@ void BraveTabContainer::UpdatePinnedUnpinnedSeparator() {
       gfx::Insets::VH(0, tabs::kMarginForVerticalTabContainers));
   separator_->SetBoundsRect(separator_bounds);
   separator_->SetVisible(true);
+#endif
 }
 
 void BraveTabContainer::OnTreeTabsEnabledChanged() {
   CHECK(base::FeatureList::IsEnabled(tabs::kBraveTreeTab));
 
-  layout_helper_->set_use_tree_tabs(*tree_tabs_enabled_);
+  layout_helper_->set_use_tree_tabs(
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      true
+#else
+      *tree_tabs_enabled_
+#endif
+  );
   if (!ShouldShowVerticalTabs()) {
     return;
   }

@@ -172,7 +172,7 @@ TEST(BraveTabStripLayoutHelperUnitTest,
 
   // The last tab's right should be the edge of available width minus margin
   EXPECT_EQ(kAvailableWidth - kMarginForVerticalTabContainers,
-            result[2].right() + 1);
+            result[2].right());
 }
 
 TEST(BraveTabStripLayoutHelperUnitTest,
@@ -210,15 +210,13 @@ TEST(BraveTabStripLayoutHelperUnitTest,
   tabs.push_back(MakeTabConstraints(TabPinned::kPinned));
   tabs.push_back(MakeTabConstraints(TabPinned::kPinned));
 
-  // Width that creates extra pixels to distribute.
-  // When there are three tabs, and width is 150,
-  // available width would be 150 - kVeriticalTabMargins(4)*2 = 142
-  // And we need to take away spacing between tabs (2 * 4) = 8
-  // So effective available width = 134
-  // Then all three tabs should be based on 134 / 3 = 44 pixels each,
-  // with 2 extra pixels to distribute, so first two tabs should be 45 pixels
+  // Build a width that leaves two extra pixels after three 44px cells. Keep
+  // the calculation tied to the product-specific margin/spacing constants.
+  constexpr int kBaseCellWidth = 44;
+  const int requested_width = 2 * kMarginForVerticalTabContainers +
+                              2 * kVerticalTabsSpacing + 3 * kBaseCellWidth + 2;
   std::vector<gfx::Rect> result;
-  CalculatePinnedTabsBoundsInGrid(tabs, 150, &result);
+  CalculatePinnedTabsBoundsInGrid(tabs, requested_width, &result);
 
   ASSERT_EQ(3u, result.size());
 
@@ -441,11 +439,17 @@ TEST(BraveTabStripLayoutHelperUnitTest,
   ASSERT_EQ(3u, bounds.size());
 
   // Level 0 (root): no offset applied. Level 1 and 2 use narrow offset.
-  // tree_levels = tree_height + 1 = 3, available = 80 - 2*4 - 32 = 40,
-  // even_offset_per_level = 40 / 3 = 13.
+  // Keep the expected narrow offset tied to the product-specific container
+  // margin. tree_levels = tree_height + 1 = 3.
+  constexpr int kExpectedNarrowOffset =
+      (kAvailableWidth - 2 * kMarginForVerticalTabContainers -
+       kVerticalTabMinWidth) /
+      3;
   EXPECT_EQ(kMarginForVerticalTabContainers, bounds[0].x());
-  EXPECT_EQ(kMarginForVerticalTabContainers + 13, bounds[1].x());
-  EXPECT_EQ(kMarginForVerticalTabContainers + 26, bounds[2].x());
+  EXPECT_EQ(kMarginForVerticalTabContainers + kExpectedNarrowOffset,
+            bounds[1].x());
+  EXPECT_EQ(kMarginForVerticalTabContainers + 2 * kExpectedNarrowOffset,
+            bounds[2].x());
 
   EXPECT_EQ(bounds[0].right(), bounds[1].right());
   EXPECT_EQ(bounds[1].right(), bounds[2].right());
@@ -482,12 +486,15 @@ TEST(BraveTabStripLayoutHelperUnitTest,
   // even_offset_per_level is 4 / (10 + 1) = 0.
   // Even though offset_per_level is floored to 1, final offset should be
   // clamped to preserve tab minimum width.
-  constexpr int kAvailableWidth = 44;
+  constexpr int kAvailableTreeWidth = 4;
+  constexpr int kAvailableWidth = 2 * kMarginForVerticalTabContainers +
+                                  kVerticalTabMinWidth + kAvailableTreeWidth;
   auto [bounds, _] = CalculateVerticalTabBounds(
       tabs, kAvailableWidth, /*should_layout_pinned_tabs_in_grid=*/false);
 
   ASSERT_EQ(1u, bounds.size());
-  EXPECT_EQ(kMarginForVerticalTabContainers + 4, bounds[0].x());
+  EXPECT_EQ(kMarginForVerticalTabContainers + kAvailableTreeWidth,
+            bounds[0].x());
   EXPECT_EQ(constraints.size_info().min_inactive_width, bounds[0].width());
 }
 

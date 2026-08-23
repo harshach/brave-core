@@ -25,6 +25,7 @@
 
 namespace views {
 class ImageButton;
+class ImageView;
 }  // namespace views
 
 namespace tabs {
@@ -89,6 +90,7 @@ class BraveTab : public Tab
   bool IsActive() const override;
   TabSizeInfo GetTabSizeInfo() const override;
   TabNestingInfo GetTabNestingInfo() const override;
+  bool HasOriginHierarchyDescendants() const;
   bool IsInCollapsedTreeTabNode() const override;
   void MaybeUpdateHoverStatus(const ui::MouseEvent& event) override;
   void AddedToWidget() override;
@@ -180,10 +182,14 @@ class BraveTab : public Tab
   // of the tree toggle button.
   void LayoutTreeToggleButton();
 
+  void ToggleOriginPinned();
+  void UpdateOriginPinButton();
+
   // Returns whether the tree tab node is collapsed.
   bool IsTreeNodeCollapsed() const;
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
+  raw_ptr<views::ImageButton> origin_pin_button_ = nullptr;
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;

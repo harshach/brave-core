@@ -18,6 +18,8 @@
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
@@ -960,6 +962,51 @@ IN_PROC_BROWSER_TEST_F(
             opener_tab->GetParentCollection());
   EXPECT_EQ(added_tab->GetParentCollection()->GetParentCollection(),
             &unpinned_collection());
+}
+
+// Browser commands and typed URLs receive the active WebContents as source
+// context inside Navigate(), but that must not make them children of the page
+// that happened to be active. Only genuine page-created link opens form a
+// parent/child relationship.
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       NavigateTypedNewTabCreatesTopLevelPage) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const original_tab = tab_strip_model().GetTabAtIndex(0);
+  ASSERT_EQ(original_tab->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+
+  NavigateParams params(browser(), GURL("about:blank#manual-new-page"),
+                        ui::PAGE_TRANSITION_TYPED);
+  params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
+  Navigate(&params);
+
+  ASSERT_EQ(2, tab_strip_model().count());
+  tabs::TabInterface* const new_tab = tab_strip_model().GetTabAtIndex(1);
+  EXPECT_EQ(new_tab->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+  EXPECT_NE(new_tab->GetParentCollection(),
+            original_tab->GetParentCollection());
+}
+
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       NavigateControlClickNewTabRemainsChildOfSourcePage) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const source_tab = tab_strip_model().GetTabAtIndex(0);
+  NavigateParams params(browser(), GURL("about:blank#linked-page"),
+                        ui::PAGE_TRANSITION_LINK);
+  // Ctrl/Command-click requests a background tab. Because this is a genuine
+  // page-created link navigation, the new page belongs beneath its source.
+  params.disposition = WindowOpenDisposition::NEW_BACKGROUND_TAB;
+  params.source_contents = source_tab->GetContents();
+  params.user_gesture = true;
+  Navigate(&params);
+
+  ASSERT_EQ(2, tab_strip_model().count());
+  tabs::TabInterface* const linked_tab = tab_strip_model().GetTabAtIndex(1);
+  EXPECT_EQ(linked_tab->GetParentCollection()->GetParentCollection(),
+            source_tab->GetParentCollection());
 }
 
 // Regression: opening into the tabbed browser from a popup or app (PWA-like)
