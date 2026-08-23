@@ -50,6 +50,7 @@
 #include "chrome/browser/themes/theme_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
@@ -101,6 +102,7 @@
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/window/hit_test_utils.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "ui/views/win/hwnd_util.h"
@@ -128,7 +130,7 @@ constexpr int kOriginSearchFieldHeight = 30;
 constexpr int kOriginPageListTop = 66;
 constexpr int kOriginNewPageRowHeight = 32;
 constexpr int kOriginStatusRowHeight = 26;
-constexpr int kOriginPageListFooterHeight = 70;
+constexpr int kOriginPageListFooterHeight = 34;
 constexpr int kOriginWorkspaceGap = 6;
 constexpr SkColor kOriginPickerSurface = SkColorSetRGB(0x1C, 0x1F, 0x25);
 constexpr SkColor kOriginPickerField = SkColorSetARGB(0x0D, 0xFF, 0xFF, 0xFF);
@@ -185,12 +187,6 @@ const gfx::VectorIcon& GetOriginWorkspaceIcon(std::string_view key) {
   }
   if (key == "add") {
     return kLeoPlusAddIcon;
-  }
-  if (key == "sync") {
-    return kLeoProductSyncIcon;
-  }
-  if (key == "account") {
-    return kLeoUserCircleIcon;
   }
   return kLeoSpacesIcon;
 }
@@ -408,6 +404,63 @@ class OriginPageListActionButton : public views::Button {
 };
 
 BEGIN_METADATA(OriginPageListActionButton)
+END_METADATA
+
+class OriginSettingsRowButton : public views::Button {
+  METADATA_HEADER(OriginSettingsRowButton, views::Button)
+
+ public:
+  OriginSettingsRowButton(PressedCallback callback,
+                          std::u16string title,
+                          std::u16string url,
+                          SkColor primary,
+                          SkColor secondary,
+                          SkColor hover)
+      : Button(std::move(callback)), hover_(hover) {
+    SetAccessibleName(title);
+    SetTooltipText(url);
+    SetFocusBehavior(FocusBehavior::ALWAYS);
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+    auto* layout = SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kVertical,
+        gfx::Insets::TLBR(7, 10, 7, 10), 1));
+    layout->set_cross_axis_alignment(
+        views::BoxLayout::CrossAxisAlignment::kStart);
+
+    auto* title_label =
+        AddChildView(std::make_unique<views::Label>(std::move(title)));
+    title_label->SetSubpixelRenderingEnabled(false);
+    title_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    title_label->SetFontList(OriginChromeFont(13, gfx::Font::Weight::NORMAL));
+    title_label->SetEnabledColor(primary);
+
+    auto* url_label =
+        AddChildView(std::make_unique<views::Label>(std::move(url)));
+    url_label->SetSubpixelRenderingEnabled(false);
+    url_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    url_label->SetFontList(OriginChromeFont(11, gfx::Font::Weight::NORMAL));
+    url_label->SetEnabledColor(secondary);
+    RefreshStyle();
+  }
+
+  void StateChanged(ButtonState old_state) override {
+    Button::StateChanged(old_state);
+    RefreshStyle();
+  }
+
+ private:
+  void RefreshStyle() {
+    const bool highlighted =
+        GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    SetBackground(views::CreateRoundedRectBackground(
+        highlighted ? hover_ : SK_ColorTRANSPARENT, 8));
+  }
+
+  const SkColor hover_;
+};
+
+BEGIN_METADATA(OriginSettingsRowButton)
 END_METADATA
 
 class OriginWorkspaceIconPickerBubble : public views::View,
@@ -966,20 +1019,11 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   auto* status_layout =
       origin_status_row_->SetLayoutManager(std::make_unique<views::BoxLayout>(
           views::BoxLayout::Orientation::kHorizontal,
-          gfx::Insets::TLBR(0, 14, 0, 10), 7));
+          gfx::Insets::TLBR(0, 10, 0, 10), 4));
   status_layout->set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
-  auto* status_dot =
-      origin_status_row_->AddChildView(std::make_unique<views::View>());
-  status_dot->SetPreferredSize(gfx::Size(6, 6));
-  status_dot->SetBackground(
-      views::CreateRoundedRectBackground(SkColorSetRGB(0x17, 0xB2, 0x6A), 3));
-  auto* status_label = origin_status_row_->AddChildView(
-      std::make_unique<views::Label>(u"Synced just now"));
-  status_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
-  status_label->SetFontList(OriginChromeFont(11, gfx::Font::Weight::NORMAL));
-  status_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
-  status_layout->SetFlexForView(status_label, 1);
+  status_layout->set_main_axis_alignment(
+      views::BoxLayout::MainAxisAlignment::kEnd);
   auto shortcut_button = std::make_unique<views::ImageButton>(
       base::BindRepeating(
           &BraveVerticalTabStripRegionView::ShowOriginShortcutHelp,
@@ -997,21 +1041,20 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   origin_shortcut_button_ =
       origin_status_row_->AddChildView(std::move(shortcut_button));
 
-  auto theme_button = std::make_unique<views::ImageButton>(
-      base::BindRepeating(
-          &BraveVerticalTabStripRegionView::ShowOriginThemePicker,
-          base::Unretained(this)));
+  auto theme_button = std::make_unique<views::ImageButton>(base::BindRepeating(
+      &BraveVerticalTabStripRegionView::ShowOriginSettingsMenu,
+      base::Unretained(this)));
   theme_button->SetImageModel(
       views::Button::STATE_NORMAL,
       ui::ImageModel::FromVectorIcon(kLeoSettingsIcon,
                                      kColorBraveVerticalTabNTBIconColor, 15));
   theme_button->SetPreferredSize(gfx::Size(24, 24));
-  theme_button->SetAccessibleName(u"Appearance");
-  theme_button->SetTooltipText(u"Choose System, Light, or Dark appearance");
+  theme_button->SetAccessibleName(u"Settings");
+  theme_button->SetTooltipText(u"Settings");
   theme_button->SetFocusBehavior(views::View::FocusBehavior::ALWAYS);
   views::InkDrop::Get(theme_button.get())
       ->SetMode(views::InkDropHost::InkDropMode::OFF);
-  origin_theme_button_ =
+  origin_settings_button_ =
       origin_status_row_->AddChildView(std::move(theme_button));
 
   RebuildOriginWorkspaceUI();
@@ -1186,16 +1229,6 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
           base::Unretained(this)),
       "add", u"New Space", false));
 
-  auto* rail_spacer =
-      origin_workspace_rail_->AddChildView(std::make_unique<views::View>());
-  auto* rail_layout = static_cast<views::BoxLayout*>(
-      origin_workspace_rail_->GetLayoutManager());
-  rail_layout->SetFlexForView(rail_spacer, 1);
-  origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
-      views::Button::PressedCallback(), "sync", u"Sync status", false));
-  origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
-      views::Button::PressedCallback(), "account", u"Account", false));
-
   const auto* active =
       origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
   if (active) {
@@ -1320,9 +1353,9 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
       return;
     }
   }
-  if (origin_theme_picker_widget_) {
-    origin_theme_picker_widget_->Close();
-    origin_theme_picker_widget_.reset();
+  if (origin_settings_widget_) {
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
   }
 
   auto content = std::make_unique<views::View>();
@@ -1416,12 +1449,12 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
 #endif
 }
 
-void BraveVerticalTabStripRegionView::ShowOriginThemePicker() {
+void BraveVerticalTabStripRegionView::ShowOriginSettingsMenu() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (origin_theme_picker_widget_) {
-    const bool was_visible = origin_theme_picker_widget_->IsVisible();
-    origin_theme_picker_widget_->Close();
-    origin_theme_picker_widget_.reset();
+  if (origin_settings_widget_) {
+    const bool was_visible = origin_settings_widget_->IsVisible();
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
     if (was_visible) {
       return;
     }
@@ -1438,32 +1471,67 @@ void BraveVerticalTabStripRegionView::ShowOriginThemePicker() {
   }
   const ThemeService::BrowserColorScheme current_scheme =
       theme_service->GetBrowserColorScheme();
+  const bool dark =
+      !browser_view_->GetColorProvider() ||
+      color_utils::IsDark(
+          browser_view_->GetColorProvider()->GetColor(kColorToolbar));
+  const SkColor surface = dark ? kOriginPickerSurface : SK_ColorWHITE;
+  const SkColor primary =
+      dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6) : SkColorSetRGB(0x18, 0x1D, 0x27);
+  const SkColor secondary =
+      dark ? SkColorSetRGB(0x6F, 0x72, 0x79) : SkColorSetRGB(0x71, 0x76, 0x80);
+  const SkColor divider_color = dark ? SkColorSetARGB(0x14, 0xFF, 0xFF, 0xFF)
+                                     : SkColorSetARGB(0x16, 0x18, 0x1D, 0x27);
+  const SkColor segmented_color =
+      dark ? SkColorSetRGB(0x29, 0x2C, 0x32) : SkColorSetRGB(0xEA, 0xEB, 0xEE);
+  const SkColor selected_color =
+      dark ? SkColorSetRGB(0x4B, 0x4E, 0x55) : SkColorSetRGB(0xFF, 0xFF, 0xFF);
+  const SkColor hover_color = dark ? SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF)
+                                   : SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27);
 
   auto content = std::make_unique<views::View>();
-  content->SetBackground(views::CreateSolidBackground(kOriginPickerSurface));
+  content->SetBackground(views::CreateSolidBackground(surface));
   content->SetLayoutManager(std::make_unique<views::BoxLayout>(
-      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 6));
+      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 0));
 
-  auto* title =
-      content->AddChildView(std::make_unique<views::Label>(u"Appearance"));
-  title->SetSubpixelRenderingEnabled(false);
-  title->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
-  title->SetFontList(OriginChromeFont(15, gfx::Font::Weight::SEMIBOLD));
-  title->SetEnabledColor(SkColorSetRGB(0xF5, 0xF5, 0xF6));
-  title->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(0, 4, 5, 4));
+  auto* appearance_row = content->AddChildView(std::make_unique<views::View>());
+  appearance_row->SetPreferredSize(gfx::Size(0, 34));
+  auto* appearance_layout =
+      appearance_row->SetLayoutManager(std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::TLBR(0, 10, 0, 10), 8));
+  appearance_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  auto* appearance_label = appearance_row->AddChildView(
+      std::make_unique<views::Label>(u"Appearance"));
+  appearance_label->SetSubpixelRenderingEnabled(false);
+  appearance_label->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  appearance_label->SetFontList(
+      OriginChromeFont(13, gfx::Font::Weight::NORMAL));
+  appearance_label->SetEnabledColor(primary);
+  appearance_layout->SetFlexForView(appearance_label, 1);
+
+  auto* theme_control =
+      appearance_row->AddChildView(std::make_unique<views::View>());
+  theme_control->SetBackground(
+      views::CreateRoundedRectBackground(segmented_color, 8));
+  auto* theme_layout =
+      theme_control->SetLayoutManager(std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal, gfx::Insets::VH(2, 2),
+          2));
+  theme_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
 
   struct ThemeOption {
     ThemeService::BrowserColorScheme scheme;
+    std::u16string_view glyph;
     std::u16string_view label;
-    std::u16string_view detail;
   };
   constexpr std::array<ThemeOption, 3> kThemeOptions = {{
-      {ThemeService::BrowserColorScheme::kSystem, u"System",
-       u"Follow macOS appearance"},
-      {ThemeService::BrowserColorScheme::kLight, u"Light",
-       u"Always use the light shell"},
-      {ThemeService::BrowserColorScheme::kDark, u"Dark",
-       u"Always use the dark shell"},
+      {ThemeService::BrowserColorScheme::kDark, u"☾", u"Dark"},
+      {ThemeService::BrowserColorScheme::kLight, u"☀", u"Light"},
+      {ThemeService::BrowserColorScheme::kSystem, u"▭", u"System"},
   }};
 
   for (const ThemeOption& option : kThemeOptions) {
@@ -1472,50 +1540,92 @@ void BraveVerticalTabStripRegionView::ShowOriginThemePicker() {
         base::BindRepeating(
             &BraveVerticalTabStripRegionView::SetOriginThemeMode,
             weak_factory_.GetWeakPtr(), static_cast<int>(option.scheme)),
-        (selected ? u"✓  " : u"    ") + std::u16string(option.label));
-    button->SetAccessibleName(u"Use " + std::u16string(option.label) +
-                              u" appearance");
-    button->SetTooltipText(std::u16string(option.detail));
-    button->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+        std::u16string(option.glyph));
+    button->SetAccessibleName(std::u16string(option.label));
+    button->SetTooltipText(std::u16string(option.label));
+    button->SetPreferredSize(gfx::Size(26, 22));
+    button->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
     button->SetTextSubpixelRenderingEnabled(false);
-    button->SetEnabledTextColors(selected
-                                     ? SkColorSetRGB(0xB2, 0xCC, 0xFF)
-                                     : SkColorSetRGB(0xF5, 0xF5, 0xF6));
-    button->SetBorder(
-        views::CreateEmptyBorder(gfx::Insets::TLBR(8, 10, 8, 10)));
+    button->SetEnabledTextColors(selected ? primary : secondary);
+    button->SetBorder(views::CreateEmptyBorder(gfx::Insets()));
     button->SetBackground(views::CreateRoundedRectBackground(
-        selected ? SkColorSetARGB(0x26, 0x15, 0x70, 0xEF)
-                 : SK_ColorTRANSPARENT,
-        8));
+        selected ? selected_color : SK_ColorTRANSPARENT, 6));
     views::InkDrop::Get(button.get())
         ->SetMode(views::InkDropHost::InkDropMode::OFF);
-    content->AddChildView(std::move(button));
+    theme_control->AddChildView(std::move(button));
+  }
+
+  auto* divider = content->AddChildView(std::make_unique<views::View>());
+  divider->SetPreferredSize(gfx::Size(0, 1));
+  divider->SetBackground(views::CreateSolidBackground(divider_color));
+  divider->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(5, 4, 5, 4));
+
+  struct SettingsDestination {
+    std::u16string_view label;
+    std::string_view url;
+  };
+  constexpr std::array<SettingsDestination, 5> kDestinations = {{
+      {u"Browser settings", "brave://settings"},
+      {u"Spaces and pages", "brave://settings/spaces"},
+      {u"Sync", "brave://settings/braveSync"},
+      {u"Shields defaults", "brave://settings/shields"},
+      {u"Change shortcut keys", "brave://settings/system"},
+  }};
+  for (const SettingsDestination& destination : kDestinations) {
+    content->AddChildView(std::make_unique<OriginSettingsRowButton>(
+        base::BindRepeating(
+            &BraveVerticalTabStripRegionView::OpenOriginSettingsPage,
+            weak_factory_.GetWeakPtr(), std::string(destination.url)),
+        std::u16string(destination.label), base::UTF8ToUTF16(destination.url),
+        primary, secondary, hover_color));
   }
 
   auto bubble_delegate = std::make_unique<views::BubbleDialogDelegate>(
-      origin_theme_button_, views::BubbleBorder::BOTTOM_RIGHT,
+      origin_settings_button_, views::BubbleBorder::BOTTOM_RIGHT,
       views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
   auto* bubble_delegate_ptr = bubble_delegate.get();
   bubble_delegate->SetButtons(
       static_cast<int>(ui::mojom::DialogButton::kNone));
   bubble_delegate->SetShowTitle(false);
   bubble_delegate->SetShowCloseButton(false);
-  bubble_delegate->SetAccessibleTitle(u"Appearance");
+  bubble_delegate->SetAccessibleTitle(u"Settings");
   bubble_delegate->set_adjust_if_offscreen(true);
   bubble_delegate->set_close_on_deactivate(true);
-  bubble_delegate->set_fixed_width(250);
-  bubble_delegate->set_margins(gfx::Insets::TLBR(12, 12, 12, 12));
-  bubble_delegate->SetBackgroundColor(kOriginPickerSurface);
+  bubble_delegate->set_fixed_width(252);
+  bubble_delegate->set_margins(gfx::Insets::VH(6, 6));
+  bubble_delegate->SetBackgroundColor(surface);
   bubble_delegate->SetContentsView(std::move(content));
   auto* widget = views::BubbleDialogDelegate::CreateBubbleDeprecated(
       std::move(bubble_delegate),
       views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET);
   auto* frame = bubble_delegate_ptr->GetBubbleFrameView();
-  frame->SetRoundedCorners(gfx::RoundedCornersF(16));
-  frame->SetDisplayVisibleArrow(true);
+  frame->SetRoundedCorners(gfx::RoundedCornersF(14));
+  frame->SetDisplayVisibleArrow(false);
   frame->bubble_border()->set_draw_border_stroke(true);
-  origin_theme_picker_widget_ = widget->GetWeakPtr();
+  origin_settings_widget_ = widget->GetWeakPtr();
   widget->Show();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OpenOriginSettingsPage(std::string url) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const GURL destination(url);
+  if (!destination.is_valid()) {
+    return;
+  }
+  if (origin_settings_widget_) {
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
+  }
+
+  TabStripModel* model = browser_->tab_strip_model();
+  for (int index = 0; index < model->count(); ++index) {
+    if (model->GetWebContentsAt(index)->GetVisibleURL() == destination) {
+      model->ActivateTabAt(index);
+      return;
+    }
+  }
+  chrome::AddTabAt(browser_, destination, -1, true);
 #endif
 }
 
@@ -1536,8 +1646,8 @@ void BraveVerticalTabStripRegionView::SetOriginThemeMode(int mode) {
   // BrowserWindowThemeObserver's widget walk. Leave the button callback first,
   // destroy the picker synchronously on the next task, and apply the theme on
   // a later task after that destruction has completed.
-  base::WeakPtr<views::Widget> picker = origin_theme_picker_widget_;
-  origin_theme_picker_widget_.reset();
+  base::WeakPtr<views::Widget> picker = origin_settings_widget_;
+  origin_settings_widget_.reset();
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE,
       base::BindOnce(

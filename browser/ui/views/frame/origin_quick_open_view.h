@@ -120,6 +120,7 @@ public:
 
   // views::View:
   void Layout(PassKey) override;
+  void OnThemeChanged() override;
   bool OnMousePressed(const ui::MouseEvent &event) override;
 
 private:
@@ -181,6 +182,7 @@ private:
   void ApplyFavicon(const GURL& url, const gfx::Image& favicon);
   void UpdateResultRows();
   void UpdateSearchIcon();
+  void RefreshTheme();
   void RebuildSpaceControls();
   void SelectResult(size_t index);
   bool HasQuery() const;

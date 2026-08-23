@@ -198,7 +198,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   void SetOriginWorkspaceIcon(std::string icon);
   void ShowOriginQuickOpen();
   void ShowOriginShortcutHelp();
-  void ShowOriginThemePicker();
+  void ShowOriginSettingsMenu();
+  void OpenOriginSettingsPage(std::string url);
   void SetOriginThemeMode(int mode);
   void UpdateOriginWorkspaceMeta();
   void EnsureOriginSpaceHasPage();
@@ -290,11 +291,11 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::View> origin_new_page_button_ = nullptr;
   raw_ptr<views::View> origin_status_row_ = nullptr;
   raw_ptr<views::View> origin_shortcut_button_ = nullptr;
-  raw_ptr<views::View> origin_theme_button_ = nullptr;
+  raw_ptr<views::View> origin_settings_button_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
   base::WeakPtr<views::Widget> origin_workspace_icon_picker_widget_;
   base::WeakPtr<views::Widget> origin_shortcut_help_widget_;
-  base::WeakPtr<views::Widget> origin_theme_picker_widget_;
+  base::WeakPtr<views::Widget> origin_settings_widget_;
   raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
   raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
   std::string origin_active_workspace_id_;

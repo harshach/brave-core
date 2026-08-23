@@ -15,6 +15,20 @@
 #include "chrome/browser/profiles/profile_selections.h"
 #include "components/pref_registry/pref_registry_syncable.h"
 
+namespace {
+
+ProfileSelections GetWorkspaceProfileSelections() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Private Origin windows share Space definitions with their regular
+  // profile. Tab membership and active Space state remain window-local.
+  return ProfileSelections::BuildRedirectedInIncognito();
+#else
+  return ProfileSelections::BuildForRegularProfile();
+#endif
+}
+
+}  // namespace
+
 // static
 WorkspaceServiceFactory* WorkspaceServiceFactory::GetInstance() {
   static base::NoDestructor<WorkspaceServiceFactory> instance;
@@ -29,7 +43,7 @@ WorkspaceService* WorkspaceServiceFactory::GetForProfile(Profile* profile) {
 
 WorkspaceServiceFactory::WorkspaceServiceFactory()
     : ProfileKeyedServiceFactory("WorkspaceService",
-                                 ProfileSelections::BuildForRegularProfile()) {}
+                                 GetWorkspaceProfileSelections()) {}
 
 WorkspaceServiceFactory::~WorkspaceServiceFactory() = default;
 

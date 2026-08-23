@@ -40,14 +40,17 @@
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "chrome/browser/ui/webui_browser/webui_browser.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/prefs/pref_service.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/file_select_listener.h"
+#include "content/public/browser/keyboard_event_processing_result.h"
 #include "content/public/browser/navigation_entry.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_delegate.h"
 #include "content/public/common/url_constants.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
 #include "third_party/blink/public/mojom/choosers/file_chooser.mojom.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -101,6 +104,23 @@ bool BraveBrowser::ShouldFocusLocationBarByDefault(
 #else
   return Browser::ShouldFocusLocationBarByDefault(source);
 #endif
+}
+
+content::KeyboardEventProcessingResult BraveBrowser::PreHandleKeyboardEvent(
+    content::WebContents* source,
+    const input::NativeWebKeyboardEvent& event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Extension popups share the browser window's keyboard pre-handler while
+  // their editable focus lives in a separate WebContents.
+  if (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown &&
+      event.GetModifiers() == blink::WebInputEvent::kNoModifiers && source &&
+      source != tab_strip_model()->GetActiveWebContents() &&
+      source->IsFocusedElementEditable()) {
+    return content::KeyboardEventProcessingResult::NOT_HANDLED;
+  }
+#endif
+
+  return Browser::PreHandleKeyboardEvent(source, event);
 }
 
 void BraveBrowser::ScheduleUIUpdate(content::WebContents* source,

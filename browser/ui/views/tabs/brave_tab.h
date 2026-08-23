@@ -182,11 +182,14 @@ class BraveTab : public Tab
   // of the tree toggle button.
   void LayoutTreeToggleButton();
 
+  void ToggleOriginPinned();
+  void UpdateOriginPinButton();
+
   // Returns whether the tree tab node is collapsed.
   bool IsTreeNodeCollapsed() const;
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
-  raw_ptr<views::ImageView> origin_pin_indicator_ = nullptr;
+  raw_ptr<views::ImageButton> origin_pin_button_ = nullptr;
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;

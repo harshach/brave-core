@@ -35,6 +35,15 @@
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "chrome/browser/extensions/extension_apitest.h"
+#include "chrome/browser/extensions/extension_view_host.h"
+#include "chrome/browser/ui/extensions/extension_action_test_helper.h"
+#include "chrome/browser/ui/views/extensions/extension_popup.h"
+#include "extensions/browser/extension_host_test_helper.h"
+#include "extensions/common/mojom/view_type.mojom.h"
+#include "extensions/test/test_extension_dir.h"
+#endif
 #include "build/build_config.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
@@ -248,6 +257,69 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
   reload_observer.Wait();
   EXPECT_TRUE(reload_observer.last_navigation_succeeded());
   EXPECT_EQ(test_url, contents->GetLastCommittedURL());
+}
+
+class OriginExtensionInputShortcutBrowserTest
+    : public extensions::ExtensionApiTest {};
+
+IN_PROC_BROWSER_TEST_F(OriginExtensionInputShortcutBrowserTest,
+                       EditablePopupOwnsSingleKeyShortcuts) {
+  static constexpr char kManifest[] = R"({
+    "name": "Editable Popup",
+    "manifest_version": 3,
+    "action": { "default_popup": "popup.html" },
+    "version": "0.1"
+  })";
+
+  extensions::TestExtensionDir test_dir;
+  test_dir.WriteManifest(kManifest);
+  test_dir.WriteFile(FILE_PATH_LITERAL("popup.html"),
+                     "<input id='password' type='password' autofocus>");
+  const extensions::Extension* extension =
+      LoadExtension(test_dir.UnpackedPath());
+  ASSERT_TRUE(extension);
+
+  extensions::ExtensionHostTestHelper popup_waiter(profile(), extension->id());
+  popup_waiter.RestrictToType(extensions::mojom::ViewType::kExtensionPopup);
+  ExtensionActionTestHelper::Create(browser())->Press(extension->id());
+  popup_waiter.WaitForHostCompletedFirstLoad();
+
+  ExtensionPopup* popup = ExtensionPopup::last_popup_for_testing();
+  ASSERT_TRUE(popup);
+  content::WebContents* popup_contents = popup->host()->host_contents();
+  ASSERT_TRUE(popup_contents);
+  ASSERT_TRUE(content::ExecJs(popup_contents,
+                              "document.querySelector('#password').focus();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return popup_contents->IsFocusedElementEditable(); }));
+
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+  ASSERT_TRUE(controller->SelectSpaceAtIndex(0));
+  const std::string initial_space_id = controller->active_space_id();
+
+  input::NativeWebKeyboardEvent number_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  number_event.windows_key_code = ui::VKEY_2;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
+            browser()->PreHandleKeyboardEvent(popup_contents, number_event));
+  EXPECT_EQ(initial_space_id, controller->active_space_id());
+
+  ASSERT_TRUE(content::ExecJs(popup_contents,
+                              "document.querySelector('#password').blur();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !popup_contents->IsFocusedElementEditable(); }));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            browser()->PreHandleKeyboardEvent(popup_contents, number_event));
+  EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            controller->active_space_id());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,

@@ -313,6 +313,17 @@ TEST_F(WorkspaceServiceFactoryTest,
   auto* profile = profile_manager_.CreateTestingProfile("test");
   EXPECT_NE(WorkspaceServiceFactory::GetForProfile(profile), nullptr);
 }
+
+TEST_F(WorkspaceServiceFactoryTest, OriginIncognitoUsesRegularProfileService) {
+  feature_list_.InitAndDisableFeature(features::kWorkspaces);
+  auto* profile = profile_manager_.CreateTestingProfile("test");
+  auto* incognito = profile->GetPrimaryOTRProfile(/*create_if_needed=*/true);
+
+  WorkspaceService* regular_service =
+      WorkspaceServiceFactory::GetForProfile(profile);
+  ASSERT_TRUE(regular_service);
+  EXPECT_EQ(WorkspaceServiceFactory::GetForProfile(incognito), regular_service);
+}
 #else
 TEST_F(WorkspaceServiceFactoryTest, FeatureDisabled_GetForProfileReturnsNull) {
   feature_list_.InitAndDisableFeature(features::kWorkspaces);

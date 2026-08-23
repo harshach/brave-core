@@ -859,17 +859,25 @@ void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
     return;
   }
 
+  std::vector<BraveTab*> visible_tabs;
+  for (Tab* tab : layout_helper_->GetTabs()) {
+    auto* brave_tab = views::AsViewClass<BraveTab>(tab);
+    if (brave_tab && brave_tab->GetVisible() && !tab->data().pinned &&
+        tab->width() > tabs::kVerticalTabMinWidth) {
+      visible_tabs.push_back(brave_tab);
+    }
+  }
+  std::stable_sort(visible_tabs.begin(), visible_tabs.end(),
+                   [](const BraveTab* left, const BraveTab* right) {
+                     return left->bounds().y() < right->bounds().y();
+                   });
+
   cc::PaintFlags flags;
   flags.setAntiAlias(true);
   flags.setStyle(cc::PaintFlags::kFill_Style);
 
-  for (Tab* tab : layout_helper_->GetTabs()) {
-    auto* brave_tab = views::AsViewClass<BraveTab>(tab);
-    if (!brave_tab || !brave_tab->GetVisible() || tab->data().pinned ||
-        tab->width() <= tabs::kVerticalTabMinWidth) {
-      continue;
-    }
-
+  for (size_t index = 0; index < visible_tabs.size(); ++index) {
+    BraveTab* brave_tab = visible_tabs[index];
     const TabNestingInfo nesting = brave_tab->GetTabNestingInfo();
     const SkColor foreground =
         brave_tab->tab_style_views()->CalculateTargetColors().foreground_color;
@@ -882,18 +890,25 @@ void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
     if (nesting.level > 0) {
       flags.setStyle(cc::PaintFlags::kStroke_Style);
       flags.setStrokeWidth(1.0f);
-      const float center_y = tab->bounds().CenterPoint().y();
+      const float center_y = brave_tab->bounds().CenterPoint().y();
+      const int next_level =
+          index + 1 < visible_tabs.size()
+              ? visible_tabs[index + 1]->GetTabNestingInfo().level
+              : 0;
       for (int level = 1; level <= nesting.level; ++level) {
         const float guide_x =
             tabs::kMarginForVerticalTabContainers +
             level * tabs::kBaseOffsetPerLevel -
             tabs::kBaseOffsetPerLevel / 2.0f + 0.5f;
-        canvas.DrawLine(gfx::PointF(guide_x, tab->y() - 1.0f),
-                        gfx::PointF(guide_x, tab->bounds().bottom() + 1.0f),
-                        flags);
+        float guide_bottom = brave_tab->bounds().bottom() + 1.0f;
+        if (next_level < level) {
+          guide_bottom = center_y;
+        }
+        canvas.DrawLine(gfx::PointF(guide_x, brave_tab->y() - 1.0f),
+                        gfx::PointF(guide_x, guide_bottom), flags);
         if (level == nesting.level) {
           canvas.DrawLine(gfx::PointF(guide_x, center_y),
-                          gfx::PointF(tab->x() + 5.0f, center_y), flags);
+                          gfx::PointF(brave_tab->x() + 5.0f, center_y), flags);
         }
       }
       flags.setStyle(cc::PaintFlags::kFill_Style);

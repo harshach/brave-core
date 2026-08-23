@@ -41,6 +41,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
+#include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/tab_ui_helper.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "components/favicon/core/fallback_url_util.h"
@@ -74,10 +75,12 @@
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/image_model.h"
 #include "ui/color/color_id.h"
+#include "ui/color/color_provider.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/canvas.h"
+#include "ui/gfx/color_utils.h"
 #include "ui/gfx/font_list.h"
 #include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rect.h"
@@ -132,15 +135,64 @@ constexpr net::NetworkTrafficAnnotationTag kQuickOpenFaviconTrafficAnnotation =
           "the user's current Quick Open input."
       })");
 
-constexpr SkColor kScrimColor = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12);
-constexpr SkColor kPanelColor = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25);
-constexpr SkColor kPanelStrokeColor = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF);
-constexpr SkColor kSelectedResultColor = SkColorSetARGB(0x33, 0x15, 0x70, 0xEF);
-constexpr SkColor kHoveredResultColor = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF);
-constexpr SkColor kSelectionText = SkColorSetRGB(0xB2, 0xCC, 0xFF);
-constexpr SkColor kPrimaryText = SkColorSetRGB(0xF5, 0xF5, 0xF6);
-constexpr SkColor kSecondaryText = SkColorSetRGB(0x94, 0x96, 0x9C);
-constexpr SkColor kTertiaryText = SkColorSetRGB(0x6B, 0x6E, 0x75);
+struct OriginQuickOpenColors {
+  SkColor scrim;
+  SkColor panel;
+  SkColor panel_stroke;
+  SkColor selected_result;
+  SkColor hovered_result;
+  SkColor selection_text;
+  SkColor primary_text;
+  SkColor secondary_text;
+  SkColor tertiary_text;
+  SkColor chip_background;
+  SkColor current_chip_background;
+  SkColor chip_hovered;
+  SkColor footer_background;
+  SkColor key_background;
+};
+
+OriginQuickOpenColors GetOriginQuickOpenColors(
+    const ui::ColorProvider* color_provider) {
+  const bool dark =
+      !color_provider ||
+      color_utils::IsDark(color_provider->GetColor(kColorToolbar));
+  if (dark) {
+    return {
+        .scrim = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12),
+        .panel = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25),
+        .panel_stroke = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF),
+        .selected_result = SkColorSetARGB(0x33, 0x15, 0x70, 0xEF),
+        .hovered_result = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
+        .selection_text = SkColorSetRGB(0xB2, 0xCC, 0xFF),
+        .primary_text = SkColorSetRGB(0xF5, 0xF5, 0xF6),
+        .secondary_text = SkColorSetRGB(0x94, 0x96, 0x9C),
+        .tertiary_text = SkColorSetRGB(0x6B, 0x6E, 0x75),
+        .chip_background = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
+        .current_chip_background = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF),
+        .chip_hovered = SkColorSetARGB(0x1F, 0xFF, 0xFF, 0xFF),
+        .footer_background = SkColorSetARGB(0x0A, 0xFF, 0xFF, 0xFF),
+        .key_background = SkColorSetARGB(0x19, 0xFF, 0xFF, 0xFF),
+    };
+  }
+  return {
+      .scrim = SkColorSetARGB(0x5C, 0x18, 0x1D, 0x27),
+      .panel = SkColorSetARGB(0xF7, 0xFF, 0xFF, 0xFF),
+      .panel_stroke = SkColorSetARGB(0x1F, 0x18, 0x1D, 0x27),
+      .selected_result = SkColorSetRGB(0xE8, 0xF0, 0xFE),
+      .hovered_result = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
+      .selection_text = SkColorSetRGB(0x16, 0x4C, 0x9B),
+      .primary_text = SkColorSetRGB(0x18, 0x1D, 0x27),
+      .secondary_text = SkColorSetRGB(0x53, 0x58, 0x62),
+      .tertiary_text = SkColorSetRGB(0x71, 0x76, 0x80),
+      .chip_background = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
+      .current_chip_background = SkColorSetARGB(0x0D, 0x18, 0x1D, 0x27),
+      .chip_hovered = SkColorSetARGB(0x14, 0x18, 0x1D, 0x27),
+      .footer_background = SkColorSetARGB(0x08, 0x18, 0x1D, 0x27),
+      .key_background = SkColorSetARGB(0x0D, 0x18, 0x1D, 0x27),
+  };
+}
+
 constexpr std::array<SkColor, 5> kSpaceAccentColors = {
     SkColorSetRGB(0x15, 0x70, 0xEF), SkColorSetRGB(0x17, 0xB2, 0x6A),
     SkColorSetRGB(0xF7, 0x90, 0x09), SkColorSetRGB(0xF0, 0x44, 0x38),
@@ -452,15 +504,21 @@ class OriginQuickOpenTextButton : public views::LabelButton {
     RefreshStyle();
   }
 
+  void OnThemeChanged() override {
+    LabelButton::OnThemeChanged();
+    RefreshStyle();
+  }
+
  private:
   void RefreshStyle() {
+    const auto colors = GetOriginQuickOpenColors(GetColorProvider());
     const bool hovered =
         GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
-    const SkColor foreground = selected_ ? kPrimaryText
-                               : hovered ? kPrimaryText
-                                         : kTertiaryText;
+    const SkColor foreground = selected_ ? SK_ColorWHITE
+                               : hovered ? colors.primary_text
+                                         : colors.tertiary_text;
     const SkColor background = selected_ ? SkColorSetRGB(0x15, 0x70, 0xEF)
-                               : hovered ? kHoveredResultColor
+                               : hovered ? colors.hovered_result
                                          : SK_ColorTRANSPARENT;
     SetEnabledTextColors(foreground);
     SetBackground(views::CreateRoundedRectBackground(background, 8));
@@ -470,6 +528,56 @@ class OriginQuickOpenTextButton : public views::LabelButton {
 };
 
 BEGIN_METADATA(OriginQuickOpenTextButton)
+END_METADATA
+
+enum class OriginQuickOpenTextTone {
+  kPrimary,
+  kSecondary,
+  kTertiary,
+};
+
+class OriginQuickOpenThemedLabel : public views::Label {
+  METADATA_HEADER(OriginQuickOpenThemedLabel, views::Label)
+
+ public:
+  OriginQuickOpenThemedLabel(std::u16string text,
+                             OriginQuickOpenTextTone tone,
+                             bool key_background = false)
+      : Label(std::move(text)), tone_(tone), key_background_(key_background) {
+    SetSubpixelRenderingEnabled(false);
+    RefreshStyle();
+  }
+
+  void OnThemeChanged() override {
+    Label::OnThemeChanged();
+    RefreshStyle();
+  }
+
+ private:
+  void RefreshStyle() {
+    const auto colors = GetOriginQuickOpenColors(GetColorProvider());
+    switch (tone_) {
+      case OriginQuickOpenTextTone::kPrimary:
+        SetEnabledColor(colors.primary_text);
+        break;
+      case OriginQuickOpenTextTone::kSecondary:
+        SetEnabledColor(colors.secondary_text);
+        break;
+      case OriginQuickOpenTextTone::kTertiary:
+        SetEnabledColor(colors.tertiary_text);
+        break;
+    }
+    if (key_background_) {
+      SetBackground(
+          views::CreateRoundedRectBackground(colors.key_background, 4));
+    }
+  }
+
+  const OriginQuickOpenTextTone tone_;
+  const bool key_background_;
+};
+
+BEGIN_METADATA(OriginQuickOpenThemedLabel)
 END_METADATA
 
 class OriginQuickOpenSpaceChip : public views::Button {
@@ -494,20 +602,15 @@ class OriginQuickOpenSpaceChip : public views::Button {
     name_label_->SetSubpixelRenderingEnabled(false);
     name_label_->SetFontList(
         OriginQuickOpenFont(12, gfx::Font::Weight::MEDIUM));
-    name_label_->SetEnabledColor(kPrimaryText);
-
     shortcut_label_ = AddChildView(std::make_unique<views::Label>());
     shortcut_label_->SetSubpixelRenderingEnabled(false);
     shortcut_label_->SetFontList(
         OriginQuickOpenFont(10, gfx::Font::Weight::SEMIBOLD));
-    shortcut_label_->SetEnabledColor(kTertiaryText);
 
     if (current_space_) {
       caret_view_ = AddChildView(std::make_unique<views::ImageView>());
       caret_view_->SetPreferredSize(gfx::Size(12, 12));
       caret_view_->SetImageSize(gfx::Size(12, 12));
-      caret_view_->SetImage(ui::ImageModel::FromVectorIcon(
-          kLeoCaratDownIcon, kSecondaryText, 12));
     }
     RefreshStyle();
   }
@@ -515,14 +618,15 @@ class OriginQuickOpenSpaceChip : public views::Button {
   void SetSpace(const OriginSpaceMetadata& space,
                 SkColor accent,
                 std::u16string shortcut) {
-    icon_view_->SetImage(ui::ImageModel::FromVectorIcon(
-        GetOriginQuickOpenSpaceIcon(space.icon),
-        current_space_ ? kSecondaryText : accent, 14));
+    icon_ = space.icon;
+    accent_ = accent;
     name_label_->SetText(base::UTF8ToUTF16(space.name));
     shortcut_label_->SetText(std::move(shortcut));
     shortcut_label_->SetVisible(!shortcut_label_->GetText().empty());
-    SetAccessibleName((current_space_ ? u"Current Space: " : u"Send to Space: ") +
-                      base::UTF8ToUTF16(space.name));
+    SetAccessibleName(
+        (current_space_ ? u"Current Space: " : u"Send to Space: ") +
+        base::UTF8ToUTF16(space.name));
+    RefreshStyle();
     InvalidateLayout();
   }
 
@@ -532,18 +636,37 @@ class OriginQuickOpenSpaceChip : public views::Button {
     RefreshStyle();
   }
 
+  void OnThemeChanged() override {
+    Button::OnThemeChanged();
+    RefreshStyle();
+  }
+
  private:
   void RefreshStyle() {
+    const auto colors = GetOriginQuickOpenColors(GetColorProvider());
     const bool hovered =
         GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
     const SkColor background =
-        hovered ? SkColorSetARGB(0x1F, 0xFF, 0xFF, 0xFF)
-                : SkColorSetARGB(current_space_ ? 0x12 : 0x0F, 0xFF, 0xFF,
-                                 0xFF);
+        hovered ? colors.chip_hovered
+                : (current_space_ ? colors.current_chip_background
+                                  : colors.chip_background);
     SetBackground(views::CreateRoundedRectBackground(background, 8));
+    name_label_->SetEnabledColor(colors.primary_text);
+    shortcut_label_->SetEnabledColor(colors.tertiary_text);
+    if (!icon_.empty()) {
+      icon_view_->SetImage(ui::ImageModel::FromVectorIcon(
+          GetOriginQuickOpenSpaceIcon(icon_),
+          current_space_ ? colors.secondary_text : accent_, 14));
+    }
+    if (caret_view_) {
+      caret_view_->SetImage(ui::ImageModel::FromVectorIcon(
+          kLeoCaratDownIcon, colors.secondary_text, 12));
+    }
   }
 
   const bool current_space_;
+  std::string icon_;
+  SkColor accent_ = SK_ColorTRANSPARENT;
   raw_ptr<views::ImageView> icon_view_ = nullptr;
   raw_ptr<views::Label> name_label_ = nullptr;
   raw_ptr<views::Label> shortcut_label_ = nullptr;
@@ -577,8 +700,8 @@ class OriginQuickOpenResultButton : public views::Button {
     icon_view_->SetImageSize(gfx::Size(20, 20));
 
     auto* text_column = AddChildView(std::make_unique<views::View>());
-    auto* text_layout = text_column->SetLayoutManager(
-        std::make_unique<views::BoxLayout>(
+    auto* text_layout =
+        text_column->SetLayoutManager(std::make_unique<views::BoxLayout>(
             views::BoxLayout::Orientation::kVertical));
     text_layout->set_cross_axis_alignment(
         views::BoxLayout::CrossAxisAlignment::kStretch);
@@ -610,9 +733,6 @@ class OriginQuickOpenResultButton : public views::Button {
     enter_key_label_->SetSubpixelRenderingEnabled(false);
     enter_key_label_->SetFontList(
         OriginQuickOpenFont(10, gfx::Font::Weight::SEMIBOLD));
-    enter_key_label_->SetEnabledColor(kPrimaryText);
-    enter_key_label_->SetBackground(views::CreateRoundedRectBackground(
-        SkColorSetARGB(0x19, 0xFF, 0xFF, 0xFF), 5));
     enter_key_label_->SetBorder(
         views::CreateEmptyBorder(gfx::Insets::TLBR(1, 5, 1, 5)));
     enter_key_label_->SetVisible(false);
@@ -637,9 +757,6 @@ class OriginQuickOpenResultButton : public views::Button {
     badge_label_->SetText(visible_badge);
     has_badge_ = !visible_badge.empty();
     persistent_badge_ = persistent_badge;
-    badge_label_->SetBorder(
-        persistent_badge ? views::CreateRoundedRectBorder(1, 5, kTertiaryText)
-                         : views::CreateEmptyBorder(gfx::Insets::VH(2, 6)));
     icon_model_ = icon_model;
     icon_ = icon;
     icon_view_->SetVisible(!icon_model_.IsEmpty() || icon_ != nullptr);
@@ -666,26 +783,41 @@ class OriginQuickOpenResultButton : public views::Button {
     RefreshRowStyle();
   }
 
+  void OnThemeChanged() override {
+    Button::OnThemeChanged();
+    RefreshRowStyle();
+  }
+
  private:
   void RefreshRowStyle() {
+    const auto colors = GetOriginQuickOpenColors(GetColorProvider());
     const bool hovered =
         GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
-    const SkColor background = palette_selected_ ? kSelectedResultColor
-                               : hovered         ? kHoveredResultColor
+    const SkColor background = palette_selected_ ? colors.selected_result
+                               : hovered         ? colors.hovered_result
                                                  : SK_ColorTRANSPARENT;
     SetBackground(
         views::CreateRoundedRectBackground(background, kResultCornerRadius));
-    title_label_->SetEnabledColor(kPrimaryText);
-    subtitle_label_->SetEnabledColor(kSecondaryText);
-    badge_label_->SetEnabledColor(palette_selected_ ? kSelectionText
-                                                    : kSecondaryText);
+    title_label_->SetEnabledColor(colors.primary_text);
+    subtitle_label_->SetEnabledColor(colors.secondary_text);
+    badge_label_->SetEnabledColor(palette_selected_ ? colors.selection_text
+                                                    : colors.secondary_text);
+    badge_label_->SetBorder(
+        persistent_badge_
+            ? views::CreateRoundedRectBorder(1, 5, colors.tertiary_text)
+            : views::CreateEmptyBorder(gfx::Insets::VH(2, 6)));
     badge_label_->SetVisible(has_badge_);
+    enter_key_label_->SetEnabledColor(colors.primary_text);
+    enter_key_label_->SetBackground(
+        views::CreateRoundedRectBackground(colors.key_background, 5));
     enter_key_label_->SetVisible(has_enter_key_ && palette_selected_);
     if (!icon_model_.IsEmpty()) {
       icon_view_->SetImage(icon_model_);
     } else if (icon_) {
       icon_view_->SetImage(ui::ImageModel::FromVectorIcon(
-          *icon_, palette_selected_ ? kSelectionText : kSecondaryText, 18));
+          *icon_,
+          palette_selected_ ? colors.selection_text : colors.secondary_text,
+          18));
     }
   }
 
@@ -730,7 +862,6 @@ OriginQuickOpenView::OriginQuickOpenView(
   SetVisible(false);
   SetPaintToLayer();
   layer()->SetFillsBoundsOpaquely(false);
-  SetBackground(views::CreateSolidBackground(kScrimColor));
 
   panel_ = AddChildView(std::make_unique<views::View>());
   panel_->SetPaintToLayer();
@@ -739,10 +870,6 @@ OriginQuickOpenView::OriginQuickOpenView(
       gfx::RoundedCornersF(kPanelCornerRadius));
   panel_->layer()->SetBackgroundBlur(kPanelBlurSigma);
   panel_->layer()->SetBackdropFilterQuality(kPanelBackdropQuality);
-  panel_->SetBackground(
-      views::CreateRoundedRectBackground(kPanelColor, kPanelCornerRadius));
-  panel_->SetBorder(
-      views::CreateRoundedRectBorder(1, kPanelCornerRadius, kPanelStrokeColor));
   panel_->SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kVertical,
       gfx::Insets::TLBR(14, 18, 12, 18), 4));
@@ -759,8 +886,6 @@ OriginQuickOpenView::OriginQuickOpenView(
   search_icon_ = search_row->AddChildView(std::make_unique<views::ImageView>());
   search_icon_->SetPreferredSize(gfx::Size(18, 18));
   search_icon_->SetImageSize(gfx::Size(18, 18));
-  search_icon_->SetImage(ui::ImageModel::FromVectorIcon(
-      vector_icons::kSearchIcon, kSecondaryText, 18));
 
   search_field_ =
       search_row->AddChildView(std::make_unique<views::Textfield>());
@@ -774,8 +899,8 @@ OriginQuickOpenView::OriginQuickOpenView(
       OriginQuickOpenFont(17, gfx::Font::Weight::NORMAL));
   search_layout->SetFlexForView(search_field_, 1);
 
-  current_space_chip_ = search_row->AddChildView(
-      std::make_unique<OriginQuickOpenSpaceChip>(
+  current_space_chip_ =
+      search_row->AddChildView(std::make_unique<OriginQuickOpenSpaceChip>(
           views::Button::PressedCallback(), /*current_space=*/true));
 
   const auto add_section = [this](size_t section, size_t capacity) {
@@ -783,7 +908,6 @@ OriginQuickOpenView::OriginQuickOpenView(
         panel_->AddChildView(std::make_unique<views::Label>(u"Top Hits"));
     label->SetSubpixelRenderingEnabled(false);
     label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
-    label->SetEnabledColor(kTertiaryText);
     label->SetFontList(OriginQuickOpenFont(11, gfx::Font::Weight::SEMIBOLD));
     label->SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(6, 4, 0, 4)));
     section_labels_[section] = label;
@@ -805,7 +929,6 @@ OriginQuickOpenView::OriginQuickOpenView(
   empty_state_label_->SetSubpixelRenderingEnabled(false);
   empty_state_label_->SetHorizontalAlignment(
       gfx::HorizontalAlignment::ALIGN_LEFT);
-  empty_state_label_->SetEnabledColor(kSecondaryText);
   empty_state_label_->SetFontList(
       OriginQuickOpenFont(13, gfx::Font::Weight::NORMAL));
   empty_state_label_->SetBorder(
@@ -821,12 +944,11 @@ OriginQuickOpenView::OriginQuickOpenView(
   add_section(/*section=*/1, kSecondarySectionCapacity);
   add_section(/*section=*/2, kTertiarySectionCapacity);
 
-  send_to_space_label_ = panel_->AddChildView(
-      std::make_unique<views::Label>(u"Send to space"));
+  send_to_space_label_ =
+      panel_->AddChildView(std::make_unique<views::Label>(u"Send to space"));
   send_to_space_label_->SetSubpixelRenderingEnabled(false);
   send_to_space_label_->SetHorizontalAlignment(
       gfx::HorizontalAlignment::ALIGN_LEFT);
-  send_to_space_label_->SetEnabledColor(kTertiaryText);
   send_to_space_label_->SetFontList(
       OriginQuickOpenFont(11, gfx::Font::Weight::SEMIBOLD));
   send_to_space_label_->SetBorder(
@@ -834,16 +956,13 @@ OriginQuickOpenView::OriginQuickOpenView(
 
   send_to_space_container_ =
       panel_->AddChildView(std::make_unique<views::View>());
-  send_to_space_container_->SetLayoutManager(
-      std::make_unique<views::BoxLayout>(
-          views::BoxLayout::Orientation::kHorizontal,
-          gfx::Insets::TLBR(0, 4, 4, 4), 6));
+  send_to_space_container_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kHorizontal, gfx::Insets::TLBR(0, 4, 4, 4),
+      6));
 
   shortcuts_footer_ = panel_->AddChildView(std::make_unique<views::View>());
-  shortcuts_footer_->SetBackground(views::CreateRoundedRectBackground(
-      SkColorSetARGB(0x0A, 0xFF, 0xFF, 0xFF), 8));
-  auto* footer_layout = shortcuts_footer_->SetLayoutManager(
-      std::make_unique<views::BoxLayout>(
+  auto* footer_layout =
+      shortcuts_footer_->SetLayoutManager(std::make_unique<views::BoxLayout>(
           views::BoxLayout::Orientation::kHorizontal,
           gfx::Insets::TLBR(7, 8, 7, 8), 12));
   footer_layout->set_cross_axis_alignment(
@@ -852,27 +971,24 @@ OriginQuickOpenView::OriginQuickOpenView(
                                    std::u16string description) {
     auto* group =
         shortcuts_footer_->AddChildView(std::make_unique<views::View>());
-    auto* group_layout = group->SetLayoutManager(
-        std::make_unique<views::BoxLayout>(
+    auto* group_layout =
+        group->SetLayoutManager(std::make_unique<views::BoxLayout>(
             views::BoxLayout::Orientation::kHorizontal, gfx::Insets(), 6));
     group_layout->set_cross_axis_alignment(
         views::BoxLayout::CrossAxisAlignment::kCenter);
     auto* key_label =
-        group->AddChildView(std::make_unique<views::Label>(std::move(key)));
-    key_label->SetSubpixelRenderingEnabled(false);
+        group->AddChildView(std::make_unique<OriginQuickOpenThemedLabel>(
+            std::move(key), OriginQuickOpenTextTone::kPrimary,
+            /*key_background=*/true));
     key_label->SetFontList(
         OriginQuickOpenFont(10, gfx::Font::Weight::SEMIBOLD));
-    key_label->SetEnabledColor(kPrimaryText);
-    key_label->SetBackground(views::CreateRoundedRectBackground(
-        SkColorSetARGB(0x19, 0xFF, 0xFF, 0xFF), 4));
     key_label->SetBorder(
         views::CreateEmptyBorder(gfx::Insets::TLBR(1, 5, 1, 5)));
-    auto* description_label = group->AddChildView(
-        std::make_unique<views::Label>(std::move(description)));
-    description_label->SetSubpixelRenderingEnabled(false);
+    auto* description_label =
+        group->AddChildView(std::make_unique<OriginQuickOpenThemedLabel>(
+            std::move(description), OriginQuickOpenTextTone::kSecondary));
     description_label->SetFontList(
         OriginQuickOpenFont(11, gfx::Font::Weight::NORMAL));
-    description_label->SetEnabledColor(kSecondaryText);
   };
   add_shortcut(u"J K", u"Move");
   add_shortcut(u"↵", u"Open");
@@ -882,13 +998,12 @@ OriginQuickOpenView::OriginQuickOpenView(
   auto* footer_spacer =
       shortcuts_footer_->AddChildView(std::make_unique<views::View>());
   footer_layout->SetFlexForView(footer_spacer, 1);
-  auto* escape_label =
-      shortcuts_footer_->AddChildView(std::make_unique<views::Label>(u"Esc"));
-  escape_label->SetSubpixelRenderingEnabled(false);
-  escape_label->SetFontList(
-      OriginQuickOpenFont(11, gfx::Font::Weight::NORMAL));
-  escape_label->SetEnabledColor(kTertiaryText);
+  auto* escape_label = shortcuts_footer_->AddChildView(
+      std::make_unique<OriginQuickOpenThemedLabel>(
+          u"Esc", OriginQuickOpenTextTone::kTertiary));
+  escape_label->SetFontList(OriginQuickOpenFont(11, gfx::Font::Weight::NORMAL));
 
+  RefreshTheme();
   UpdateResultRows();
 }
 
@@ -1109,6 +1224,30 @@ void OriginQuickOpenView::Layout(PassKey) {
   const int panel_y = available.y() + std::clamp(free_height - 10, 12, 64);
   panel_->SetBounds(available.x() + (available.width() - panel_width) / 2,
                     panel_y, panel_width, panel_height);
+}
+
+void OriginQuickOpenView::OnThemeChanged() {
+  views::View::OnThemeChanged();
+  RefreshTheme();
+}
+
+void OriginQuickOpenView::RefreshTheme() {
+  const auto colors = GetOriginQuickOpenColors(GetColorProvider());
+  SetBackground(views::CreateSolidBackground(colors.scrim));
+  panel_->SetBackground(
+      views::CreateRoundedRectBackground(colors.panel, kPanelCornerRadius));
+  panel_->SetBorder(views::CreateRoundedRectBorder(1, kPanelCornerRadius,
+                                                   colors.panel_stroke));
+  for (views::Label* section_label : section_labels_) {
+    if (section_label) {
+      section_label->SetEnabledColor(colors.tertiary_text);
+    }
+  }
+  empty_state_label_->SetEnabledColor(colors.secondary_text);
+  send_to_space_label_->SetEnabledColor(colors.tertiary_text);
+  shortcuts_footer_->SetBackground(
+      views::CreateRoundedRectBackground(colors.footer_background, 8));
+  UpdateSearchIcon();
 }
 
 bool OriginQuickOpenView::OnMousePressed(const ui::MouseEvent& event) {
@@ -2116,8 +2255,9 @@ void OriginQuickOpenView::UpdateResultRows() {
 void OriginQuickOpenView::UpdateSearchIcon() {
   // Result favicons belong to the result rows. The query affordance remains a
   // stable search glyph while inline completion changes underneath it.
+  const auto colors = GetOriginQuickOpenColors(GetColorProvider());
   search_icon_->SetImage(ui::ImageModel::FromVectorIcon(
-      vector_icons::kSearchIcon, kSecondaryText, 18));
+      vector_icons::kSearchIcon, colors.secondary_text, 18));
 }
 
 void OriginQuickOpenView::RebuildSpaceControls() {
@@ -2132,9 +2272,8 @@ void OriginQuickOpenView::RebuildSpaceControls() {
 
   const auto& spaces = workspace_service->GetOriginSpaces();
   const size_t active_index = [&]() {
-    const auto active =
-        std::ranges::find(spaces, space_controller->active_space_id(),
-                          &OriginSpaceMetadata::id);
+    const auto active = std::ranges::find(
+        spaces, space_controller->active_space_id(), &OriginSpaceMetadata::id);
     return active == spaces.end()
                ? 0u
                : static_cast<size_t>(active - spaces.begin());

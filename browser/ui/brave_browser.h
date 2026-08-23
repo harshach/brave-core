@@ -45,6 +45,9 @@ class BraveBrowser : public Browser {
       bool user_gesture,
       bool* was_blocked) override;
   bool ShouldFocusLocationBarByDefault(content::WebContents* source) override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      content::WebContents* source,
+      const input::NativeWebKeyboardEvent& event) override;
 
   void OnTabClosing(tabs::TabInterface* tab,
                     bool* had_active_modal_dialog) override;
