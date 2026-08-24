@@ -40,14 +40,14 @@ void AddDATBufferToFilterSet(uint8_t permission_mask,
 constexpr uint8_t kCustomFiltersPermissionLevel = UINT8_MAX;
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-// Origin's persistent workspace rail changes responsive breakpoints. On Gear
-// Patrol, the ad-only sidebar becomes a separate 600px grid row at the
-// resulting content width. The default list hides the ad children, but their
-// parent and an adjacent partner strip continue to reserve space.
+// Origin's persistent workspace rail changes responsive breakpoints. These
+// rules collapse otherwise empty ad rows and let extra-wide YouTube theater
+// players shrink to the available viewport instead of clipping both columns.
 constexpr std::string_view kOriginSupplementalCosmeticFilters = R"(
 ! Title: Origin supplemental cosmetic filters
 gearpatrol.com##.wp-block-gearpatrol-sidebar:has(> .wp-block-gearpatrol-ad-slot)
 gearpatrol.com##.wp-block-gearpatrol-from-our-partners
+youtube.com##ytd-watch-flexy[theater][full-bleed-player][is-extra-wide-video_][is-two-columns_][flexy-small-window_] #primary:style(min-width: 0 !important)
 )";
 #endif
 
