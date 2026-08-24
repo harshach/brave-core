@@ -398,6 +398,42 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
             flipboard_result.destination_url);
   EXPECT_FALSE(flipboard_result.icon_model.IsEmpty());
 
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"gearpa");
+  quick_open->ContentsChanged(quick_open->search_field_, u"gearpa");
+  constexpr const char* kGearPatrolHistoryPaths[] = {
+      "/cars/a", "/style/b", "/tech/c", "/food/d"};
+  for (const char* path : kGearPatrolHistoryPaths) {
+    OriginQuickOpenView::Result history_result;
+    history_result.title = u"Matching Gear Patrol history page";
+    history_result.destination_url =
+        GURL("https://gearpatrol.com").Resolve(path);
+    history_result.badge = u"History";
+    quick_open->query_history_results_.push_back(
+        OriginQuickOpenView::TimedResult{std::move(history_result),
+                                         base::Time::Now()});
+  }
+  quick_open->RebuildResults();
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& typed_url_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"gearpatrol.com", typed_url_result.title);
+  EXPECT_EQ(GURL("https://gearpatrol.com/"),
+            typed_url_result.destination_url);
+  EXPECT_EQ(u"Open URL", typed_url_result.badge);
+  EXPECT_FALSE(typed_url_result.switch_to_tab);
+  EXPECT_EQ(u"gearpatrol.com", quick_open->search_field_->GetText());
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(GURL("https://gearpatrol.com/cars/a"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][1].badge.starts_with(u"History"));
+  ASSERT_GE(quick_open->visible_results_.size(), 2u);
+  EXPECT_EQ(1u, quick_open->selected_result_);
+  const auto selected_coordinates =
+      quick_open->visible_results_[quick_open->selected_result_];
+  EXPECT_EQ(1u, selected_coordinates.first);
+  EXPECT_EQ(0u, selected_coordinates.second);
+
   const std::optional<GURL> instagram_favicon =
       GetOriginKnownSiteFaviconURL(GURL("https://instagram.com/"));
   ASSERT_TRUE(instagram_favicon);
@@ -526,10 +562,14 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                                        base::Time::Now()});
   quick_open->RebuildResults();
 
-  ASSERT_FALSE(quick_open->query_results_[1].empty());
-  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(GURL("https://flipboard.com/"),
             quick_open->query_results_[1][0].destination_url);
-  EXPECT_TRUE(quick_open->query_results_[1][0].badge.starts_with(u"History"));
+  EXPECT_EQ(u"Open URL", quick_open->query_results_[1][0].badge);
+  EXPECT_FALSE(quick_open->query_results_[1][0].switch_to_tab);
+  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][1].badge.starts_with(u"History"));
   quick_open->Dismiss();
 }
 
