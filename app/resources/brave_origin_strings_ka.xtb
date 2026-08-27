@@ -113,7 +113,7 @@
 <translation id="2170098639895543546">აირჩიეთ გვერდზე არსებული ნებისმიერი რამ</translation>
 <translation id="142389341645668510">Brave-ის მორგება</translation>
 <translation id="2174917724755363426">ინსტალაცია არ დასრულებულა. ნამდვილად გსურთ გაუქმება?</translation>
-<translation id="8841019650931243995">Brave Origin — ქსელში შესვლა — <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket — ქსელში შესვლა — <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">შეცდომა განახლების შემოწმებისასr: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">ანგარიშის ამოშლა Brave-იდან</translation>
 <translation id="4022045673362955204">გამოიყენეთ Brave აპი, რომ შოპინგის საუკეთესო ხელსაწყოები თან იქონიოთ</translation>
@@ -148,7 +148,7 @@
 <translation id="2542968102051442371">მონიშნეთ ტექსტი სურათების ძიებით</translation>
 <translation id="70183448213529602">Brave ცდილობს არსებული პაროლების ჩანაცვლებას. აღნიშნულის დასაშვებად აკრიფეთ თქვენი Windows-ის პაროლი.</translation>
 <translation id="7798069806040634998">ფაილების ჩამოსატვირთად Brave საჭიროებს მეხსიერებაზე წვდომას</translation>
-<translation id="2351700486811407088">Brave Origin-ის დამხმარე</translation>
+<translation id="9082785458664620820">Socket-ის დამხმარე</translation>
 <translation id="2575822587468774919">აირჩიეთ ის, რისი მოძებნაც გსურთ სურათების ძიებით</translation>
 <translation id="3830890663494219270">თქვენს ყველა მოწყობილობაზე პაროლებისა და სხვა კონტენტის მისაღებად შედით Brave-ში</translation>
 <translation id="6908148552215338695">დაასკანირეთ QR კოდი თქვენი ტელეფონით, რომ ჩამოტვირთოთ Brave და შეხვიდეთ თქვენს Brave ანგარიშში.</translation>
@@ -178,7 +178,7 @@
 <translation id="777113543093865885">Brave-იდან ამოღება...</translation>
 <translation id="5265419033369521352">უზრუნველყოფს თქვენს უსაფრთხოებას Brave-სა და Brave-ის სხვა აპებში, როცა სისტემაში შესული ხართ.</translation>
 <translation id="2885378588091291677">ამოცანების მმართველი</translation>
-<translation id="2176825726964012531">Brave-ის შ&amp;ესახებ</translation>
+<translation id="3984800435132982628">Socket-ის შ&amp;ესახებ</translation>
 <translation id="2915996080311180594">მოგვიანებით გადატვირთვა</translation>
 <translation id="2481553173340651149">თქვენი მონაცემები დაშიფრულია თქვენი საიდუმლო ფრაზით. შეიყვანეთ ის, რომ გამოიყენოთ და შეინახოთ Brave-ის მონაცემები თქვენს Brave ანგარიშში.</translation>
 <translation id="2945997411976714835">შეცდომა ინსტალაციისას: ინსტალატორის პროცესი ვერ გაეშვა.</translation>
@@ -264,7 +264,7 @@
 <translation id="3846683726093018685">**შეჯამება:** მაქსიმუმ 30-სიტყვიანი წინადადებით აღწერეთ ეკრანის ანაბეჭდში მოცემული კონტენტის ძირითადი თემა და დანიშნულება.
 
           **შეკითხვების შემოთავაზება:** შექმენით ბურთულებიანი სია 3-5 დამაფიქრებელი შეკითხვისგან, რომლებიც შეიძლება მომხმარებელმა დასვას ეკრანის ანაბეჭდის უკეთ გასაგებად. ამ შეკითხვებიდან ერთ-ერთი აუცილებლად უნდა ეხებოდეს კონკრეტულად ვიზუალურ ობიექტს, მის დიზაინსა თუ განთავსებას.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">ენის ამომრჩევი</translation>
 <translation id="6315734375101223238">მოირგეთ და გააკონტროლეთ Brave. საჭიროა თქვენი ყურადღება — დააწკაპუნეთ დეტალური ინფორმაციისთვის.</translation>
 <translation id="7130675370997202556">Brave ის გახსნისა და დათვალიერების დაწყებისათვის დააჭირეთ თქვენი სახელს.</translation>
@@ -278,7 +278,7 @@
 <translation id="4194619960643453552">შეიტყვეთ, როგორ ზრუნავს Brave თქვენს უსაფრთხოებაზე</translation>
 <translation id="3967822245660637423">ჩამოტვირთვა დასრულდა</translation>
 <translation id="1486377520191913768">როდესაც მისამართთა ზოლში ან საძიებო ველში ტექსტი შეგყავთ, Brave აგზავნის მას თქვენი ორგანიზაციის საძიებო სისტემაში, ხელოვნურ ინტელექტთან და აგენტის ხელსაწყოებში, რათა მიიღოს შემოთავაზებები.</translation>
-<translation id="1311808042904310985">Brave for Testing-ის შ&amp;ესახებ</translation>
+<translation id="3813099290530551762">Socket for Testing-ის შ&amp;ესახებ</translation>
 <translation id="1152920704813762236">ChromeOS-ის შესახებ</translation>
 <translation id="8282895427217902177">თქვენ მიერ საიტის მონახულებისას Brave გაუგზავნის URL-ის შენიღბულ ნაწილს <ph name="BEGIN_LINK"/>Google Safe Browsing<ph name="END_LINK"/>-ს კონფიდენციალურობის სერვერის მეშვეობით, რომელიც მალავს თქვენს IP მისამართს. თუ საიტი რაიმე საეჭვოს მოიმოქმედებს, გაიგზავნება სრული URL-ები და გვერდების კონტენტის ფრაგმენტებიც.</translation>
 <translation id="4016217212818346953">იყავით უსაფრთხოდ პაროლების მმართველთან ერთად</translation>
@@ -297,7 +297,7 @@
 <translation id="10925962326134232">მოირგეთ Brave — შესძინეთ მას ახალი იერი</translation>
 <translation id="6596295505984504022">თქვენი Brave-ის მორგება</translation>
 <translation id="4148957013307229264">ინსტალაცია…</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> — ქსელში შესვლა — Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> — ქსელში შესვლა — Socket</translation>
 <translation id="2871190378186459992">აღმოაჩინეთ შესანიშნავი აპები, თამაშები, გაფართოებები და თემები Brave-ისთვის.</translation>
 <translation id="462105622535258178">ამ გაფართოების და სხვა ერთეულების თქვენს კომპიუტერზე მისაღებად შედით Brave-ში</translation>
 <translation id="6670140629169983459">ონლაინ უსაფრთხოების დასაცავად, თქვენი მშობლის არჩევანით, გადართეთ Brave პროფილზე, რომელშიც უკვე შესული ხართ, როგორც <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -329,7 +329,7 @@
 <translation id="4493028449971051158">გაშვების შეცდომა: ინსტალატორი გაუშვით, როგორც ადმინისტრატორმა.</translation>
 <translation id="4501471624619070934">ინსტალაცია ვერ მოხერხდა, რადგან წვდომა შეზღუდულია ამ ქვეყანაში</translation>
 <translation id="8594994021633965927">ამ გაფართოებას არ გამოუქვეყნებია კონფიდენციალური ინფორმაციის გამოყენების პრაქტიკა, მაგალითად, მონაცემების შეგროვებისა და გამოყენების წესები. Brave გირჩევთ მის ამოშლას.</translation>
-<translation id="770557926599450702">მოგესალმებით Brave Origin-ში; გახსნილია ბრაუზერის ახალი ფანჯარა</translation>
+<translation id="3788134970312783571">მოგესალმებით Socket-ში; გახსნილია ბრაუზერის ახალი ფანჯარა</translation>
 <translation id="137732229629632648">თქვენი გარემოს მოსანიშნად და თქვენი ხელებისთვის თვალის მიდევნებისთვის Brave საჭრიროებს ნებართვას</translation>
 <translation id="5036046007335188949">თქვენ უკვე შესული ხართ Brave-ის სხვა პროფილში როგორც <ph name="USER_EMAIL_ADDRESS"/></translation>
 <translation id="1878185978731985193">Brave წინასწარ ჩატვირთავს გვერდებს, რაც დააჩქარებს დათვალიერებას და ძიებას. <ph name="BEGIN_LINK"/>შეიტყვეთ მეტი წინასწარ ჩატვირთული გვერდების შესახებ<ph name="END_LINK"/></translation>
@@ -337,7 +337,7 @@
 <translation id="8669339108356170796">Brave-მა დაბლოკა ეს ჩამოტვირთვა, რადგან Safe Browsing გამორთეთ და ფაილის შემოწმება ვერ ხერხდება</translation>
 <translation id="7583343841997441047">ცადეთ Google Lens Brave-ით თქვენს ტელეფონში</translation>
 <translation id="4594305310729380060">პაროლების მმართველში ამ მოწყობილობაზე</translation>
-<translation id="7776200949522126045">Brave Origin პროგრამები</translation>
+<translation id="1662388968719244110">Socket პროგრამები</translation>
 <translation id="4598116752460667024">სიიდან ნებისმიერი პროცესის მოძიება.</translation>
 <translation id="4970880042055371251">ChromeOS-ის ვერსია</translation>
 <translation id="2182657378556811785">განახლება თითქმის მზად არის! დასასრულებლად, ხელახლა გაუშვით Brave.</translation>
@@ -355,8 +355,8 @@
 <translation id="844451748565342664">თუ Gemini Brave-ში გახსნილია, გვერდითი პანელი ღია რჩება ახალი ჩანართების შექმნისას</translation>
 <translation id="215320507915280336">ეს ფუნქცია იყენებს მართლწერის იმ შემმოწმებელს, რომელიც გამოიყენება Brave Search-ში. ბრაუზერში თქვენ მიერ აკრეფილი ტექსტი ეგზავნება Brave-ს. ამ ქცევის შეცვლა ნებისმიერ დროს შეგიძლიათ პარამეტრებიდან.</translation>
 <translation id="2899369907387169108">Brave-ის გამოყენება ანგარიშის გარეშე</translation>
-<translation id="1833893255023048385">Brave Origin-ის შემავალი წესი დაუშვას mDNS მოძრაობა.</translation>
-<translation id="711601904575862069">ხელახლა გაშვება &amp;Brave-ის გასაახლებლად</translation>
+<translation id="6972301482162050771">Socket-ის შემავალი წესი დაუშვას mDNS მოძრაობა.</translation>
+<translation id="2428387668457441558">ხელახლა გაშვება &amp;Socket-ის გასაახლებლად</translation>
 <translation id="4918086044614829423">მიღება</translation>
 <translation id="4918844574251943176">სურათი დაკოპირდა</translation>
 <translation id="8797356639448065696">Brave ფონურ რეჟიმშია.</translation>
@@ -396,7 +396,7 @@
 <translation id="5267531627648004734">Brave-იდან ამოღება</translation>
 <translation id="4620757336635063467">ამცირებს წარმადობას, თუმცა Brave შეტევების წინაშე უფრო მდგრადი იქნება</translation>
 <translation id="239760341987199724">დააყენეთ Brave ნაგულისხმევ ბრაუზერად</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> — Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> — Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave გირჩევთ, დააპაუზოთ ჩანართი, რომელიც ანელებს თქვენი ბრაუზერის მუშაობას}other{Brave გირჩევთ, დააპაუზოთ ჩანართები, რომლებიც ანელებს თქვენი ბრაუზერის მუშაობას}}</translation>
 <translation id="894936507076470937">Brave-მა შეიძლება არასწორად იმუშაოს, რადგან ის აღარ არის მხარდაჭერილი ამ Linux დისტრიბუტივზე</translation>
 <translation id="2596557398669145729">Brave-მა დაბლოკა ეს ჩამოტვირთვა, რადგან ფაილს შეუძლია თქვენი პირადი და სოციალური ქსელების ანგარიშების დაზიანება.</translation>
@@ -429,7 +429,7 @@
 <translation id="95980832839683236">აჩქარებს Brave-ის V8 მექანიზმის მქონე საიტების მუშაობას, მაგრამ Brave ოდნავ ნაკლებად უძლებს შეტევებს. ეს პარამეტრი გამორთულია.</translation>
 <translation id="1224606669200461217">Brave-ის მონაცემების თქვენს Brave ანგარიშში გამოყენებისა და შენახვისთვის განაახლეთ Brave</translation>
 <translation id="5824893331272123205">ეს პანელი ვერ ჩაიტვირთა, ხელახლა ცადეთ</translation>
-<translation id="4467664627714200493">მოგესალმებათ Brave Origin!</translation>
+<translation id="1125671961408630460">მოგესალმებათ Socket!</translation>
 <translation id="4026807082142463673">ჩართავს დამატებით ფუნქციებს Brave-ის ყველაზე ძლიერი დაცვის უზრუნველსაყოფად</translation>
 <translation id="5871205389137001634">დააწკაპუნეთ სურათების ძიებიდან გასასვლელად</translation>
 <translation id="8054200348483755053">Brave-მა აღმოაჩინა, რომ შემდეგი ერთეულები შეიცავს მავნე პროგრამას:</translation>
@@ -495,7 +495,7 @@
 <translation id="6388799252195623474">დახმარება მჭირდება</translation>
 <translation id="7920857181125123335">გასაგრძელებლად შედით Brave-ში ანგარიშით <ph name="EMAIL"/>. ამგვარად თქვენს ხელთ იქნება თქვენი ორგანიზაციის დებულებები.</translation>
 <translation id="3256100650978957522">Brave-ის ლოგო კომპიუტერის ეკრანზე.</translation>
-<translation id="5880764554173582719">Brave Origin არის ვებ ბრაუზერი, რომელიც ვებგვერდებს და აპლიკაციებს ელვისებური სისწრაფით ხსნის. ის არის სწრაფი, სტაბილური და გამოსაყენებლად მარტივი. დაათვალიერეთ ვები უფრო უსაფრთხოდ Brave Origin-ში ჩაშენებული საზიანო პროგრამული უზრუნველყოფისა და თაღლითობისგან დაცვის საშუალებით.</translation>
+<translation id="7527968786016866645">Socket არის ვებ ბრაუზერი, რომელიც ვებგვერდებს და აპლიკაციებს ელვისებური სისწრაფით ხსნის. ის არის სწრაფი, სტაბილური და გამოსაყენებლად მარტივი. დაათვალიერეთ ვები უფრო უსაფრთხოდ Socket-ში ჩაშენებული საზიანო პროგრამული უზრუნველყოფისა და თაღლითობისგან დაცვის საშუალებით.</translation>
 <translation id="4091049150278654573">დაადასტურეთ ვინაობა, რომ თქვენს Brave ანგარიშში გამოიყენოთ და შეინახოთ Brave-ის მონაცემები</translation>
 <translation id="2532326772258858491">Brave უფრო სწრაფად, ხოლო ფუნქციები, რომლებიც JavaScript-ს იყენებს, დანიშნულებისამებრ იმუშავებს</translation>
 <translation id="6436260184216827876">სურათების ძიება მიუწვდომელია. ცადეთ მოგვიანებით.</translation>
@@ -543,7 +543,7 @@
 <translation id="6831043979455480757">თარგმნა</translation>
 <translation id="8211837073776713955">Brave გაცნობებთ, თუ თქვენს პაროლებს ვინმე გატეხავს</translation>
 <translation id="684888714667046800">ინტერნეტთან დაკავშირება ვერ ხერხდება. თუ ქსელის დაცვას იყენებთ, დარწმუნდით, რომ <ph name="PRODUCT_EXE_NAME"/> დაშვებულთა სიაშია.</translation>
-<translation id="8237613041998823669">Brave Origin — <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket — <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">შეეხეთ გასაგრძელებლად</translation>
 <translation id="6862030660799253820">სურათების ძიების მეშვეობით ამ სურათის ძიება</translation>
 <translation id="3028928628792374067">Brave-მა აღმოაჩინა, რომ „<ph name="EXTENSION_NAME"/>“ შეიცავს მავნე პროგრამას</translation>
@@ -611,7 +611,7 @@ Brave ვერ შეძლებს თქვენი პარამეტ�
 <translation id="284799389314308801">1. დააწკაპუნეთ <ph name="BUTTON_LABEL"/>-ზე ქვემოთ
 2. დააწკაპუნეთ <ph name="BUTTON_2"/>ზე Windows-ის პარამეტრებში
 3. დააწკაპუნეთ <ph name="BUTTON_3"/>-ზე Windows-ის შეტყობინებაში, რომ ჩაამაგროთ Brave ამოცანათა ზოლში სწრაფი წვდომისთვის</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> — Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> — Socket Dev</translation>
 <translation id="7450541714075000668">ტექსტი დაკოპირდა</translation>
 <translation id="2034072705932785495">Brave საჭიროებს თქვენს კამერაზე წვდომის ნებართვას ამ საიტისთვის</translation>
 <translation id="7129342855140808694">თქვენი მიკროფონი რომ გამოიყენოთ, გახსენით <ph name="BEGIN_LINK"/>სისტემის პარამეტრები<ph name="END_LINK"/> და მიანიჭეთ Brave-ს წვდომა</translation>
@@ -642,7 +642,7 @@ Brave ვერ შეძლებს თქვენი პარამეტ�
 <translation id="8543787950557226450">ნაგულისხმევ Brave-ზე გადაყენება</translation>
 <translation id="4976450819672499783">დააყენეთ Brave ნაგულისხმევ ბრაუზერად და ჩაამაგრეთ ის ამოცანათა ზოლში</translation>
 <translation id="1978509466033734608">ააჩქარეთ Brave-ის მუშაობა</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> — Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> — Socket Canary</translation>
 <translation id="2684504034454188774">გაურთულეთ თქვენ მიერ მონახულებული საიტების შესახებ ინფორმაციის ნახვა მათ, ვისაც წვდომა აქვს თქვენს ინტერნეტ-ტრაფიკზე. Brave იყენებს უსაფრთო კავშირს საიტის IP მისამართის საპოვნელად DNS-ში (დომენური სახელების სისტემა).</translation>
 <translation id="7810005234485217901">შეგიძლიათ, ჩაამაგროთ სურათების ძიება მასზე მარტივად წვდომისთვის</translation>
 <translation id="1652855885539187849">Brave პროფილი ამ ანგარიშით უკვე არსებობს ამ მოწყობილობაზე</translation>
@@ -669,7 +669,7 @@ Brave ვერ შეძლებს თქვენი პარამეტ�
 <translation id="6175141682081019059">Brave-ის აპების ფონურ რეჟიმში მუშაობის გათიშვა</translation>
 <translation id="80790299200510644">სურათების ძიება</translation>
 <translation id="8086881907087796310">ინსტალაცია ვერ მოხერხდა, რადგან თქვენი კომპიუტერი არ აკმაყოფილებს მინიმალურ მოთხოვნებს აპარატურის კუთხით.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> — Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> — Socket for Testing</translation>
 <translation id="2061155704815580583">Brave საჭიროებს მდებარეობაზე წვდომის ნებართვას ამ საიტისთვის</translation>
 <translation id="3576319845915562805">შემდეგ ჯერზე, როცა გახსნით Brave-ს თქვენს <ph name="DEVICE_TYPE"/>-ში, დაინახავთ მოთხოვნას ფასისთვის თვალყურის დევნების გაფრთხილებების ჩართვის შესახებ.</translation>
 <translation id="3728025339793417202">მიიღეთ გაფრთხილებები ფასის დაწევის შესახებ იმ ერთეულებზე, რომლებიც გაინტერესებთ, Brave აპის მეშვეობით თქვენს ტელეფონში</translation>
@@ -780,8 +780,8 @@ Brave ვერ შეძლებს თქვენი პარამეტ�
 <translation id="9148058034647219655">გასვლა</translation>
 <translation id="2792073155252170448">გააგრძელეთ იქიდან, სადაც გაჩერდით: Brave-ს შეუძლია თქვენი ჩანართების აღდგენა ყოველი გადატვირთვის შემდეგ. ამის ჩასართავად გადადით აქ:</translation>
 <translation id="2444257125841652328">თქვენი სისტემის ადმინისტრატორმა მოახდინა Brave-ის კონფიგურაცია იმგვარად, რომ <ph name="TARGET_URL_HOSTNAME"/>-ზე წვდომისთვის საჭიროა ალტერნატიული ბრაუზერის გახსნა.</translation>
-<translation id="7902365066753170041">ხელახლა გაშვება &amp;Brave-ის გასაახლებლად</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">ხელახლა გაშვება &amp;Socket-ის გასაახლებლად</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">მოირგეთ Brave</translation>
 <translation id="7977787072794666032">Brave-მა შეიძლება არასწორად იმუშაოს, რადგან ის აღარ არის მხარდაჭერილი Windows XP-სა და Windows Vista-ზე</translation>
 <translation id="8462937515915443472">მიიღეთ Brave-ის უსაფრთხოების საუკეთესო ფუნქციები გზაში Brave-ის მეშვეობით.</translation>

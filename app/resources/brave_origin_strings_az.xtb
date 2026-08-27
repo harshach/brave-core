@@ -113,7 +113,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="2170098639895543546">Səhifədə istədiyinizi seçin</translation>
 <translation id="142389341645668510">Brave'u fərdiləşdirin</translation>
 <translation id="2174917724755363426">Quraşdırma tamamlanmayıb. Ləğv etmək istədiyinizə əminsiniz?</translation>
-<translation id="8841019650931243995">Brave Origin - Şəbəkəyə Giriş - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - Şəbəkəyə Giriş - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Yeniləmə yoxlaması xətası: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Hesabı Brave-dan silin</translation>
 <translation id="4022045673362955204">İstənilən vaxt, istənilən yerdə ən yaxşı alış-veriş alətlərindən yararlanmaq üçün Brave tətbiqindən istifadə edin</translation>
@@ -148,7 +148,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="2542968102051442371">Şəkil Axtarışı ilə mətn seçin</translation>
 <translation id="70183448213529602">Brave mövcud parolları əvəz etmək istəyir. İcazə vermək üçün Windows parolunu yazın.</translation>
 <translation id="7798069806040634998">Faylları endirmək üçün Brave yaddaşa giriş tələb edir</translation>
-<translation id="2351700486811407088">Brave Origin Yardım</translation>
+<translation id="9082785458664620820">Socket Yardım</translation>
 <translation id="2575822587468774919">Şəkil Axtarışı ilə axtarmaq üçün istədiyinizi seçin</translation>
 <translation id="3830890663494219270">Parolları və s. datanı bütün cihazlarınızda əldə etmək üçün Brave-a daxil olun</translation>
 <translation id="6908148552215338695">Brave-u endirmək və Brave Hesabınıza daxil olmaq üçün QR kodunu telefonunuzla skan edin.</translation>
@@ -178,7 +178,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="777113543093865885">Brave'dan silin...</translation>
 <translation id="5265419033369521352">Daxil olduğunuzda Brave'da sizi qoruyur və digər Brave tətbiqlərində təhlükəsizliyinizi artırmaq üçün istifadə edilə bilər</translation>
 <translation id="2885378588091291677">Tapşırıq Meneceri</translation>
-<translation id="2176825726964012531">Brave haqqında</translation>
+<translation id="3984800435132982628">Socket haqqında</translation>
 <translation id="2915996080311180594">Sonra yenidən başladın</translation>
 <translation id="2481553173340651149">Data parol ifadəsi ilə şifrələnib. Brave Hesabında Brave datasını istifadə etmək və yadda saxlamaq üçün onu daxil edin.</translation>
 <translation id="2945997411976714835">Quraşdırma xətası: Quraşdırıcı prosesini başlatmaq mümkün olmadı.</translation>
@@ -262,7 +262,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="3846683726093018685">**İcmallaşdır:** Skrinşotdakı kontentin əsas mövzusunu və məqsədini bir cümlə ilə və 30 sözdən az olmaqla təsvir et.
 
           **Suallar təklif et:** Skrinşotu daha yaxşı anlamaq üçün istifadəçinin verə biləcəyi 3-5 düşündürücü sualdan ibarət bəndli siyahı yarat. Bu sualların ən azı biri xüsusi olaraq vizual obyektə, onun dizaynına və ya yerləşməsinə aid olmalıdır.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">Dil seçicisi</translation>
 <translation id="6315734375101223238">Brave'u fərdiləşdirin və nəzarət edin. Buna baxmalısınız - ətraflı məlumat üçün klikləyin.</translation>
 <translation id="7130675370997202556">Brave'u açmaq üçün adın üzərinə klikləyin və baxışa başlayın.</translation>
@@ -276,7 +276,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="4194619960643453552">Brave-un təhlükəsizlik təminatı haqqında</translation>
 <translation id="3967822245660637423">Endirmə tamamdır</translation>
 <translation id="1486377520191913768">Ünvan zolağına və ya axtarış xanasına yazdığınız zaman Brave təkliflər təqdim etmək üçün yazdıqlarınızı təşkilatın axtarış, Sİ və agent alətlərinə göndərir.</translation>
-<translation id="1311808042904310985">Sınaq üçün Brave haqqında</translation>
+<translation id="3813099290530551762">Sınaq üçün Socket haqqında</translation>
 <translation id="1152920704813762236">ChromeOS haqqında</translation>
 <translation id="8282895427217902177">Sayta daxil olduqda Brave IP ünvanını gizlədən məxfilik mərkəzi vasitəsilə URL-in gizli hissəsini <ph name="BEGIN_LINK"/>Brave güvənli baxışa<ph name="END_LINK"/> göndərir. Sayt şübhəli nəsə edərsə, tam URL-lər və səhifə kontentinin bəzi hissələri də göndərilir.</translation>
 <translation id="4016217212818346953">Parol Meneceri ilə təhlükəsizliyinizi təmin edin</translation>
@@ -295,7 +295,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="10925962326134232">Brauzerə yeni görünüş tətbiq etmək üçün Brave-u fərdiləşdirin</translation>
 <translation id="6596295505984504022">Brave-u fərdiləşdirin</translation>
 <translation id="4148957013307229264">Quraşdırılır...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - Şəbəkəyə Giriş - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - Şəbəkəyə Giriş - Socket</translation>
 <translation id="2871190378186459992">Brave üçün möhtəşəm tətbiqlər, oyunlar, artırmalar və temalar kəşf edin.</translation>
 <translation id="462105622535258178">Bu artırmanı və digərlərini bütün kompüterlərinizdə əldə etmək üçün Brave-a daxil olun</translation>
 <translation id="6670140629169983459">Onlayn təhlükəsizliyinizi valideyninizin seçimləri ilə qorumaq üçün artıq <ph name="USER_EMAIL_ADDRESS"/> kimi daxil olduğunuz Brave profilinə keçin</translation>
@@ -327,7 +327,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="4493028449971051158">Başlatma xətası: quraşdırıcını administrator kimi işə salın.</translation>
 <translation id="4501471624619070934">Bu ölkədə giriş məhdudlaşdırıldığı üçün quraşdırma alınmadı.</translation>
 <translation id="8594994021633965927">Bu artırma datanın toplanma və istifadə qaydası kimi məxfilik təcrübələrini dərc etməyib. Brave onu silməyinizi tövsiyə edir.</translation>
-<translation id="770557926599450702">Brave Origin'a xoş gəlmisiniz; yeni brauzer pəncərəsi açılıb</translation>
+<translation id="3788134970312783571">Socket'a xoş gəlmisiniz; yeni brauzer pəncərəsi açılıb</translation>
 <translation id="137732229629632648">Brave ətrafın xəritəsini çəkmək və əllərinizi izləmək üçün icazə tələb edir</translation>
 <translation id="5036046007335188949">Artıq başqa Brave profilində <ph name="USER_EMAIL_ADDRESS"/> kimi daxil olmusunuz</translation>
 <translation id="1878185978731985193">Brave səhifələri əvvəlcədən yükləyərək baxış və axtarışı sürətləndirir. <ph name="BEGIN_LINK"/>Səhifələri əvvəlcədən yükləmək haqqında ətraflı məlumat<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="8669339108356170796">Güvənli Baxış deaktiv olduğu və bu fayl doğrulanmadığı üçün Brave endirməni blokladı</translation>
 <translation id="7583343841997441047">Telefonda Brave ilə Brave Linzanı sınayın</translation>
 <translation id="4594305310729380060">Bu cihazda Parol Menecerinə</translation>
-<translation id="7776200949522126045">Brave Origin Tətbiqləri</translation>
+<translation id="1662388968719244110">Socket Tətbiqləri</translation>
 <translation id="4598116752460667024">Siyahıdan istənilən prosesi axtarın.</translation>
 <translation id="4970880042055371251">ChromeOS versiyası</translation>
 <translation id="2182657378556811785">Güncəllənmək üzrədir. Güncəlləşməni tamamlamaq üçün Brave'u yenidən işə salın.</translation>
@@ -353,8 +353,8 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="844451748565342664">Brave-da Gemini açıqdırsa, yeni tablar yaradılarkən yan panel açıq qalır</translation>
 <translation id="215320507915280336">Bu, Brave axtarışda istifadə edilən eyni orfoqrafiya yoxlayandan istifadə edir. Brauzerdə yazdığınız mətn Brave'a göndərilir. Bunu istənilən vaxt ayarlardan dəyişə bilərsiniz.</translation>
 <translation id="2899369907387169108">Hesab olmadan Brave istifadə edin</translation>
-<translation id="1833893255023048385">mDNS trafikinə imkan vermək üçün Brave Origin üçün daxil olan qayda.</translation>
-<translation id="711601904575862069">&amp;Brave'u Güncəlləmək üçün yenidən başladın</translation>
+<translation id="6972301482162050771">mDNS trafikinə imkan vermək üçün Socket üçün daxil olan qayda.</translation>
+<translation id="2428387668457441558">&amp;Socket'u Güncəlləmək üçün yenidən başladın</translation>
 <translation id="4918086044614829423">Qəbul edin</translation>
 <translation id="4918844574251943176">Şəkil kopyalandı</translation>
 <translation id="8797356639448065696">Brave arxa fon rejimindədir.</translation>
@@ -394,7 +394,7 @@ Bəzi funksiyalar əlçatmaz ola bilər ki, nəticədə tərcihlərə edilən d�
 <translation id="5267531627648004734">Brave'dan silin</translation>
 <translation id="4620757336635063467">Performansı azaldır, lakin Brave-u hücumlara qarşı davamlı edir</translation>
 <translation id="239760341987199724">Brave'u defolt brauzer təyin edin</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave brauzeri yavaşladan tabı durdurmağı tövsiyə edir}other{Brave brauzeri yavaşladan tabları durdurmağı tövsiyə edir}}</translation>
 <translation id="894936507076470937">Brave düzgün işləməyə bilər, çünki daha Linux sistemi üzərində dəstəklənmir</translation>
 <translation id="2596557398669145729">Brave bu endirməni blokladı. Çünki fayl şəxsi və sosial şəbəkə hesablarını zədələyə bilər</translation>
@@ -427,7 +427,7 @@ Bu səhifə gözlənildiyi kimi işləmirsə, optimallaşdırmaya icazə verməy
 <translation id="95980832839683236">Brave-un V8 mühərriki ilə saytları sürətləndirir, lakin Brave-un hücumlara qarşı müqavimətini bir qədər azaldır. Bu ayar deaktivdir.</translation>
 <translation id="1224606669200461217">Brave Hesabınızda Brave datasından istifadə etmək və datanı yadda saxlamaq üçün Brave-u güncəlləyin</translation>
 <translation id="5824893331272123205">Bu paneli yükləmək mümkün olmadı, yenidən cəhd edin</translation>
-<translation id="4467664627714200493">Brave Origin'a xoş gəlmisiniz</translation>
+<translation id="1125671961408630460">Socket'a xoş gəlmisiniz</translation>
 <translation id="4026807082142463673">Brave-un ən güclü qorumalarını təmin etmək üçün əlavə funksiyaları aktiv edir</translation>
 <translation id="5871205389137001634">Şəkil axtarışından çıxmaq üçün klikləyin</translation>
 <translation id="8054200348483755053">Brave bu elementlərdə zərərli proqram olduğunu aşkar edib:</translation>
@@ -493,7 +493,7 @@ Bu səhifə gözlənildiyi kimi işləmirsə, optimallaşdırmaya icazə verməy
 <translation id="6388799252195623474">bununla bağlı mənə kömək edin</translation>
 <translation id="7920857181125123335">Davam etmək üçün Brave-a <ph name="EMAIL"/> kimi daxil olun. Bu, təşkilat siyasətlərinin tətbiq edilməsini təmin edir.</translation>
 <translation id="3256100650978957522">Kompüter ekranında Brave loqosu.</translation>
-<translation id="5880764554173582719">Brave Origin veb səhifələri və tətbiqləri ildırım sürəti ilə işlədən veb brauzerdir. Brave Origin sürətlidir, stabildir və istifadəyə rahatdır. Brave Origin ilə internetdən fırıldaqlardan və viruslardan uzaq şəkildə istifadə edin.</translation>
+<translation id="7527968786016866645">Socket veb səhifələri və tətbiqləri ildırım sürəti ilə işlədən veb brauzerdir. Socket sürətlidir, stabildir və istifadəyə rahatdır. Socket ilə internetdən fırıldaqlardan və viruslardan uzaq şəkildə istifadə edin.</translation>
 <translation id="4091049150278654573">Brave Hesabında Brave datasını hər zaman istifadə edə və yadda saxlaya biləcəyinizə əmin olmaq üçün kimliyinizi doğrulayın</translation>
 <translation id="2532326772258858491">Brave daha sürətli işləyir və JavaScript istifadə edən funksiyalar nəzərdə tutulan kimi işləməlidir (tövsiyə olunur)</translation>
 <translation id="6436260184216827876">Şəkil Axtarışı əlçatan deyil. Sonra cəhd edin.</translation>
@@ -541,7 +541,7 @@ Bəzi funksiyalar əlçatmaz ola bilər. Xüsusi profil direktoriyası göstəri
 <translation id="6831043979455480757">Tərcümə et</translation>
 <translation id="8211837073776713955">Brave parollarınızın oğurlanıb-oğurlanmadığı haqqında Sizə məlumat verir</translation>
 <translation id="684888714667046800">İnternetə qoşulmaq olmur. Qoruyucu divar istifadə edirsinizsə, <ph name="PRODUCT_EXE_NAME"/> icazə verilənlər siyahısında olmalıdır.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Davam etmək üçün tab</translation>
 <translation id="6862030660799253820">Bu şəkli Şəkil Axtarışı ilə axtarın</translation>
 <translation id="3028928628792374067">Brave "<ph name="EXTENSION_NAME"/>" artırmasında zərərli proqram olduğunu aşkar edib</translation>
@@ -607,7 +607,7 @@ Bəzilərini silənə qədər yeni əlfəcinləri hesabınızda yadda saxlamaq o
 <translation id="284799389314308801">1. Aşağıdakı <ph name="BUTTON_LABEL"/> düyməsinə klikləyin
 2. Windows ayarlarında <ph name="BUTTON_2"/> düyməsinə klikləyin
 3. Sürətli giriş üçün Brave-u tapşırıqlar panelinə bərkitmək məqsədilə Windows bildirişində <ph name="BUTTON_3"/> düyməsinə klikləyin</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">Mətn kopyalandı</translation>
 <translation id="2034072705932785495">Brave bu sayt üçün kameraya giriş tələb edir</translation>
 <translation id="7129342855140808694">Mikrofondan istifadə etmək üçün Brave-a <ph name="BEGIN_LINK"/>sistem ayarlarında<ph name="END_LINK"/> giriş imkanı verin</translation>
@@ -638,7 +638,7 @@ Bəzilərini silənə qədər yeni əlfəcinləri hesabınızda yadda saxlamaq o
 <translation id="8543787950557226450">Defolt Brave-a sıfırlayın</translation>
 <translation id="4976450819672499783">Brave-u defolt kimi ayarlayın və işləmə panelinə bərkidin</translation>
 <translation id="1978509466033734608">Brave'u sürətli edin</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">İnternet trafikinizə girişi olanların daxil olduğunuz saytları görməsini çətinləşdirin. Brave saytın IP ünvanını DNS-də (Domen adı sistemi) axtarmaq üçün güvənli bağlantıdan istifadə edir.</translation>
 <translation id="7810005234485217901">Asan giriş üçün Şəkil Axtarışını bərkidə bilərsiniz</translation>
 <translation id="1652855885539187849">Bu hesab ilə Brave profili artıq bu cihazda mövcuddur</translation>
@@ -665,7 +665,7 @@ Bəzilərini silənə qədər yeni əlfəcinləri hesabınızda yadda saxlamaq o
 <translation id="6175141682081019059">Tətbiqlər üçün arxa fonda işləyən Brave-u deaktiv edin</translation>
 <translation id="80790299200510644">Şəkil axtarışı</translation>
 <translation id="8086881907087796310">Kompüteriniz minimum avadanlıq tələblərinə cavab vermədiyi üçün quraşdırma alınmadı.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin Sınaq üçün Brave Origin</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket Sınaq üçün Socket</translation>
 <translation id="2061155704815580583">Brave bu sayt üçün məkan icazəsi tələb edir</translation>
 <translation id="3576319845915562805">Növbəti dəfə <ph name="DEVICE_TYPE"/> cihazında Brave-u açdığınız zaman qiymət izləmə xəbərdarlıqlarını aktivləşdirmək üçün göstəriş görəcəksiniz.</translation>
 <translation id="3728025339793417202">Telefonunuzdakı Brave tətbiqi ilə maraqlandığınız məhsullar üzrə qiymət endirimi xəbərdarlıqları əldə edin</translation>
@@ -776,8 +776,8 @@ Bəzilərini silənə qədər yeni əlfəcinləri hesabınızda yadda saxlamaq o
 <translation id="9148058034647219655">Çıxış</translation>
 <translation id="2792073155252170448">Qaldığınız yerdən davam edin: Brave hər dəfə yenidən başladıldıqda tablarınızı bərpa edə bilər. Bunu aktiv etmək üçün keçin:</translation>
 <translation id="2444257125841652328">Sistem administratoru Brave'u <ph name="TARGET_URL_HOSTNAME"/> ünvanına daxil olmaq məqsədilə alternativ brauzer açmaq üçün konfiqurasiya edib.</translation>
-<translation id="7902365066753170041">&amp;Brave'u güncəlləmək üçün yenidən başladın</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">&amp;Socket'u güncəlləmək üçün yenidən başladın</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Brave-u fərdiləşdirin</translation>
 <translation id="7977787072794666032">Brave düzgün işləməyə bilər, çünki daha Windows XP və ya Windows Vista'da dəstəklənmir</translation>
 <translation id="8462937515915443472">Brave vasitəsilə Brave-un ən yaxşı təhlükəsizlik funksiyalarını istənilən vaxt, istənilən yerdə əldə edin.</translation>

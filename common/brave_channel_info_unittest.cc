@@ -3,6 +3,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <string>
+
 #include "base/files/file_path.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
@@ -45,51 +47,57 @@ TEST(BraveChannelInfoTest, DefaultUserDataDirectoryAndChannelTest) {
   base::FilePath path;
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  constexpr char kProduct[] = "Brave-Origin";
+  constexpr char kProduct[] = "Brave-Browser";
+  constexpr bool kSharesStableProfile = true;
 #else
   constexpr char kProduct[] = "Brave-Browser";
+  constexpr bool kSharesStableProfile = false;
 #endif
+  const auto expected_product = [&](const char* channel_suffix) {
+    return std::string(kProduct) +
+           (kSharesStableProfile ? std::string() : channel_suffix);
+  };
 
 #if defined(OFFICIAL_BUILD)
   auto env = base::Environment::Create();
 
   env->SetVar("CHROME_VERSION_EXTRA", LINUX_CHANNEL_STABLE);
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(kProduct, path.BaseName().AsUTF8Unsafe());
+  EXPECT_EQ(expected_product(""), path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::STABLE, chrome::GetChannel());
   EXPECT_EQ(BRAVE_LINUX_CHANNEL_STABLE,
             chrome::GetChannelName(chrome::WithExtendedStable(false)));
 
   env->SetVar("CHROME_VERSION_EXTRA", LINUX_CHANNEL_BETA);
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(std::string(kProduct) + "-Beta", path.BaseName().AsUTF8Unsafe());
+  EXPECT_EQ(expected_product("-Beta"), path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::BETA, chrome::GetChannel());
   EXPECT_EQ(LINUX_CHANNEL_BETA,
             chrome::GetChannelName(chrome::WithExtendedStable(false)));
 
   env->SetVar("CHROME_VERSION_EXTRA", BRAVE_LINUX_CHANNEL_DEV);
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(std::string(kProduct) + "-Dev", path.BaseName().AsUTF8Unsafe());
+  EXPECT_EQ(expected_product("-Dev"), path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::DEV, chrome::GetChannel());
   EXPECT_EQ(BRAVE_LINUX_CHANNEL_DEV,
             chrome::GetChannelName(chrome::WithExtendedStable(false)));
 
   env->SetVar("CHROME_VERSION_EXTRA", LINUX_CHANNEL_DEV);
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(std::string(kProduct) + "-Dev", path.BaseName().AsUTF8Unsafe());
+  EXPECT_EQ(expected_product("-Dev"), path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::DEV, chrome::GetChannel());
   EXPECT_EQ(BRAVE_LINUX_CHANNEL_DEV,
             chrome::GetChannelName(chrome::WithExtendedStable(false)));
 
   env->SetVar("CHROME_VERSION_EXTRA", BRAVE_LINUX_CHANNEL_NIGHTLY);
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(std::string(kProduct) + "-Nightly", path.BaseName().AsUTF8Unsafe());
+  EXPECT_EQ(expected_product("-Nightly"), path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::CANARY, chrome::GetChannel());
   EXPECT_EQ(BRAVE_LINUX_CHANNEL_NIGHTLY,
             chrome::GetChannelName(chrome::WithExtendedStable(false)));
 #else   // OFFICIAL_BUILD
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
-  EXPECT_EQ(std::string(kProduct) + "-Development",
+  EXPECT_EQ(expected_product("-Development"),
             path.BaseName().AsUTF8Unsafe());
   EXPECT_EQ(version_info::Channel::UNKNOWN, chrome::GetChannel());
   EXPECT_EQ(BRAVE_LINUX_CHANNEL_STABLE,

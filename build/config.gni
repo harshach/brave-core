@@ -166,8 +166,13 @@ if (is_win) {
     brave_product_dir_name_suffix = "-Development"
   }
 
-  brave_product_dir_name =
-      "BraveSoftware/Brave-$_product_brand$brave_product_dir_name_suffix"
+  if (is_brave_origin_branded) {
+    # Socket intentionally uses the existing Brave profile.
+    brave_product_dir_name = "BraveSoftware/Brave-Browser"
+  } else {
+    brave_product_dir_name =
+        "BraveSoftware/Brave-$_product_brand$brave_product_dir_name_suffix"
+  }
 
   if (base_sparkle_update_url == "") {
     base_sparkle_update_url =

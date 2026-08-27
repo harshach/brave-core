@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">Valitse mitä tahansa sivulta</translation>
 <translation id="142389341645668510">Yksilöi Braveia</translation>
 <translation id="2174917724755363426">Asennus ei ole valmis. Haluatko varmasti perua sen?</translation>
-<translation id="8841019650931243995">Brave Origin – Kirjautuminen verkkoon – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – Kirjautuminen verkkoon – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Virhe päivityksiä tarkistettaessa: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Poista tili Braveista</translation>
 <translation id="4022045673362955204">Lataa Brave-sovellus, niin voi hyödyntää parhaat ostostyökalut missä tahansa</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">Valitse tekstiä kuvahaulla</translation>
 <translation id="70183448213529602">Brave yrittää korvata nykyiset salasanat. Salli tämä kirjoittamalla Windows-salasanasi.</translation>
 <translation id="7798069806040634998">Brave tarvitsee tallennustilan käyttöoikeuden tiedostojen lataamiseen.</translation>
-<translation id="2351700486811407088">Brave Origin Helper</translation>
+<translation id="9082785458664620820">Socket Helper</translation>
 <translation id="2575822587468774919">Valitse, mitä haluat hakea kuvahaulla</translation>
 <translation id="3830890663494219270">Kirjaudu sisään Braveiin, niin voit käyttää salasanojasi ja muita tietoja kaikilla laitteillasi</translation>
 <translation id="6908148552215338695">Skannaa QR-koodi puhelimella, niin voit ladata Bravein ja kirjautua Brave-tilillesi.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">Poista Braveista…</translation>
 <translation id="5265419033369521352">Pitää sinut turvassa Braveissa ja voi parantaa suojaustasi muissa Brave-sovelluksissa, kun olet sisäänkirjautuneena</translation>
 <translation id="2885378588091291677">Tehtävänhallinta</translation>
-<translation id="2176825726964012531">Tietoja &amp;Braveista</translation>
+<translation id="3984800435132982628">Tietoja &amp;Socketista</translation>
 <translation id="2915996080311180594">Uudelleenkäynnistä myöhemmin</translation>
 <translation id="2481553173340651149">Datasi salataan tunnuslauseella. Lisää se, niin voit käyttää ja tallentaa Brave-dataa Brave-tililläsi.</translation>
 <translation id="2945997411976714835">Asennusvirhe: Asennusprosessin aloittaminen ei onnistunut.</translation>
@@ -262,7 +262,7 @@
 <translation id="3846683726093018685">**Tee yhteenveto:** Kuvaile kuvakaappauksen sisällön ensisijaista aihetta ja tarkoitusta yhdellä alle 30 sanan lauseella.
 
           **Ehdota kysymyksiä:** Luo ranskalaisilla viivoilla lista, jossa on 3–5 ajatuksia herättävää kysymystä kuvakaappauksen ymmärtämisen tueksi. Ainakin yhden kysymyksen tulee koskea nimenomaan visuaalista kohdetta, sen asettelua tai sijoittelua.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">Kielivalitsin</translation>
 <translation id="6315734375101223238">Yksilöi ja ylläpidä Braveia. Toimenpiteitä vaaditaan. Katso lisätiedot klikkaamalla.</translation>
 <translation id="7130675370997202556">Avaa Brave klikkaamalla nimeäsi ja aloita selaaminen.</translation>
@@ -276,7 +276,7 @@
 <translation id="4194619960643453552">Lue, miten Brave pitää sinut turvassa</translation>
 <translation id="3967822245660637423">Lataus on valmis</translation>
 <translation id="1486377520191913768">Kun kirjoitat osoitepalkkiin tai hakukenttään, Brave lähettää kirjoittamasi tekstin organisaatiosi haku-, tekoäly- ja agenttityökaluille, jotta saat ehdotuksia.</translation>
-<translation id="1311808042904310985">Tietoa &amp;Brave for Testingistä</translation>
+<translation id="3813099290530551762">Tietoa &amp;Socket for Testingistä</translation>
 <translation id="1152920704813762236">Tietoa Brave-käyttöjärjestelmästä</translation>
 <translation id="8282895427217902177">Kun käyt sivustolla, Brave lähettää osan URL-osoitteesta obfuskoituna <ph name="BEGIN_LINK"/>Braven selaussuojalle<ph name="END_LINK"/> yksityisyyspalvelimen kautta, jolloin IP-osoitteesi piilotetaan. Jos sivusto tekee jotakin epäilyttävää, koko URL-osoitteet ja osia sivun sisällöstä lähetetään.</translation>
 <translation id="4016217212818346953">Pysy turvassa Salasanojen avulla</translation>
@@ -295,7 +295,7 @@
 <translation id="10925962326134232">Tee Braveista näköisesi muokkaamalla selaimen tyyliä</translation>
 <translation id="6596295505984504022">M&amp;uokkaa Braveia</translation>
 <translation id="4148957013307229264">Asennetaan...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – Kirjautuminen verkkoon – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – Kirjautuminen verkkoon – Socket</translation>
 <translation id="2871190378186459992">Löydät hienoja sovelluksia, pelejä, laajennuksia ja teemoja Braveille.</translation>
 <translation id="462105622535258178">Kirjaudu sisään Braveiin, niin voit käyttää tätä laajennusta ja muita ominaisuuksia kaikilla tietokoneilla</translation>
 <translation id="6670140629169983459">Jos haluat käyttää vanhempasi valitsemia asetuksia, vaihda Brave-profiiliin, jolla olet jo kirjautuneena (<ph name="USER_EMAIL_ADDRESS"/>)</translation>
@@ -327,7 +327,7 @@
 <translation id="4493028449971051158">Käynnistysvirhe: Suorita asennusohjelma järjestelmänvalvojana.</translation>
 <translation id="4501471624619070934">Asentaminen epäonnistui, koska pääsyä on rajoitettu tässä maassa.</translation>
 <translation id="8594994021633965927">Tästä laajennuksesta ei ole julkaistu tietosuojakäytäntöjä koskien esimerkiksi datan keräämistä ja käyttöä. Brave suosittelee sen poistamista.</translation>
-<translation id="770557926599450702">Tervetuloa Brave Originiin, uusi selainikkuna avattu</translation>
+<translation id="3788134970312783571">Tervetuloa Socketiin, uusi selainikkuna avattu</translation>
 <translation id="137732229629632648">Brave tarvitsee luvan ympäristösi kartoittamiseen ja käsiesi liikkeiden seuraamiseen</translation>
 <translation id="5036046007335188949">Olet jo kirjautunut sisään tilillä <ph name="USER_EMAIL_ADDRESS"/> toisessa Brave-profiilissa</translation>
 <translation id="1878185978731985193">Brave esilataa sivuja, mikä nopeuttaa selaamista ja hakemista. <ph name="BEGIN_LINK"/>Lue lisää sivujen esilatauksesta<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@
 <translation id="8669339108356170796">Brave on estänyt tämän latauksen, koska laitoit Selaussuojan pois päältä eikä tiedostoa voi vahvistaa</translation>
 <translation id="7583343841997441047">Kokeile Google Lensia Bravein avulla puhelimella</translation>
 <translation id="4594305310729380060">Braven Salasanojen ylläpitoon tällä laitteella</translation>
-<translation id="7776200949522126045">Brave Origin-sovellukset</translation>
+<translation id="1662388968719244110">Socket-sovellukset</translation>
 <translation id="4598116752460667024">Hae mitä tahansa prosessia listalta.</translation>
 <translation id="4970880042055371251">Brave-käyttöjärjestelmän versio</translation>
 <translation id="2182657378556811785">Melkein valmista. Viimeistele päivitys käynnistämällä Brave uudelleen.</translation>
@@ -353,8 +353,8 @@
 <translation id="844451748565342664">Jos Gemini in Brave on auki, sivupaneeli pysyy auki, kun luot uusia välilehtiä</translation>
 <translation id="215320507915280336">Tämä käyttää samaa oikeinkirjoituksen tarkistusta kuin Brave Haku. Selaimeen kirjoittamasi teksti lähetetään Bravelle. Voit vaihtaa valintasi milloin tahansa asetuksista.</translation>
 <translation id="2899369907387169108">Käytä Braveia ilman tiliä</translation>
-<translation id="1833893255023048385">Brave Originin saapuvien yhteyksien sääntö, joka sallii mDNS-liikenteen.</translation>
-<translation id="711601904575862069">Päivitä &amp;Brave käynnistämällä se uudelleen</translation>
+<translation id="6972301482162050771">Socketin saapuvien yhteyksien sääntö, joka sallii mDNS-liikenteen.</translation>
+<translation id="2428387668457441558">Päivitä &amp;Socket käynnistämällä se uudelleen</translation>
 <translation id="4918086044614829423">Hyväksy</translation>
 <translation id="4918844574251943176">Kuva kopioitu</translation>
 <translation id="8797356639448065696">Brave on käynnissä taustalla</translation>
@@ -394,7 +394,7 @@
 <translation id="5267531627648004734">Poista Braveista</translation>
 <translation id="4620757336635063467">Rajoittaa suorituskykyä, mutta tekee Braveista suojatumman hyökkäyksiä vastaan</translation>
 <translation id="239760341987199724">Aseta Brave oletusselaimeksi</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave suosittelee selainta hidastavan välilehden keskeyttämistä}other{Brave suosittelee selainta hidastavien välilehtien keskeyttämistä}}</translation>
 <translation id="894936507076470937">Brave ei ehkä toimi oikein, koska sen käyttöä tällä Linux-jakelulla ei enää tueta.</translation>
 <translation id="2596557398669145729">Brave on estänyt tämän latauksen, koska tiedosto voi vahingoittaa some‐ ja henkilökohtaisia tilejäsi</translation>
@@ -427,7 +427,7 @@ Jos tämä sivu ei toimi odotetulla tavalla, kokeile sallia optimointi.</transla
 <translation id="95980832839683236">Nopeuttaa sivustoja Bravein V8-moottorilla, mutta heikentää Bravein suojaa hyökkäyksiä vastaan. Tämä asetus on poissa päältä.</translation>
 <translation id="1224606669200461217">Brave-datan käyttö ja tallennus Brave-tilillä edellyttää Bravein päivittämistä</translation>
 <translation id="5824893331272123205">Paneelin lataaminen epäonnistui, yritä uudelleen</translation>
-<translation id="4467664627714200493">Tervetuloa Brave Originiin</translation>
+<translation id="1125671961408630460">Tervetuloa Socketiin</translation>
 <translation id="4026807082142463673">Laittaa päälle lisäominaisuuksia, jotka tarjoavat Bravein tehokkaimman suojauksen</translation>
 <translation id="5871205389137001634">Poistu kuvahausta klikkaamalla</translation>
 <translation id="8054200348483755053">Brave havaitsi, että näissä kohteissa on haittaohjelmia:</translation>
@@ -493,7 +493,7 @@ Jos tämä sivu ei toimi odotetulla tavalla, kokeile sallia optimointi.</transla
 <translation id="6388799252195623474">näytä ohjeet</translation>
 <translation id="7920857181125123335">Jatka kirjautumalla Braveiin käyttäjänä <ph name="EMAIL"/>. Näin varmistat, että organisaatiosi käytännöt ovat käytössä.</translation>
 <translation id="3256100650978957522">Brave-logo tietokoneen näytöllä.</translation>
-<translation id="5880764554173582719">Brave Origin on selain, jolla verkkosivut ja sovellukset toimivat salamannopeasti. Se on nopea, vakaa ja helppokäyttöinen. Brave Originin sisäänrakennettu haittaohjelma- ja tietojenkalastelusuojaus tekevät verkkoselauksesta turvallisempaa.</translation>
+<translation id="7527968786016866645">Socket on selain, jolla verkkosivut ja sovellukset toimivat salamannopeasti. Se on nopea, vakaa ja helppokäyttöinen. Socketin sisäänrakennettu haittaohjelma- ja tietojenkalastelusuojaus tekevät verkkoselauksesta turvallisempaa.</translation>
 <translation id="4091049150278654573">Vahvista henkilöllisyytesi, jotta voit aina käyttää ja tallentaa Brave-dataa Brave-tililläsi</translation>
 <translation id="2532326772258858491">Brave toimii nopeammin ja JavaScriptiä käyttävien ominaisuuksien pitäisi toimia suunnitellusti</translation>
 <translation id="6436260184216827876">Kuvahaku ei ole käytettävissä. Yritä myöhemmin uudelleen.</translation>
@@ -541,7 +541,7 @@ Kaikki ominaisuudet eivät ehkä ole käytettävissä. Määritä jokin muu prof
 <translation id="6831043979455480757">Käännä</translation>
 <translation id="8211837073776713955">Brave ilmoittaa sinulle, jos salasanasi ovat vaarantuneet</translation>
 <translation id="684888714667046800">Internetyhteyttä ei voi muodostaa. Jos käytät palomuuria, varmista, että <ph name="PRODUCT_EXE_NAME"/> kuuluu sallittuihin.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Jatka painamalla välilehteä</translation>
 <translation id="6862030660799253820">Hae tätä kuvaa kuvahaulla</translation>
 <translation id="3028928628792374067">Brave havaitsi, että "<ph name="EXTENSION_NAME"/>" sisältää haittaohjelmia</translation>
@@ -609,7 +609,7 @@ Brave ei voi palauttaa asetuksiasi.</translation>
 <translation id="284799389314308801">1. Klikkaa <ph name="BUTTON_LABEL"/> alta
 2. Klikkaa Windowsin asetuksista <ph name="BUTTON_2"/>
 3. Klikkaa Windowsin ilmoituksessa olevaa <ph name="BUTTON_3"/>, niin voit kiinnittää Bravein tehtäväpalkkiin nopeaa käyttöä varten</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Socket Dev</translation>
 <translation id="7450541714075000668">Teksti kopioitu</translation>
 <translation id="2034072705932785495">Brave tarvitsee oikeuden käyttää kameraasi tällä sivustolla.</translation>
 <translation id="7129342855140808694">Jos haluat käyttää mikrofonia, anna Braveille pääsyoikeus <ph name="BEGIN_LINK"/>järjestelmäasetuksista<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave ei voi palauttaa asetuksiasi.</translation>
 <translation id="8543787950557226450">Palauta Bravein oletusversio</translation>
 <translation id="4976450819672499783">Valitse Brave oletukseksi ja kiinnitä se tehtäväpalkkiin</translation>
 <translation id="1978509466033734608">Bravein nopeuttaminen</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Pyri estämään avaamiesi sivustojen näkyminen henkilöille, joilla on pääsy internetliikenteeseesi. Brave käyttää turvallista yhteyttä sivuston IP-osoitteen etsimiseen DNS:stä (Domain Name System)</translation>
 <translation id="7810005234485217901">Kiinnitä kuvahaku, niin löydät sen helposti</translation>
 <translation id="1652855885539187849">Tämän tilin Brave-profiili on jo tällä laitteella</translation>
@@ -667,7 +667,7 @@ Brave ei voi palauttaa asetuksiasi.</translation>
 <translation id="6175141682081019059">Poista käytöstä Bravein taustalla toimiminen sovelluksissa</translation>
 <translation id="80790299200510644">Kuvahaku</translation>
 <translation id="8086881907087796310">Asennus epäonnistui, koska tietokoneesi ei täytä laitteiston vähimmäisvaatimuksia.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for Testing</translation>
 <translation id="2061155704815580583">Brave tarvitsee sijaintiluvan tällä sivustolla</translation>
 <translation id="3576319845915562805">Seuraavan kerran kun avaat Bravein laitteella (<ph name="DEVICE_TYPE"/>), näet kehotteen ottaa käyttöön hintaseurantailmoitukset.</translation>
 <translation id="3728025339793417202">Brave-sovelluksella saat ilmoituksia sinua kiinnostavien tuotteiden hinnanlaskuista puhelimella</translation>
@@ -778,8 +778,8 @@ Brave ei voi palauttaa asetuksiasi.</translation>
 <translation id="9148058034647219655">Poistu</translation>
 <translation id="2792073155252170448">Jatka siitä, mihin jäit: Brave voi palauttaa välilehdet aina, kun käynnistät sen uudelleen. Voit laittaa asetuksen päälle täältä:</translation>
 <translation id="2444257125841652328">Järjestelmänvalvojasi on määrittänyt Bravein avaamaan toisen selaimen, jolla <ph name="TARGET_URL_HOSTNAME"/> avataan.</translation>
-<translation id="7902365066753170041">Päivitä &amp;Brave käynnistämällä se uudelleen</translation>
-<translation id="538146372587193686">Brave Origin (saapuva mDNS)</translation>
+<translation id="8649131107612558845">Päivitä &amp;Socket käynnistämällä se uudelleen</translation>
+<translation id="4540787955808828187">Socket (saapuva mDNS)</translation>
 <translation id="296137235951584143">Tee Braveista näköisesi</translation>
 <translation id="7977787072794666032">Brave ei välttämättä toimi oikein, koska se ei enää tue Windows XP:tä tai Windows Vistaa.</translation>
 <translation id="8462937515915443472">Bravein avulla saat Braven parhaat turvaominaisuudet käyttöösi missä tahansa.</translation>

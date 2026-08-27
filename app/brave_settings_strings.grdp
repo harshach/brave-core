@@ -617,7 +617,7 @@
 
   <!-- Settings / Brave Origin -->
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_TITLE" desc="The title for the Brave Origin section in settings">
-    Brave Origin
+    Socket
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_RESTART_NOTICE" desc="Notifies the user that a browser restart is needed for all Brave Origin changes to fully take effect">
     Some changes require a browser restart to fully take effect.
@@ -685,13 +685,13 @@
 
   <!-- Settings / Brave Origin Onboarding -->
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_TITLE" desc="The section title for the Brave Origin onboarding in settings">
-    Brave Origin
+    Socket
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_HEADING_TITLE" desc="The heading title for the Brave Origin onboarding section">
-    Customize your browser while still supporting Brave
+    Customize Socket
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_DESCRIPTION" desc="The first paragraph describing Brave Origin in the onboarding section">
-    Brave Origin is a paid version of the browser for users who don't need all the features that support Brave as a business, but still want the privacy that only Brave offers. Origin users will continue to benefit from our industry-leading privacy, adblock, and speed (via Shields), as well as regular software updates, Chromium patches, and security and privacy improvements.
+    Socket is a workspace-first browser built on Brave's privacy protections, ad blocking, and Chromium security updates.
   </message>
   <message name="IDS_SETTINGS_BRAVE_ORIGIN_ONBOARDING_BUY_NOW" desc="The label for the Buy now button in Brave Origin onboarding">
     Buy now

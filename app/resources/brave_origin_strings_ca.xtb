@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">Selecciona alguna cosa a la pàgina</translation>
 <translation id="142389341645668510">Personalitza Brave</translation>
 <translation id="2174917724755363426">La instal·lació no s'ha completat. Confirmes que vols cancel·lar-la?</translation>
-<translation id="8841019650931243995">Brave Origin - Inici de sessió a la xarxa - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - Inici de sessió a la xarxa - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Error de comprovació d'actualització: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Suprimeix el compte de Brave</translation>
 <translation id="4022045673362955204">Utilitza l'aplicació Brave per portar amb tu les millors eines de compres mentre et desplaces</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">Selecciona text amb la cerca d'imatges</translation>
 <translation id="70183448213529602">Brave està provant de substituir les contrasenyes existents. Escriu la teva contrasenya de Windows per permetre-ho.</translation>
 <translation id="7798069806040634998">Brave necessita accedir a l'emmagatzematge per baixar fitxers</translation>
-<translation id="2351700486811407088">Aplicació d'ajuda de Brave Origin</translation>
+<translation id="9082785458664620820">Aplicació d'ajuda de Socket</translation>
 <translation id="2575822587468774919">Selecciona el que vulguis per cercar-ho amb la cerca d'imatges</translation>
 <translation id="3830890663494219270">Per obtenir les teves contrasenyes i altres dades en tots els dispositius, inicia la sessió a Brave</translation>
 <translation id="6908148552215338695">Escaneja el codi QR amb el telèfon per baixar Brave i iniciar la sessió al teu Compte de Brave.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">Suprimeix de Brave...</translation>
 <translation id="5265419033369521352">Et protegeix a Brave i és possible que s'utilitzi per millorar la teva seguretat en altres aplicacions de Brave quan tinguis la sessió iniciada</translation>
 <translation id="2885378588091291677">Gestor de tasques</translation>
-<translation id="2176825726964012531">Quant a &amp;Brave</translation>
+<translation id="3984800435132982628">Quant a &amp;Socket</translation>
 <translation id="2915996080311180594">Reinicia més tard</translation>
 <translation id="2481553173340651149">Les teves dades s'encripten amb la teva frase de contrasenya. Per utilitzar i desar les dades de Brave al teu Compte de Brave, introdueix la frase de contrasenya.</translation>
 <translation id="2945997411976714835">Error d'instal·lació: no s'ha pogut iniciar el procés d'instal·lació.</translation>
@@ -262,7 +262,7 @@
 <translation id="3846683726093018685">**Resumeix**: en una sola frase de menys de 30 paraules, descriu el tema i la finalitat principals del contingut de la captura de pantalla.
 
           **Preguntes suggerides**: genera una llista de pics d'entre 3 i 5 preguntes que facin reflexionar i que un usuari podria fer per entendre millor la captura de pantalla. Aquestes preguntes n'han d'incloure com a mínim una que sigui específicament sobre un objecte visual, el seu disseny o el seu emplaçament.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/>: Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/>: Socket</translation>
 <translation id="3885770153807205175">Selector d'idioma</translation>
 <translation id="6315734375101223238">Personalitza i controla Brave. Cal la teva intervenció. Fes clic per obtenir més informació.</translation>
 <translation id="7130675370997202556">Feu clic al vostre nom per obrir Brave i començar a navegar.</translation>
@@ -276,7 +276,7 @@
 <translation id="4194619960643453552">Informació sobre com et protegeix Brave</translation>
 <translation id="3967822245660637423">S'ha completat la baixada</translation>
 <translation id="1486377520191913768">Quan escrius a la barra d'adreces o al quadre de cerca, Brave envia el que escrius a les eines de cerca, d'IA i d'agent de la teva organització per obtenir suggeriments.</translation>
-<translation id="1311808042904310985">Sobre &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">Sobre &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">Sobre Chrome OS</translation>
 <translation id="8282895427217902177">Quan visites un lloc web, Brave envia una part ofuscada de l'URL a <ph name="BEGIN_LINK"/>Navegació segura de Brave<ph name="END_LINK"/> mitjançant un servidor de privadesa que amaga la teva adreça IP. Si un lloc web fa alguna acció sospitosa, també s'envien URL complets i fragments de contingut de la pàgina.</translation>
 <translation id="4016217212818346953">Protegeix-te amb el gestor de contrasenyes</translation>
@@ -295,7 +295,7 @@
 <translation id="10925962326134232">Personalitza Brave per renovar l'aspecte del navegador</translation>
 <translation id="6596295505984504022">&amp;Personalitza Brave</translation>
 <translation id="4148957013307229264">S'està instal·lant...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - Inici de sessió a la xarxa - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - Inici de sessió a la xarxa - Socket</translation>
 <translation id="2871190378186459992">Descobriu aplicacions, jocs, extensions i temes genials per a Brave.</translation>
 <translation id="462105622535258178">Per accedir a aquesta extensió i a altres elements des de tots els teus ordinadors, inicia la sessió a Brave</translation>
 <translation id="6670140629169983459">Per protegir-te més en línia amb les opcions del teu pare o mare, canvia al perfil de Brave en què ja tens la sessió iniciada amb <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -327,7 +327,7 @@
 <translation id="4493028449971051158">Error d'arrencada: executa l'instal·lador com a administrador.</translation>
 <translation id="4501471624619070934">La instal·lació ha fallat perquè l'accés està restringit en aquest país.</translation>
 <translation id="8594994021633965927">Aquesta extensió no ha publicat les seves pràctiques de privadesa, per exemple, la manera com recull i utilitza les dades. Brave et recomana que la suprimeixis.</translation>
-<translation id="770557926599450702">Et donem la benvinguda a Brave Origin; s'ha obert una altra finestra del navegador</translation>
+<translation id="3788134970312783571">Et donem la benvinguda a Socket; s'ha obert una altra finestra del navegador</translation>
 <translation id="137732229629632648">Brave necessita permís per mapar el teu entorn i fer un seguiment de les teves mans</translation>
 <translation id="5036046007335188949">Ja has iniciat la sessió amb <ph name="USER_EMAIL_ADDRESS"/> en un altre perfil de Brave</translation>
 <translation id="1878185978731985193">Brave precarrega les pàgines perquè la navegació i la cerca siguin més ràpides. <ph name="BEGIN_LINK"/>Obtén més informació sobre la precàrrega de pàgines<ph name="END_LINK"/>.</translation>
@@ -335,7 +335,7 @@
 <translation id="8669339108356170796">Brave ha bloquejat aquesta baixada perquè has desactivat Navegació segura i el fitxer no es pot verificar</translation>
 <translation id="7583343841997441047">Prova Google Lens amb Brave al telèfon</translation>
 <translation id="4594305310729380060">Al gestor de contrasenyes en aquest dispositiu</translation>
-<translation id="7776200949522126045">Aplicacions de Brave Origin</translation>
+<translation id="1662388968719244110">Aplicacions de Socket</translation>
 <translation id="4598116752460667024">Cerca qualsevol procés de la llista.</translation>
 <translation id="4970880042055371251">Versió de Chrome OS</translation>
 <translation id="2182657378556811785">Gairebé has acabat amb l'actualització. Reinicia Brave per completar-la.</translation>
@@ -353,8 +353,8 @@
 <translation id="844451748565342664">Si Gemini a Brave està obert, el tauler lateral es manté obert quan es creen pestanyes noves</translation>
 <translation id="215320507915280336">Fa servir el mateix corrector ortogràfic que s'utilitza a la Cerca de Brave. El text que escrius al navegador s'envia a Brave. Pots canviar aquest comportament sempre que vulguis a la configuració.</translation>
 <translation id="2899369907387169108">Fes servir Brave sense cap compte</translation>
-<translation id="1833893255023048385">Regla d'entrada de Brave Origin per permetre el trànsit de mDNS.</translation>
-<translation id="711601904575862069">Reinicia per actualitzar &amp;Brave</translation>
+<translation id="6972301482162050771">Regla d'entrada de Socket per permetre el trànsit de mDNS.</translation>
+<translation id="2428387668457441558">Reinicia per actualitzar &amp;Socket</translation>
 <translation id="4918086044614829423">Accepta</translation>
 <translation id="4918844574251943176">La imatge s'ha copiat</translation>
 <translation id="8797356639448065696">Brave està en mode de segon pla.</translation>
@@ -394,7 +394,7 @@
 <translation id="5267531627648004734">Elimina de Brave</translation>
 <translation id="4620757336635063467">Redueix el rendiment, però fa que Brave sigui més resistent als atacs</translation>
 <translation id="239760341987199724">Defineix Brave com a navegador predeterminat</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave recomana posar en pausa la pestanya que està alentint el navegador}other{Brave recomana posar en pausa les pestanyes que estan alentint el navegador}}</translation>
 <translation id="894936507076470937">Pot ser que Brave no funcioni correctament perquè ja no és compatible amb aquesta distribució de Linux</translation>
 <translation id="2596557398669145729">Brave ha bloquejat aquesta baixada perquè el fitxer pot malmetre els teus comptes personals i de xarxes socials</translation>
@@ -427,7 +427,7 @@ Si aquesta pàgina no funciona de la manera prevista, prova de permetre l'optimi
 <translation id="95980832839683236">Agilitza els llocs web amb el motor V8 de Brave, però fa que Brave sigui una mica menys resistent als atacs. Aquesta opció de configuració està desactivada.</translation>
 <translation id="1224606669200461217">Per utilitzar i desar les dades de Brave al teu Compte de Brave, actualitza Brave</translation>
 <translation id="5824893331272123205">Aquest tauler no s'ha pogut carregar. Torna-ho a provar.</translation>
-<translation id="4467664627714200493">Us donem la benvinguda a Brave Origin</translation>
+<translation id="1125671961408630460">Us donem la benvinguda a Socket</translation>
 <translation id="4026807082142463673">Activa funcions addicionals per proporcionar les proteccions més eficaces de Brave</translation>
 <translation id="5871205389137001634">Fes clic per sortir de la cerca d'imatges</translation>
 <translation id="8054200348483755053">Brave ha detectat que aquests elements contenen programari maliciós:</translation>
@@ -493,7 +493,7 @@ Si aquesta pàgina no funciona de la manera prevista, prova de permetre l'optimi
 <translation id="6388799252195623474">ajuda'm amb això</translation>
 <translation id="7920857181125123335">Per continuar, inicia la sessió a Brave com a <ph name="EMAIL"/>. D'aquesta manera, podem garantir que s'apliquen les polítiques de la teva organització.</translation>
 <translation id="3256100650978957522">Logotip de Brave a l'interior d'una pantalla d'ordinador.</translation>
-<translation id="5880764554173582719">Brave Origin és un navegador web que executa les pàgines web i les aplicacions a gran velocitat. És ràpid, estable i fàcil d'utilitzar. Navegueu per Internet amb més seguretat amb protecció inserida a Brave Origin contra el programari maliciós i contra la pesca de credencials.</translation>
+<translation id="7527968786016866645">Socket és un navegador web que executa les pàgines web i les aplicacions a gran velocitat. És ràpid, estable i fàcil d'utilitzar. Navegueu per Internet amb més seguretat amb protecció inserida a Socket contra el programari maliciós i contra la pesca de credencials.</translation>
 <translation id="4091049150278654573">Per assegurar-te que puguis fer servir i desar sempre les dades de Brave al teu Compte de Brave, verifica la teva identitat</translation>
 <translation id="2532326772258858491">Brave s'executa més ràpidament i les funcions que utilitzen JavaScript haurien de funcionar tal com es van dissenyar</translation>
 <translation id="6436260184216827876">La cerca d'imatges no està disponible. Torna-ho a provar més tard.</translation>
@@ -541,7 +541,7 @@ Si aquesta pàgina no funciona de la manera prevista, prova de permetre l'optimi
 <translation id="6831043979455480757">Tradueix</translation>
 <translation id="8211837073776713955">Brave et permet saber si les contrasenyes s'han posat en perill</translation>
 <translation id="684888714667046800">No es pot connectar a Internet. Si fas servir un tallafoc, assegura't que <ph name="PRODUCT_EXE_NAME"/> sigui a la llista d'accés permès.</translation>
-<translation id="8237613041998823669">Brave Origin: <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket: <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Prem el tabulador per continuar</translation>
 <translation id="6862030660799253820">Cerca en aquesta imatge amb la cerca d'imatges</translation>
 <translation id="3028928628792374067">Brave ha detectat que l'extensió "<ph name="EXTENSION_NAME"/>" conté programari maliciós</translation>
@@ -609,7 +609,7 @@ Brave no pot recuperar la configuració.</translation>
 <translation id="284799389314308801">1. Fes clic a <ph name="BUTTON_LABEL"/> a continuació.
 2. Fes clic a <ph name="BUTTON_2"/> a la configuració de Windows.
 3. Fes clic a <ph name="BUTTON_3"/> a la notificació de Windows per fixar Brave a la barra de tasques i accedir-hi ràpidament.</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">El text s'ha copiat</translation>
 <translation id="2034072705932785495">Per visitar aquest lloc web, Brave necessita permís per accedir a la càmera</translation>
 <translation id="7129342855140808694">Per poder utilitzar el micròfon, dona accés a Brave des de la <ph name="BEGIN_LINK"/>configuració del sistema<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave no pot recuperar la configuració.</translation>
 <translation id="8543787950557226450">Restableix el tema predeterminat de Brave</translation>
 <translation id="4976450819672499783">Defineix Brave com a navegador predeterminat i fixa'l a la barra de tasques</translation>
 <translation id="1978509466033734608">Fes que Brave sigui més ràpid</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">Dificulta que les persones amb accés al teu trànsit d'Internet vegin els llocs web que visites. Brave utilitza una connexió segura per cercar l'adreça IP d'un lloc web al sistema de noms de domini (DNS).</translation>
 <translation id="7810005234485217901">Pots fixar la cerca d'imatges per accedir-hi fàcilment</translation>
 <translation id="1652855885539187849">Ja existeix un perfil de Brave amb aquest compte en aquest dispositiu</translation>
@@ -667,7 +667,7 @@ Brave no pot recuperar la configuració.</translation>
 <translation id="6175141682081019059">Desactiva l'execució de Brave en segon pla per a les aplicacions</translation>
 <translation id="80790299200510644">Cerca d'imatges</translation>
 <translation id="8086881907087796310">La instal·lació ha fallat perquè l'ordinador no compleix els requisits mínims de maquinari.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Brave necessita permís d'accés a la ubicació per a aquest lloc web</translation>
 <translation id="3576319845915562805">La propera vegada que obris Brave al teu <ph name="DEVICE_TYPE"/>, veuràs una indicació per activar les alertes de seguiment de preus.</translation>
 <translation id="3728025339793417202">Rep alertes de baixada de preu dels articles que t'interessen amb l'aplicació Brave al telèfon</translation>
@@ -778,8 +778,8 @@ Brave no pot recuperar la configuració.</translation>
 <translation id="9148058034647219655">Surt</translation>
 <translation id="2792073155252170448">Continua des d'on ho vas deixar: Brave pot restaurar les teves pestanyes cada vegada que reiniciïs el navegador. Per activar-ho, ves a</translation>
 <translation id="2444257125841652328">L'administrador del sistema ha configurat Brave perquè obri un navegador alternatiu per accedir a <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Reinicia per actualitzar &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Reinicia per actualitzar &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Personalitza Brave</translation>
 <translation id="7977787072794666032">Pot ser que Brave no funcioni correctament perquè ja no és compatible amb Windows XP ni Windows Vista</translation>
 <translation id="8462937515915443472">Mentre et desplaces, obtén les millors funcions de seguretat de Brave amb Brave.</translation>

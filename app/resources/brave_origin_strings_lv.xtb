@@ -110,7 +110,7 @@
 <translation id="2170098639895543546">Atlasīt jebkādu saturu lapā</translation>
 <translation id="142389341645668510">Pielāgot pārlūkprogrammu Brave</translation>
 <translation id="2174917724755363426">Instalēšana nav pabeigta. Vai tiešām vēlaties atcelt?</translation>
-<translation id="8841019650931243995">Brave Origin — pierakstīšanās tīklā — <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket — pierakstīšanās tīklā — <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Atjauninājumu pārbaudes kļūda: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Noņemt kontu no pārlūka Brave</translation>
 <translation id="4022045673362955204">Izmantojiet lietotni Brave, lai piekļūtu vislabākajiem iepirkšanās rīkiem, atrodoties ceļā</translation>
@@ -145,7 +145,7 @@
 <translation id="2542968102051442371">Atlasiet tekstu, ko meklēt, izmantojot funkciju Attēlu meklēšana</translation>
 <translation id="70183448213529602">Pārlūkā Brave tiek mēģināts aizstāt esošās paroles. Lai to atļautu, ierakstiet savu Windows paroli.</translation>
 <translation id="7798069806040634998">Pārlūkam Brave ir nepieciešama piekļuve krātuvei, lai varētu lejupielādēt failus.</translation>
-<translation id="2351700486811407088">Brave Origin palīgs</translation>
+<translation id="9082785458664620820">Socket palīgs</translation>
 <translation id="2575822587468774919">Atlasiet jebko, lai to meklētu, izmantojot funkciju Attēlu meklēšana</translation>
 <translation id="3830890663494219270">Pierakstieties pārlūkā Brave, lai varētu piekļūt parolēm un citiem datiem visās savās ierīcēs.</translation>
 <translation id="6908148552215338695">Skenējiet kvadrātkodu, izmantojot tālruni, lai lejupielādētu pārlūku Brave un pierakstītos savā Brave kontā.</translation>
@@ -175,7 +175,7 @@
 <translation id="777113543093865885">Noņemšana no pārlūka Brave...</translation>
 <translation id="5265419033369521352">Tiek nodrošināta jūsu aizsardzība pārlūkprogrammā Brave. Šis režīms var tikt izmantots jūsu drošības uzlabošanai citās Brave lietotnēs, kad esat pierakstījies.</translation>
 <translation id="2885378588091291677">Uzdevumu pārvaldnieks</translation>
-<translation id="2176825726964012531">Par &amp;Brave</translation>
+<translation id="3984800435132982628">Par &amp;Socket</translation>
 <translation id="2915996080311180594">Restartēt vēlāk</translation>
 <translation id="2481553173340651149">Jūsu dati ir šifrēti, izmantojot ieejas frāzi. Ievadiet ieejas frāzi, lai izmantotu un saglabātu Brave datus savā Brave kontā.</translation>
 <translation id="2945997411976714835">Instalēšanas kļūda: neizdevās palaist instalēšanas programmu.</translation>
@@ -261,7 +261,7 @@
 <translation id="3846683726093018685">**Apkopošana:** vienā teikumā, kas nepārsniedz 30 vārdus, aprakstiet ekrānuzņēmumā redzamā satura galveno tēmu un nolūku.
 
           **Jautājumu ieteikšana:** ģenerējiet sarakstu ar aizzīmēm ar 3–5 jautājumiem, kas liek aizdomāties un kurus lietotājs varētu uzdot, lai labāk izprastu ekrānuzņēmumu. Šajos jautājumos ir jābūt vismaz vienam jautājumam, kas ir saistīts ar vizuālu objektu, tā dizainu vai izvietojumu.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> — Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> — Socket</translation>
 <translation id="3885770153807205175">Valodas atlasītājs</translation>
 <translation id="6315734375101223238">Pielāgojiet un kontrolējiet pārlūkprogrammu Brave. Ir nepieciešama jūsu uzmanība. Noklikšķiniet, lai skatītu plašāku informāciju.</translation>
 <translation id="7130675370997202556">Noklikšķiniet uz sava vārda, lai atvērtu Brave un sāktu pārlūkošanu.</translation>
@@ -275,7 +275,7 @@
 <translation id="4194619960643453552">Uzziniet, kā Brave rūpējas par jūsu drošību</translation>
 <translation id="3967822245660637423">Lejupielāde pabeigta</translation>
 <translation id="1486377520191913768">Kad rakstāt adreses joslā vai meklēšanas lodziņā, pārlūks Brave nosūta rakstīto tekstu jūsu organizācijas meklēšanas, MI un starpnieku rīkiem, lai iegūtu ieteikumus.</translation>
-<translation id="1311808042904310985">Par Brave for Testing</translation>
+<translation id="3813099290530551762">Par Socket for Testing</translation>
 <translation id="1152920704813762236">Par Brave OS</translation>
 <translation id="8282895427217902177">Kad apmeklējat kādu vietni, pārlūks Brave nosūta funkcijai <ph name="BEGIN_LINK"/>Brave droša pārlūkošana<ph name="END_LINK"/> pieslēptu URL daļu, izmantojot konfidencialitātes serveri, kas slēpj jūsu IP adresi. Ja vietnē tiek veiktas aizdomīgas darbības, tiek nosūtīti arī pilni URL un lapas satura fragmenti.</translation>
 <translation id="4016217212818346953">Gādājiet par drošību, izmantojot paroļu pārvaldnieku</translation>
@@ -294,7 +294,7 @@
 <translation id="10925962326134232">Pielāgojiet pārlūku Brave, lai piešķirtu tam jaunu izskatu.</translation>
 <translation id="6596295505984504022">P&amp;ielāgot pārlūku Brave</translation>
 <translation id="4148957013307229264">Notiek instalēšana...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> — pierakstīšanās tīklā — Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> — pierakstīšanās tīklā — Socket</translation>
 <translation id="2871190378186459992">Atklājiet lieliskas lietotnes, spēles, paplašinājumus un motīvus, ko varat izmantot pārlūkā Brave.</translation>
 <translation id="462105622535258178">Lai piekļūtu šim paplašinājumam un citiem datiem visos savos datoros, pierakstieties pārlūkā Brave.</translation>
 <translation id="6670140629169983459">Lai tiktu lietoti jūsu vecāka izvēlētie iestatījumi un jūs tiešsaistē saņemtu labāku aizsardzību, pārslēdzieties uz Brave profilu, kurā jau pierakstījāties ar kontu <ph name="USER_EMAIL_ADDRESS"/>.</translation>
@@ -326,7 +326,7 @@
 <translation id="4493028449971051158">Palaišanas kļūda: lūdzu, palaidiet instalēšanas programmu kā administrators.</translation>
 <translation id="4501471624619070934">Instalēšana neizdevās, jo šajā valstī piekļuve ir ierobežota.</translation>
 <translation id="8594994021633965927">Nav norādīta konfidencialitātes prakse šim paplašinājumam, piemēram, kā tas vāc un izmanto datus. Brave iesaka to noņemt.</translation>
-<translation id="770557926599450702">Laipni lūdzam pārlūkā Brave Origin (tika atvērts jauns pārlūka logs)!</translation>
+<translation id="3788134970312783571">Laipni lūdzam pārlūkā Socket (tika atvērts jauns pārlūka logs)!</translation>
 <translation id="137732229629632648">Pārlūkam Brave ir nepieciešama atļauja jūsu apkārtnes kartēšanai un roku kustību izsekošanai</translation>
 <translation id="5036046007335188949">Ar kontu <ph name="USER_EMAIL_ADDRESS"/> jau esat pierakstījies citā Brave profilā</translation>
 <translation id="1878185978731985193">Pārlūkā Brave tiek iepriekš ielādētas lapas, tādējādi paātrinot pārlūkošanu un meklēšanu. Varat <ph name="BEGIN_LINK"/>uzzināt vairāk par lapu iepriekšēju ielādi<ph name="END_LINK"/>.</translation>
@@ -334,7 +334,7 @@
 <translation id="8669339108356170796">Pārlūkā Brave šī lejupielāde tika bloķēta, jo jūs izslēdzāt drošu pārlūkošanu un failu nevar verificēt.</translation>
 <translation id="7583343841997441047">Izmēģiniet Brave Lens pārlūkā Brave savā tālrunī</translation>
 <translation id="4594305310729380060">Tā tiks saglabāta Paroļu pārvaldniekā šajā ierīcē</translation>
-<translation id="7776200949522126045">Brave Origin lietotnes</translation>
+<translation id="1662388968719244110">Socket lietotnes</translation>
 <translation id="4598116752460667024">Sarakstā meklējiet jebkuru procesu.</translation>
 <translation id="4970880042055371251">Brave OS versija</translation>
 <translation id="2182657378556811785">Atjaunināšana ir gandrīz pabeigta. Lai pabeigtu atjaunināšanu, atkārtoti palaidiet pārlūku Brave.</translation>
@@ -352,8 +352,8 @@
 <translation id="844451748565342664">Ja pakalpojums Gemini pārlūkā Brave ir atvērts, jaunu ciļņu izveidošanas laikā sānu panelis paliek atvērts.</translation>
 <translation id="215320507915280336">Šeit tiek izmantota tāds pats pareizrakstības pārbaudītājs, kāds tiek izmantots Brave meklēšanā. Pārlūkprogrammā ievadītais teksts tiek nosūtīts Brave serveriem. Jebkurā brīdī varat mainīt šo darbību iestatījumos.</translation>
 <translation id="2899369907387169108">Izmantot Brave, nepierakstoties kontā</translation>
-<translation id="1833893255023048385">Ienākošo savienojumu kārtula pārlūkam Brave Origin, lai atļautu mDNS datplūsmu.</translation>
-<translation id="711601904575862069">Atkārtoti palaist, lai atjauninātu &amp;Brave</translation>
+<translation id="6972301482162050771">Ienākošo savienojumu kārtula pārlūkam Socket, lai atļautu mDNS datplūsmu.</translation>
+<translation id="2428387668457441558">Atkārtoti palaist, lai atjauninātu &amp;Socket</translation>
 <translation id="4918086044614829423">Pieņemt</translation>
 <translation id="4918844574251943176">Attēls ir nokopēts</translation>
 <translation id="8797356639448065696">Brave darbojas fona režīmā.</translation>
@@ -393,7 +393,7 @@
 <translation id="5267531627648004734">Noņemt no pārlūka Brave</translation>
 <translation id="4620757336635063467">Samazina veiktspēju, taču uzlabo Brave izturību pret uzbrukumiem.</translation>
 <translation id="239760341987199724">Iestatīt Brave kā noklusējuma pārlūku</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> — Brave Origin beta versija</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> — Socket beta versija</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave iesaka pārtraukt tās cilnes darbību, kas palēnina pārlūka darbību}zero{Brave iesaka pārtraukt to ciļņu darbību, kas palēnina pārlūka darbību}one{Brave iesaka pārtraukt to ciļņu darbību, kas palēnina pārlūka darbību}other{Brave iesaka pārtraukt to ciļņu darbību, kas palēnina pārlūka darbību}}</translation>
 <translation id="894936507076470937">Iespējams, pārlūks Brave nedarbosies pareizi, jo tas vairs netiek atbalstīts šajā Linux izdevumā.</translation>
 <translation id="2596557398669145729">Pārlūkā Brave šī lejupielāde tika bloķēta, jo šis fails var kaitēt jūsu personīgajiem un sociālo tīklu kontiem</translation>
@@ -426,7 +426,7 @@ Ja šī lapa nedarbojas, kā paredzēts, mēģiniet atļaut optimizāciju.</tran
 <translation id="95980832839683236">Paātrina vietņu darbību, izmantojot Brave programmu V8, bet nedaudz samazina Brave izturību pret uzbrukumiem. Šis iestatījums ir izslēgts.</translation>
 <translation id="1224606669200461217">Lai izmantotu un saglabātu Brave datus Brave kontā, atjauniniet pārlūku Brave.</translation>
 <translation id="5824893331272123205">Nevarēja ielādēt šo paneli. Mēģiniet vēlreiz.</translation>
-<translation id="4467664627714200493">Laipni lūdzam pārlūkā Brave Origin!</translation>
+<translation id="1125671961408630460">Laipni lūdzam pārlūkā Socket!</translation>
 <translation id="4026807082142463673">Tiek ieslēgtas papildu funkcijas, lai nodrošinātu visefektīvāko Brave aizsardzību.</translation>
 <translation id="5871205389137001634">Noklikšķiniet, lai izietu no funkcijas Attēlu meklēšana</translation>
 <translation id="8054200348483755053">Pārlūkā Brave tika konstatēts, ka tālāk norādītie vienumi satur ļaunprātīgu programmatūru:</translation>
@@ -492,7 +492,7 @@ Ja šī lapa nedarbojas, kā paredzēts, mēģiniet atļaut optimizāciju.</tran
 <translation id="6388799252195623474">palīdzēt man ar šo</translation>
 <translation id="7920857181125123335">Lai turpinātu, pierakstieties pārlūkā Brave ar kontu <ph name="EMAIL"/>. Tas nodrošinās jūsu organizācijas politiku ievērošanu.</translation>
 <translation id="3256100650978957522">Brave logotips datora ekrānā.</translation>
-<translation id="5880764554173582719">Brave Origin ir tīmekļa pārlūks, kas darbina tīmekļa lapas un lietojumprogrammas zibenīgā ātrumā. Tas ir ātrs, stabils un ērti lietojams. Pārlūkojiet tīmekli vēl drošāk ar aizsardzību pret ļaunprātīgu programmatūru un pikšķerēšanu, kas iebūvēta pārlūkā Brave Origin.</translation>
+<translation id="7527968786016866645">Socket ir tīmekļa pārlūks, kas darbina tīmekļa lapas un lietojumprogrammas zibenīgā ātrumā. Tas ir ātrs, stabils un ērti lietojams. Pārlūkojiet tīmekli vēl drošāk ar aizsardzību pret ļaunprātīgu programmatūru un pikšķerēšanu, kas iebūvēta pārlūkā Socket.</translation>
 <translation id="4091049150278654573">Lai vienmēr varētu izmantot un saglabāt Brave datus savā Brave kontā, apstipriniet savu identitāti.</translation>
 <translation id="2532326772258858491">Brave darbojas ātrāk, un funkcijas, kurās tiek izmantota valoda JavaScript, darbojas paredzētajā veidā</translation>
 <translation id="6436260184216827876">Funkcija Attēlu meklēšana nav pieejama. Vēlāk mēģiniet vēlreiz.</translation>
@@ -540,7 +540,7 @@ Dažas funkcijas var nebūt pieejamas. Norādiet citu profila direktoriju vai iz
 <translation id="6831043979455480757">Tulkot</translation>
 <translation id="8211837073776713955">Ja jūsu paroles kādreiz tiks apdraudētas, pārlūkā Brave saņemsiet paziņojumu</translation>
 <translation id="684888714667046800">Nevar izveidot savienojumu ar internetu. Ja izmantojat ugunsmūri, failam <ph name="PRODUCT_EXE_NAME"/> noteikti ir jābūt iekļautam atļaušanas sarakstā.</translation>
-<translation id="8237613041998823669">Brave Origin — <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket — <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Nospiediet tabulēšanas taustiņu, lai turpinātu</translation>
 <translation id="6862030660799253820">Meklēt šo attēlu, izmantojot attēlu meklēšanas funkciju</translation>
 <translation id="3028928628792374067">Pārlūkā Brave tika konstatēts, ka paplašinājums “<ph name="EXTENSION_NAME"/>” satur ļaunprātīgu programmatūru.</translation>
@@ -606,7 +606,7 @@ Jaunas grāmatzīmes nevar saglabāt jūsu kontā, kamēr neizdzēsīsiet dažas
 <translation id="284799389314308801">1. Noklikšķiniet uz tālāk redzamās pogas <ph name="BUTTON_LABEL"/>.
 2. Windows iestatījumos noklikšķiniet uz <ph name="BUTTON_2"/>.
 3. Windows paziņojumā noklikšķiniet uz <ph name="BUTTON_3"/>, lai piespraustu pārlūku Brave uzdevumu joslai, tādējādi nodrošinot ātru piekļuvi.</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> — Brave Origin izstrādātāju versija</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> — Socket izstrādātāju versija</translation>
 <translation id="7450541714075000668">Teksts ir nokopēts</translation>
 <translation id="2034072705932785495">Pārlūkam Brave ir nepieciešama atļauja piekļūt jūsu kamerai šajā vietnē.</translation>
 <translation id="7129342855140808694">Lai izmantotu mikrofonu, piešķiriet pārlūkam Brave piekļuvi <ph name="BEGIN_LINK"/>sistēmas iestatījumos<ph name="END_LINK"/>.</translation>
@@ -637,7 +637,7 @@ Jaunas grāmatzīmes nevar saglabāt jūsu kontā, kamēr neizdzēsīsiet dažas
 <translation id="8543787950557226450">Atiestatīt Brave noklusējuma motīvu</translation>
 <translation id="4976450819672499783">Iestatiet Brave kā noklusējuma pārlūku un piespraudiet to uzdevumu joslai</translation>
 <translation id="1978509466033734608">Pārlūka Brave darbības paātrināšana</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> — Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> — Socket Canary</translation>
 <translation id="2684504034454188774">Neļaujiet personām, kurām ir piekļuve jūsu interneta datplūsmai, viegli skatīt jūsu apmeklētās vietnes. Brave izmanto drošu savienojumu, lai meklētu vietnes IP adresi sistēmā DNS (domēnu nosaukumu sistēmā).</translation>
 <translation id="7810005234485217901">Varat piespraust funkciju Attēlu meklēšana, lai ērti tai varētu piekļūt.</translation>
 <translation id="1652855885539187849">Šajā ierīcē jau pastāv Brave profils ar šādu kontu.</translation>
@@ -664,7 +664,7 @@ Jaunas grāmatzīmes nevar saglabāt jūsu kontā, kamēr neizdzēsīsiet dažas
 <translation id="6175141682081019059">Atspējot Brave darbību fonā lietotnēm</translation>
 <translation id="80790299200510644">Attēlu meklēšana</translation>
 <translation id="8086881907087796310">Instalēšana neizdevās, jo jūsu dators neatbilst minimālajām aparatūras prasībām.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> — Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> — Socket for Testing</translation>
 <translation id="2061155704815580583">Pārlūkam Brave ir nepieciešama atrašanās vietas atļauja šai vietnei.</translation>
 <translation id="3576319845915562805">Kad nākamreiz savā ierīcē (<ph name="DEVICE_TYPE"/>) atvērsiet pārlūku Brave, tiks parādīts aicinājums iespējot brīdinājumus par cenu izsekošanu.</translation>
 <translation id="3728025339793417202">Izmantojiet lietotni Brave savā tālrunī, lai saņemtu brīdinājumus par cenu kritumu precēm, kas jūs interesē</translation>
@@ -775,8 +775,8 @@ Jaunas grāmatzīmes nevar saglabāt jūsu kontā, kamēr neizdzēsīsiet dažas
 <translation id="9148058034647219655">Iziet</translation>
 <translation id="2792073155252170448">Turpiniet darbu no vietas, kur to pārtraucāt: pārlūkā Brave var tikt atjaunotas jūsu cilnes ikreiz, kad to restartējat. Lai to ieslēgtu, pārejiet uz lapu</translation>
 <translation id="2444257125841652328">Sistēmas administrators ir konfigurējis Brave, lai vietne <ph name="TARGET_URL_HOSTNAME"/> tiktu atvērta papildu pārlūkā.</translation>
-<translation id="7902365066753170041">Atkārtoti palaist, lai atjauninātu &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS ienākošie savienojumi)</translation>
+<translation id="8649131107612558845">Atkārtoti palaist, lai atjauninātu &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS ienākošie savienojumi)</translation>
 <translation id="296137235951584143">Pielāgojiet pārlūku Brave savām vajadzībām</translation>
 <translation id="7977787072794666032">Iespējams, Brave nedarbosies pareizi, jo tas vairs netiek atbalstīts operētājsistēmās Windows XP un Windows Vista.</translation>
 <translation id="8462937515915443472">Izmantojiet pārlūku Brave, lai piekļūtu Brave labākajām drošības funkcijām, atrodoties ceļā</translation>

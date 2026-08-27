@@ -113,7 +113,7 @@
 <translation id="2170098639895543546">ເລືອກສິ່ງໃດກໍໄດ້ໃນໜ້າ</translation>
 <translation id="142389341645668510">ປັບແຕ່ງ Brave</translation>
 <translation id="2174917724755363426">ການຕິດຕັ້ງບໍ່ສຳເລັດ. ທ່ານແນ່ໃຈບໍ່ວ່າທ່ານຕ້ອງການຍົກເລີກ?</translation>
-<translation id="8841019650931243995">Brave Origin - ການເຂົ້າສູ່ລະບົບເຄືອຂ່າຍ - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - ການເຂົ້າສູ່ລະບົບເຄືອຂ່າຍ - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">ກວດສອບການອັບເດດຜິດພາດ: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">ລຶບບັນຊີອອກຈາກ Brave</translation>
 <translation id="4022045673362955204">ໃຊ້ແອັບ Brave ເພື່ອນຳເຄື່ອງມືການຊື້ເຄື່ອງທີ່ດີທີ່ສຸດໄປໄດ້ທຸກບ່ອນທຸກເວລາ</translation>
@@ -148,7 +148,7 @@
 <translation id="2542968102051442371">ເລືອກຂໍ້ຄວາມດ້ວຍການຊອກຫາຮູບ</translation>
 <translation id="70183448213529602">Brave ກຳລັງພະຍາຍາມປ່ຽນແທນລະຫັດຜ່ານທີ່ມີຢູ່. ພິມລະຫັດຜ່ານ Windows ຂອງທ່ານໃສ່ເພື່ອອະນຸຍາດສິ່ງນີ້.</translation>
 <translation id="7798069806040634998">Brave ຕ້ອງການເຂົ້າເຖິງບ່ອນເກັບຂໍ້ມູນເພື່ອດາວໂຫຼດໄຟລ໌</translation>
-<translation id="2351700486811407088">ຜູ້​ຊ່ວຍ Brave Origin</translation>
+<translation id="9082785458664620820">ຜູ້​ຊ່ວຍ Socket</translation>
 <translation id="2575822587468774919">ເລືອກຫຍັງກໍໄດ້ເພື່ອຊອກຫາດ້ວຍການຊອກຫາຮູບ</translation>
 <translation id="3830890663494219270">ເພື່ອຮັບລະຫັດຜ່ານ ແລະ ຂໍ້ມູນອື່ນໆຂອງທ່ານໃນອຸປະກອນທຸກເຄື່ອງຂອງທ່ານ, ໃຫ້ເຂົ້າສູ່ລະບົບ Brave</translation>
 <translation id="6908148552215338695">ສະແກນລະຫັດ QR ດ້ວຍໂທລະສັບຂອງທ່ານເພື່ອດາວໂຫຼດ Brave ແລະ ເຂົ້າສູ່ລະບົບບັນຊີ Brave ຂອງທ່ານ.</translation>
@@ -178,7 +178,7 @@
 <translation id="777113543093865885">ເອົາ​ອອກ​ຈາກ Brave...</translation>
 <translation id="5265419033369521352">ຮັກສາຄວາມປອດໄພຂອງທ່ານໃນ Brave ແລະ ອາດຖືກໃຊ້ເພື່ອປັບປຸງຄວາມປອດໄພຂອງທ່ານໃນແອັບ Brave ອື່ນໆເມື່ອທ່ານເຂົ້າສູ່ລະບົບ.</translation>
 <translation id="2885378588091291677">ຕົວຈັດການໜ້າວຽກ</translation>
-<translation id="2176825726964012531">ກ່ຽວ​ກັບ​ Brave</translation>
+<translation id="3984800435132982628">ກ່ຽວ​ກັບ​ Socket</translation>
 <translation id="2915996080311180594">ຣິສະຕາດໃນພາຍຫຼັງ</translation>
 <translation id="2481553173340651149">ຂໍ້ມູນຂອງທ່ານໄດ້ຖືກເຂົ້າລະຫັດໄວ້ດ້ວຍລະຫັດຜ່ານຂອງທ່ານ. ລະບຸລະຫັດຜ່ານເພື່ອໃຊ້ ແລະ ບັນທຶກຂໍ້ມູນ Brave ໃນບັນຊີ Brave ຂອງທ່ານ.</translation>
 <translation id="2945997411976714835">ຂໍ້ຜິດພາດໃນການຕິດຕັ້ງ: ເລີ່ມຂັ້ນຕອນຂອງຕົວຕິດຕັ້ງບໍ່ສຳເລັດ.</translation>
@@ -264,7 +264,7 @@
 <translation id="3846683726093018685">**ສະຫຼຸບ:** ໃນປະໂຫຍກດຽວທີ່ມີບໍ່ເກີນ 30 ຄຳ, ໃຫ້ອະທິບາຍເລື່ອງຫຼັກ ແລະ ຈຸດປະສົງຂອງເນື້ອຫາໃນຮູບໜ້າຈໍ.
 
           **ແນະນຳຄຳຖາມ:** ສ້າງລາຍຊື່ສັນຍາລັກຂອງຄຳຖາມກະຕຸ້ນຄວາມຄິດ 3-5 ຂໍ້ທີ່ຜູ້ໃຊ້ອາດຖາມເພື່ອສ້າງຄວາມເຂົ້າໃຈຮູບໜ້າຈໍໄດ້ດີຍິ່ງຂຶ້ນ. ຄຳຖາມເຫຼົ່ານີ້ຄວນມີຢ່າງໜ້ອຍ 1 ຂໍ້ທີ່ກ່ຽວກັບວັດຖຸພາບ, ການອອກແບບ ຫຼື ຕຳແໜ່ງຂອງວັດຖຸນັ້ນໂດຍສະເພາະ.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">ຕົວເລືອກພາສາ</translation>
 <translation id="6315734375101223238">ປັບແຕ່ງ ແລະ ຄວບຄຸມ Brave. ມີບາງຢ່າງທີ່ທ່ານຕ້ອງດຳເນີນການ - ຄລິກສຳລັບລາຍລະອຽດ.</translation>
 <translation id="7130675370997202556">ຄລິກ​ທີ່​ຊື່​ຂອງ​ທ່ານ​ເພື່ອ​ເປີດ Brave ແລະ​ເລີ່ມ​ຕົ້ນທ່ອງເນັດ.</translation>
@@ -278,7 +278,7 @@
 <translation id="4194619960643453552">ສຶກສາວິທີການທີ່ Brave ຮັກສາຄວາມປອດໄພໃຫ້ທ່ານ</translation>
 <translation id="3967822245660637423">ດາວ​ໂຫຼດ​ສຳ​ເລັດ</translation>
 <translation id="1486377520191913768">ເມື່ອທ່ານພິມໃນແຖບທີ່ຢູ່ ຫຼື ກ່ອງຊອກຫາ, Brave ຈະສົ່ງສິ່ງທີ່ທ່ານພິມໄປຫາເຄື່ອງມືຊອກຫາ, AI ແລະ ເຄື່ອງມືຕົວແທນຂອງອົງກອນຂອງທ່ານເພື່ອຮັບຄຳແນະນຳ.</translation>
-<translation id="1311808042904310985">ກ່ຽວກັບ Brave ສຳລັບການທົດສອບ</translation>
+<translation id="3813099290530551762">ກ່ຽວກັບ Socket ສຳລັບການທົດສອບ</translation>
 <translation id="1152920704813762236">ກ່ຽວກັບ ChromeOS</translation>
 <translation id="8282895427217902177">ເມື່ອທ່ານເຂົ້າເບິ່ງເວັບໄຊ, Brave ຈະເອົາສະເພາະບາງສ່ວນຂອງ URL ມາສ້າງຄວາມສັບສົນແລ້ວສົ່ງໄປໃຫ້ <ph name="BEGIN_LINK"/>Google Safe Browsing<ph name="END_LINK"/> ຜ່ານເຊີບເວີຄວາມເປັນສ່ວນຕົວທີ່ເຊື່ອງທີ່ຢູ່ IP ຂອງທ່ານ. ຫາກເວັບໄຊເຮັດສິ່ງທີ່ໜ້າສົງໄສ, ລະບົບຈະສົ່ງ URL ແບບເຕັມ ແລະ ເນື້ອຫາຂອງໜ້າເວັບບາງສ່ວນນຳ.</translation>
 <translation id="4016217212818346953">ປອດໄພຢູ່ສະເໝີດ້ວຍຕົວຈັດການລະຫັດຜ່ານ</translation>
@@ -297,7 +297,7 @@
 <translation id="10925962326134232">ປັບແຕ່ງ Brave ເພື່ອສ້າງຮູບລັກໃໝ່ໃຫ້ໂປຣແກຣມທ່ອງເວັບຂອງທ່ານ</translation>
 <translation id="6596295505984504022">ປັບແຕ່ງ Brave ຂອງທ່ານ</translation>
 <translation id="4148957013307229264">ກໍາລັງ​ຕິດ​ຕັ້ງ...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - ການເຂົ້າສູ່ລະບົບເຄືອຂ່າຍ - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - ການເຂົ້າສູ່ລະບົບເຄືອຂ່າຍ - Socket</translation>
 <translation id="2871190378186459992">ຄົ້ນພົບແອັບ, ເກມ, ສ່ວນຂະຫຍາຍ ແລະ ຮູບແບບສີສັນສຳລັບ Brave.</translation>
 <translation id="462105622535258178">ເພື່ອຮັບສ່ວນຂະຫຍາຍນີ້ ແລະ ອື່ນໆຢູ່ຄອມພິວເຕີທັງໝົດຂອງທ່ານ, ໃຫ້ເຂົ້າສູ່ລະບົບ Brave</translation>
 <translation id="6670140629169983459">ເພື່ອທ່ອງໂລກອອນລາຍຢ່າງປອດໄພຍິ່ງຂຶ້ນດ້ວຍຕົວເລືອກຂອງຜູ້ປົກຄອງຂອງທ່ານ, ໃຫ້ປ່ຽນໄປໃຊ້ໂປຣໄຟລ໌ Brave ຂອງທ່ານທີ່ເຂົ້າສູ່ລະບົບໃນຖານະ <ph name="USER_EMAIL_ADDRESS"/> ຢູ່ກ່ອນແລ້ວ</translation>
@@ -329,7 +329,7 @@
 <translation id="4493028449971051158">ຂໍ້ຜິດພາດໃນການເລີ່ມຕົ້ນ: ກະລຸນາເອີ້ນໃຊ້ຕົວຕິດຕັ້ງໃນຖານະຜູ້ເບິ່ງແຍງລະບົບ.</translation>
 <translation id="4501471624619070934">ການຕິດຕັ້ງບໍ່ສຳເລັດເນື່ອງຈາກສິດເຂົ້າເຖິງຖືກຈຳກັດໃນປະເທດນີ້.</translation>
 <translation id="8594994021633965927">ສ່ວນຂະຫຍາຍນີ້ບໍ່ໄດ້ເຜີຍແຜ່ຂໍ້ປະຕິບັດຄວາມເປັນສ່ວນຕົວ, ເຊັ່ນ: ວິທີທີ່ມັນຮວບຮວມ ແລະ ໃຊ້ຂໍ້ມູນ. Brave ແນະນຳໃຫ້ທ່ານລຶບອອກ.</translation>
-<translation id="770557926599450702">ຍິນດີຕ້ອນຮັບສູ່ Brave Origin; ເປີດໜ້າຈໍໂປຣແກຣມທ່ອງເວັບໃໝ່ແລ້ວ</translation>
+<translation id="3788134970312783571">ຍິນດີຕ້ອນຮັບສູ່ Socket; ເປີດໜ້າຈໍໂປຣແກຣມທ່ອງເວັບໃໝ່ແລ້ວ</translation>
 <translation id="137732229629632648">Brave ຕ້ອງໄດ້ຮັບການອະນຸຍາດເພື່ອສ້າງແຜນທີ່ພື້ນທີ່ອ້ອມຂ້າງຂອງທ່ານ ແລະ ຕິດຕາມການເຄື່ອນໄຫວຂອງມືທ່ານ</translation>
 <translation id="5036046007335188949">ທ່ານເຂົ້າສູ່ລະບົບດ້ວຍ <ph name="USER_EMAIL_ADDRESS"/> ໃນໂປຣໄຟລ໌ Brave ອື່ນຢູ່ກ່ອນແລ້ວ</translation>
 <translation id="1878185978731985193">Brave ຈະໂຫຼດໜ້າເວັບກ່ອນລ່ວງໜ້າເຊິ່ງເຮັດໃຫ້ເລືອກເບິ່ງ ແລະ ຊອກຫາໄດ້ໄວຂຶ້ນ. <ph name="BEGIN_LINK"/>ສຶກສາເພີ່ມເຕີມກ່ຽວກັບໜ້າໂຫຼດກ່ອນລ່ວງໜ້າ<ph name="END_LINK"/></translation>
@@ -337,7 +337,7 @@
 <translation id="8669339108356170796">Brave ບລັອກການດາວໂຫຼດນີ້ ເນື່ອງຈາກທ່ານປິດ Safe Browsing ແລະ ເຮັດໃຫ້ບໍ່ສາມາດຢັ້ງຢືນໄຟລ໌ໄດ້</translation>
 <translation id="7583343841997441047">ລອງໃຊ້ Google Lens ກັບ Brave ຢູ່ໂທລະສັບຂອງທ່ານ</translation>
 <translation id="4594305310729380060">ຫາຕົວຈັດການລະຫັດຜ່ານຢູ່ອຸປະກອນນີ້</translation>
-<translation id="7776200949522126045">ແອັບ Brave Origin</translation>
+<translation id="1662388968719244110">ແອັບ Socket</translation>
 <translation id="4598116752460667024">ຊອກຫາຂະບວນການໃດໆຈາກລາຍຊື່.</translation>
 <translation id="4970880042055371251">ເວີຊັນ ChromeOS</translation>
 <translation id="2182657378556811785">ອັບເດດໃກ້ແລ້ວໆ! ກະລຸນາປິດແລ້ວເປີດ Brave ຄືນໃໝ່ເພື່ອສິ້ນສຸດຂັ້ນຕອນການອັບເດດ.</translation>
@@ -355,8 +355,8 @@
 <translation id="844451748565342664">ຫາກ Gemini ໃນ Brave ເປີດຢູ່, ແຜງຄວບຄຸມດ້ານຂ້າງຈະເປີດຢູ່ເມື່ອສ້າງແຖບໃໝ່</translation>
 <translation id="215320507915280336">ນີ້ໃຊ້ຕົວກວດການສະກົດຄໍາດຽວກັນກັບທີ່ໃຊ້ໃນ Brave ຊອກຫາ. ຂໍ້ຄວາມທີ່ທ່ານພິມໃນໂປຣແກຣມທ່ອງເວັບຖືກສົ່ງໃຫ້ Brave. ທ່ານສາມາດປ່ຽນລັກສະນະການນໍາໃຊ້ນີ້ໄດ້ສະເໝີໃນການຕັ້ງຄ່າ.</translation>
 <translation id="2899369907387169108">ໃຊ້ Brave ໂດຍບໍ່ມີບັນຊີ</translation>
-<translation id="1833893255023048385">ກົດລະບຽບຂາເຂົ້າສໍາລັບ Brave Origin ເພື່ອອະນຸຍາດການຈາລະຈອນ mDNS.</translation>
-<translation id="711601904575862069">ເລີ່ມເປີດໃຊ້ໃໝ່ເພື່ອອັບເດດ &amp;Brave</translation>
+<translation id="6972301482162050771">ກົດລະບຽບຂາເຂົ້າສໍາລັບ Socket ເພື່ອອະນຸຍາດການຈາລະຈອນ mDNS.</translation>
+<translation id="2428387668457441558">ເລີ່ມເປີດໃຊ້ໃໝ່ເພື່ອອັບເດດ &amp;Socket</translation>
 <translation id="4918086044614829423">ຍອມ​ຮັບ</translation>
 <translation id="4918844574251943176">ສຳເນົາຮູບແລ້ວ</translation>
 <translation id="8797356639448065696">Brave ຢູ່ໃນໂໝດພື້ນຫຼັງ.</translation>
@@ -397,7 +397,7 @@
 <translation id="5267531627648004734">ເອົາ​ອອກ​ຈາກ Brave</translation>
 <translation id="4620757336635063467">ຫຼຸດປະສິດທິພາບ ແຕ່ເຮັດໃຫ້ Brave ທົນທານຕໍ່ການໂຈມຕີໄດ້ຫຼາຍຂຶ້ນ</translation>
 <translation id="239760341987199724">ຕັ້ງ Brave ເປັນບຣາວ​ເຊີມາດຕະຖານຂອງທ່ານ</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave ແນະນຳໃຫ້ຢຸດແຖບທີ່ເຮັດໃຫ້ໂປຣແກຣມທ່ອງເວັບຂອງທ່ານເຮັດວຽກຊ້າລົງຊົ່ວຄາວ}other{Brave ແນະນຳໃຫ້ຢຸດແຖບທີ່ເຮັດໃຫ້ໂປຣແກຣມທ່ອງເວັບຂອງທ່ານເຮັດວຽກຊ້າລົງຊົ່ວຄາວ}}</translation>
 <translation id="894936507076470937">Brave ອາດເຮັດວຽກໄດ້ບໍ່ຖືກຕ້ອງເນື່ອງຈາກ Linux distribution ນີ້ບໍ່ຮອງຮັບມັນອີກຕໍ່ໄປແລ້ວ.</translation>
 <translation id="2596557398669145729">Brave ບລັອກການດາວໂຫຼດນີ້ເພາະວ່າໄຟລ໌ສາມາດເປັນອັນຕະລາຍຕໍ່ບັນຊີສ່ວນຕົວ ແລະ ບັນຊີເຄືອຂ່າຍສັງຄົມຂອງທ່ານໄດ້</translation>
@@ -430,7 +430,7 @@
 <translation id="95980832839683236">ເພີ່ມຄວາມໄວເວັບໄຊດ້ວຍເຄື່ອງຈັກ V8 ຂອງ Brave ແຕ່ເຮັດໃຫ້ Brave ມີຄວາມທົນທານຕໍ່ການໂຈມຕີໜ້ອຍລົງເລັກນ້ອຍ. ການຕັ້ງຄ່ານີ້ປິດຢູ່.</translation>
 <translation id="1224606669200461217">ເພື່ອໃຊ້ ແລະ ບັນທຶກຂໍ້ມູນ Brave ໃນບັນຊີ Brave ຂອງທ່ານ, ກະລຸນາອັບເດດ Brave</translation>
 <translation id="5824893331272123205">ບໍ່ສາມາດໂຫຼດແຜງນີ້ໄດ້, ກະລຸນາລອງໃໝ່</translation>
-<translation id="4467664627714200493">ຍິນ​ດີ​ຕ້ອນ​ຮັບສູ່ Brave Origin</translation>
+<translation id="1125671961408630460">ຍິນ​ດີ​ຕ້ອນ​ຮັບສູ່ Socket</translation>
 <translation id="4026807082142463673">ເປີດຄຸນສົມບັດເພີ່ມເຕີມເພື່ອໃຫ້ການປົກປ້ອງທີ່ເຂັ້ມງວດທີ່ສຸດຂອງ Brave</translation>
 <translation id="5871205389137001634">ຄລິກເພື່ອອອກຈາກການຊອກຫາຮູບ</translation>
 <translation id="8054200348483755053">Brave ພົບວ່າລາຍການເຫຼົ່ານີ້ມີເມົາແວ:</translation>
@@ -496,7 +496,7 @@
 <translation id="6388799252195623474">ຊ່ວຍຂ້ອຍໃນເລື່ອງນີ້</translation>
 <translation id="7920857181125123335">ເພື່ອສືບຕໍ່, ໃຫ້ເຂົ້າສູ່ລະບົບ Brave ດ້ວຍ <ph name="EMAIL"/>. ການດຳເນີນການນີ້ຈະກວດສອບວ່າທ່ານມີນະໂຍບາຍຂອງອົງກອນຂອງທ່ານແລ້ວ.</translation>
 <translation id="3256100650978957522">ໂລໂກ້ Brave ພາຍໃນໜ້າຈໍຄອມພິວເຕີ.</translation>
-<translation id="5880764554173582719">Brave Origin ແມ່ນບຣາວເຊີເວັບທີ່ແລ່ນໜ້າເວັບ ແລະແອັບພລິເຄຊັນດ້ວຍຄວາມໄວແບບສາຍຟ້າແມັບ. ມັນໄວ, ໝັ້ນຄົງ, ແລະໃຊ້ງ່າຍ. ທ່ອງເວັບໄດ້ປອດໄພກ່ວາດ້ວຍການປົກປ້ອງມາລແວ ແລະພິຊຊິງທີ່ສ້າງຢູ່ໃນຕົວ Brave Origin.</translation>
+<translation id="7527968786016866645">Socket ແມ່ນບຣາວເຊີເວັບທີ່ແລ່ນໜ້າເວັບ ແລະແອັບພລິເຄຊັນດ້ວຍຄວາມໄວແບບສາຍຟ້າແມັບ. ມັນໄວ, ໝັ້ນຄົງ, ແລະໃຊ້ງ່າຍ. ທ່ອງເວັບໄດ້ປອດໄພກ່ວາດ້ວຍການປົກປ້ອງມາລແວ ແລະພິຊຊິງທີ່ສ້າງຢູ່ໃນຕົວ Socket.</translation>
 <translation id="4091049150278654573">ເພື່ອກວດສອບໃຫ້ແນ່ໃຈວ່າທ່ານສາມາດໃຊ້ ແລະ ບັນທຶກຂໍ້ມູນ Brave ໃນບັນຊີ Brave ຂອງທ່ານໄດ້ຕະລອດເວລາ, ກະລຸນາຢັ້ງຢືນວ່າແມ່ນທ່ານ</translation>
 <translation id="2532326772258858491">Brave ເຮັດວຽກໄດ້ໄວຂຶ້ນ ແລະ ຄຸນສົມບັດທີ່ໃຊ້ JavaScript ຄວນເຮັດວຽກຕາມທີ່ອອກແບບໄວ້</translation>
 <translation id="6436260184216827876">ການຊອກຫາຮູບບໍ່ພ້ອມນຳໃຊ້. ກະລຸນາລອງໃໝ່ໃນພາຍຫຼັງ.</translation>
@@ -544,7 +544,7 @@
 <translation id="6831043979455480757">ແປພາສາ</translation>
 <translation id="8211837073776713955">Brave ແຈ້ງໃຫ້ທ່ານຮູ້ຖ້າມີຄົນຮູ້ລະຫັດຜ່ານຂອງທ່ານ</translation>
 <translation id="684888714667046800">ບໍ່ສາມາດເຊື່ອມຕໍ່ກັບອິນເຕີເນັດໄດ້. ຫາກທ່ານໃຊ້ firewall, ກະລຸນາກວດສອບໃຫ້ໝັ້ນໃຈວ່າ <ph name="PRODUCT_EXE_NAME"/> ຢູ່ໃນລາຍຊື່ອະນຸຍາດ.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">ແຕະເພື່ອສືບຕໍ່</translation>
 <translation id="6862030660799253820">ຊອກຫາຮູບນີ້ດ້ວຍຄຸນສົມບັດຊອກຫາຮູບ</translation>
 <translation id="3028928628792374067">Brave ພົບວ່າ "<ph name="EXTENSION_NAME"/>" ມີເມົາແວ</translation>
@@ -612,7 +612,7 @@ Brave ບໍ່ສາມາດກູ້ການຕັ້ງຄ່າຂອງ�
 <translation id="284799389314308801">1. ຄລິກ <ph name="BUTTON_LABEL"/> ທາງລຸ່ມ
 2. ຄລິກ <ph name="BUTTON_2"/> ໃນການຕັ້ງຄ່າ Windows ຂອງທ່ານ
 3. ຄລິກ <ph name="BUTTON_3"/> ໃນການແຈ້ງເຕືອນ Windows ເພື່ອປັກໝຸດ Brave ໄວ້ຢູ່ແຖບໜ້າວຽກຂອງທ່ານເພື່ອໃຫ້ເຂົ້າເຖິງໄດ້ຢ່າງວ່ອງໄວ</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">ສຳເນົາຂໍ້ຄວາມແລ້ວ</translation>
 <translation id="2034072705932785495">Brave ຕ້ອງການການອະນຸຍາດເພື່ອເຂົ້າເຖິງກ້ອງຖ່າຍຮູບຂອງທ່ານສຳລັບເວັບໄຊນີ້</translation>
 <translation id="7129342855140808694">ເພື່ອໃຊ້ໄມໂຄຣໂຟນຂອງທ່ານ, ກະລຸນາມອບສິດເຂົ້າເຖິງໃຫ້ Brave ໃນ <ph name="BEGIN_LINK"/>ການຕັ້ງຄ່າລະບົບ<ph name="END_LINK"/></translation>
@@ -643,7 +643,7 @@ Brave ບໍ່ສາມາດກູ້ການຕັ້ງຄ່າຂອງ�
 <translation id="8543787950557226450">ຣີເຊັດເປັນ Brave ແບບຄ່າເລີ່ມຕົ້ນ</translation>
 <translation id="4976450819672499783">ຕັ້ງ Brave ເປັນຄ່າເລີ່ມຕົ້ນ ແລະ ປັກໝຸດໄວ້ຢູ່ແຖບໜ້າວຽກ</translation>
 <translation id="1978509466033734608">ເຮັດໃຫ້ Brave ໄວຂຶ້ນ</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">ເຮັດໃຫ້ຜູ້ທີ່ມີສິດເຂົ້າເຖິງທຣາບຟິກອິນເຕີເນັດຂອງທ່ານເບິ່ງວ່າທ່ານເຂົ້າເບິ່ງເວັບໄຊໃດແດ່ໄດ້ຍາກຂຶ້ນ. Brave ໃຊ້ການເຊື່ອມຕໍ່ທີ່ປອດໄພເພື່ອຊອກຫາທີ່ຢູ່ IP ຂອງເວັບໄຊໃນ DNS (ລະບົບຊື່ໂດເມນ).</translation>
 <translation id="7810005234485217901">ທ່ານສາມາດປັກໝຸດການຊອກຫາຮູບເພື່ອໃຫ້ເຂົ້າເຖິງໄດ້ງ່າຍ</translation>
 <translation id="1652855885539187849">ມີໂປຣໄຟລ໌ Brave ກັບບັນຊີນີ້ຢູ່ອຸປະກອນນີ້ຢູ່ກ່ອນແລ້ວ</translation>
@@ -670,7 +670,7 @@ Brave ບໍ່ສາມາດກູ້ການຕັ້ງຄ່າຂອງ�
 <translation id="6175141682081019059">ປິດການນຳໃຊ້ Brave ທີ່ເຮັດວຽກໃນພື້ນຫຼັງສຳລັບແອັບ</translation>
 <translation id="80790299200510644">ຊອກຫາຮູບ</translation>
 <translation id="8086881907087796310">ການຕິດຕັ້ງບໍ່ສຳເລັດເນື່ອງຈາກຄອມພິວເຕີຂອງທ່ານບໍ່ເປັນໄປຕາມຂໍ້ກຳນົດຂັ້ນຕ່ຳສຳລັບຮາດແວ.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Brave ຕ້ອງການການອະນຸຍາດສະຖານທີ່ສຳລັບເວັບໄຊນີ້</translation>
 <translation id="3576319845915562805">ເທື່ອຕໍ່ໄປທີ່ທ່ານເປີດ Brave ຢູ່ <ph name="DEVICE_TYPE"/> ຂອງທ່ານ, ທ່ານຈະເຫັນຂໍ້ຄວາມແຈ້ງໃຫ້ເປີດການນຳໃຊ້ການແຈ້ງເຕືອນການຕິດຕາມລາຄາ.</translation>
 <translation id="3728025339793417202">ຮັບການແຈ້ງເຕືອນລາຄາຫຼຸດລົງສຳລັບສິນຄ້າທີ່ທ່ານສົນໃຈດ້ວຍແອັບ Brave ຢູ່ໂທລະສັບຂອງທ່ານ</translation>
@@ -781,8 +781,8 @@ Brave ບໍ່ສາມາດກູ້ການຕັ້ງຄ່າຂອງ�
 <translation id="9148058034647219655">ອອກ</translation>
 <translation id="2792073155252170448">ສືບຕໍ່ຈາກບ່ອນທີ່ທ່ານຄ້າງໄວ້: Brave ສາມາດກູ້ຄືນແຖບຂອງທ່ານໄດ້ທຸກຄັ້ງທີ່ທ່ານປິດເປີດໃໝ່. ເພື່ອເປີດໃຊ້ສິ່ງນີ້, ໃຫ້ໄປຫາ</translation>
 <translation id="2444257125841652328">ຜູ້ເບິ່ງແຍງລະບົບໄດ້ກຳນົດຄ່າ Brave ໃຫ້ເປີດໂປຣແກຣມທ່ອງເວັບສຳຮອງເພື່ອເຂົ້າເຖິງ <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">ເລີ່ມເປີດໃຊ້ໃໝ່ເພື່ອອັບເດດ &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">ເລີ່ມເປີດໃຊ້ໃໝ່ເພື່ອອັບເດດ &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">ຕັ້ງຄ່າ Brave ໃນແບບຂອງທ່ານເອງ</translation>
 <translation id="7977787072794666032">Brave ອາດຈະບໍ່ເຮັດວຽກຢ່າງຖືກຕ້ອງ ເພາະວ່າມັນບໍ່ຖືກຮອງຮັບໃນ Windows XP ຫຼື Windows Vista ອີກຕໍ່ໄປ</translation>
 <translation id="8462937515915443472">ໃຊ້ຄຸນສົມບັດຄວາມປອດໄພທີ່ດີທີ່ສຸດຂອງ Brave ໄດ້ທຸກບ່ອນທຸກເວລາດ້ວຍ Brave.</translation>
