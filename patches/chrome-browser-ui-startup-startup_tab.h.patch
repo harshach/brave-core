@@ -11,6 +11,8 @@ index 494d35877bec129310bef73cec9aebc722d135aa..0b9f50754fcc4db95d544d25126a794e
 +  containers::ContainerSpecifier container;
 +#endif
 +
++  bool is_origin_external_link = false;
++
 +  StartupTab(const StartupTab&);
 +  StartupTab& operator=(const StartupTab&);
 +  StartupTab(StartupTab&&) noexcept;

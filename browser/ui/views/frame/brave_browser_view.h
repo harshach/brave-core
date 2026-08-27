@@ -83,6 +83,7 @@ class ContentsLayoutManager;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
+class OriginTemporaryLinkView;
 struct OriginQuickOpenSelection;
 class SidebarContainerView;
 class SidePanelEntry;
@@ -406,6 +407,7 @@ class BraveBrowserView : public BrowserView,
   raw_ptr<views::View> contents_background_view_ = nullptr;
   raw_ptr<views::View> origin_empty_space_view_ = nullptr;
   raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
+  raw_ptr<OriginTemporaryLinkView> origin_temporary_link_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>
       vertical_tab_strip_container_view_ = nullptr;

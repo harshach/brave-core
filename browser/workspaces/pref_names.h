@@ -15,4 +15,9 @@ inline constexpr char kWorkspacesMetadataPref[] = "brave.workspaces.metadata";
 // workspace snapshots above.
 inline constexpr char kOriginSpacesPref[] = "brave.origin.spaces";
 
+// Dictionary mapping registrable domains to Origin Space IDs. These rules are
+// applied only to links handed to the browser by the operating system.
+inline constexpr char kOriginDomainSpaceRulesPref[] =
+    "brave.origin.domain_space_rules";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

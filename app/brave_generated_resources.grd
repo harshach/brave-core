@@ -1267,7 +1267,9 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       <message name="IDS_DOWNLOADS_TITLE" desc="Title for the downloads page and navigation bar label.">
         Downloads
       </message>
-
+      <message name="IDS_BRAVE_DOWNLOAD_BUBBLE_STATUS_FINISHING" desc="Status shown while a fully received download is being finalized before it can be opened.">
+        Finishing…
+      </message>
       <!-- Bookmarks -->
       <message name="IDS_BRAVE_BOOKMARK_MANAGER_EMPTY_LIST" desc="">
         To add a bookmark, click the bookmark button next to the address bar
@@ -1651,6 +1653,26 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       </message>
       <message name="IDS_BRAVE_HISTORY_EMBEDDINGS_TOGGLE_DESCRIPTION" desc="One-line explainer below the Semantic History Search toggle on chrome://history.">
         Index pages you visit locally so you can search your history by meaning. All processing stays on this device.
+      </message>
+
+      <!-- Origin temporary external-link window -->
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_OPEN_IN" desc="Label before the destination space selector in an Origin temporary external-link window.">
+        Open in
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_KEEP" desc="Button label that keeps a temporary external page in the selected space.">
+        Keep
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_DISCARD" desc="Accessible name and tooltip for the button that discards a temporary external page.">
+        Discard temporary page
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_CHOOSE_SPACE" desc="Fallback label for the destination selector when an Origin temporary external-link window has no suggested space.">
+        Choose Space
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_DEFAULT_SPACE" desc="Label shown beside the currently suggested destination in the temporary-link space picker.">
+        default
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_ALWAYS_OPEN_DOMAIN_HERE" desc="Switch label that remembers the selected destination space for a website domain.">
+        Always open <ph name="DOMAIN">$1<ex>example.com</ex></ph> here
       </message>
       <!--Add new items to the appropriate sections above -->
     </messages>

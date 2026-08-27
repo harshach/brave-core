@@ -64,6 +64,7 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterDictionaryPref(kWorkspacesMetadataPref);
   registry->RegisterListPref(kOriginSpacesPref);
+  registry->RegisterDictionaryPref(kOriginDomainSpaceRulesPref);
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {
