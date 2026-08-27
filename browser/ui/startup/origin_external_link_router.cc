@@ -16,6 +16,7 @@
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/browser_init_state.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -93,6 +94,14 @@ base::WeakPtr<Browser> GetSyntheticFallback(
   if (!fallback || fallback == routed_browser ||
       fallback->GetProfile() != profile || !fallback->is_type_normal() ||
       fallback->IsDeleteScheduled() || !fallback->tab_strip_model()->empty()) {
+    return {};
+  }
+
+  // A session-restore window is empty while its saved tabs are being inserted.
+  // It is not the disposable placeholder created for an external URL launch.
+  const BrowserInitState* init_state = BrowserInitState::From(fallback);
+  if (init_state && init_state->creation_source() ==
+                        Browser::CreationSource::kSessionRestore) {
     return {};
   }
   return fallback->AsWeakPtr();

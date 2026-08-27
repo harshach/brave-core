@@ -68,6 +68,8 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
   registry->RegisterDictionaryPref(kOriginDomainSpaceRulesPref);
   registry->RegisterStringPref(kOriginLastTemporaryLinkSpacePref,
                                std::string());
+  registry->RegisterDictionaryPref(kOriginTabSessionSpacesPref);
+  registry->RegisterDictionaryPref(kOriginWindowSessionSpacesPref);
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

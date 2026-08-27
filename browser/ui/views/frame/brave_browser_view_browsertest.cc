@@ -14,8 +14,10 @@
 #include "base/check.h"
 #include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
+#include "base/task/sequenced_task_runner.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
@@ -51,6 +53,7 @@
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_init_state.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -205,13 +208,17 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
         ->origin_temporary_link_view_;
   }
 
-  Browser* OpenOriginTemporaryLink(const GURL& url) {
-    NavigateParams params(browser(), url, ui::PAGE_TRANSITION_LINK);
-    origin_external_link::ConfigureNavigation(url, browser(), &params);
+  Browser* OpenOriginTemporaryLink(Browser* fallback, const GURL& url) {
+    NavigateParams params(fallback, url, ui::PAGE_TRANSITION_LINK);
+    origin_external_link::ConfigureNavigation(url, fallback, &params);
     Browser* temporary_browser =
         params.browser ? params.browser->GetBrowserForMigrationOnly() : nullptr;
     Navigate(&params);
     return temporary_browser;
+  }
+
+  Browser* OpenOriginTemporaryLink(const GURL& url) {
+    return OpenOriginTemporaryLink(browser(), url);
   }
 #endif
 };
@@ -364,6 +371,63 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             temporary_view->PreHandleKeyboardEvent(discard_event));
   EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginTemporaryLinkPreservesSessionRestoreWindow) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+
+  Browser::CreateParams restore_params(browser()->GetProfile(),
+                                       /*user_gesture=*/false);
+  restore_params.creation_source = Browser::CreationSource::kSessionRestore;
+  restore_params.should_trigger_session_restore = false;
+  Browser* restoring_browser = Browser::Create(restore_params);
+  ASSERT_TRUE(restoring_browser);
+  ASSERT_TRUE(restoring_browser->tab_strip_model()->empty());
+  const BrowserInitState* restore_state =
+      BrowserInitState::From(restoring_browser);
+  ASSERT_TRUE(restore_state);
+  ASSERT_TRUE(restore_state->is_session_restore());
+  base::WeakPtr<Browser> restoring_browser_weak =
+      restoring_browser->AsWeakPtr();
+
+  Browser* temporary_browser = OpenOriginTemporaryLink(
+      restoring_browser, embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  ASSERT_TRUE(origin_external_link::IsTemporaryLinkBrowser(temporary_browser));
+
+  // ConfigureNavigation posts its placeholder cleanup. A sentinel on the same
+  // sequence makes the assertion deterministic without draining unrelated
+  // browser tasks.
+  base::test::TestFuture<void> cleanup_finished;
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, cleanup_finished.GetCallback());
+  ASSERT_TRUE(cleanup_finished.Wait());
+
+  ASSERT_TRUE(restoring_browser_weak);
+  EXPECT_FALSE(restoring_browser_weak->IsDeleteScheduled());
+  EXPECT_TRUE(restoring_browser_weak->tab_strip_model()->empty());
+
+  Browser::CreateParams placeholder_params(browser()->GetProfile(),
+                                           /*user_gesture=*/false);
+  placeholder_params.should_trigger_session_restore = false;
+  Browser* placeholder_browser = Browser::Create(placeholder_params);
+  ASSERT_TRUE(placeholder_browser);
+  ASSERT_TRUE(placeholder_browser->tab_strip_model()->empty());
+  base::WeakPtr<Browser> placeholder_browser_weak =
+      placeholder_browser->AsWeakPtr();
+
+  EXPECT_EQ(temporary_browser,
+            OpenOriginTemporaryLink(
+                placeholder_browser,
+                embedded_test_server()->GetURL("/title2.html")));
+  EXPECT_TRUE(
+      base::test::RunUntil([&] { return !placeholder_browser_weak; }));
+  EXPECT_TRUE(restoring_browser_weak);
+
+  CloseBrowserSynchronously(temporary_browser);
+  CloseBrowserSynchronously(restoring_browser_weak.get());
+  EXPECT_FALSE(restoring_browser_weak);
 }
 
 class OriginExtensionInputShortcutBrowserTest

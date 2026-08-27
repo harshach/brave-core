@@ -9,6 +9,7 @@
 #include "base/command_line.h"
 #include "base/containers/map_util.h"
 #include "base/run_loop.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/test/bind.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
@@ -16,7 +17,12 @@
 #include "brave/browser/sessions/brave_session_keys.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
+#include "brave/browser/workspaces/pref_names.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
 #include "brave/components/tabs/public/tree_tab_node_tab_collection.h"
 #include "chrome/browser/prefs/session_startup_pref.h"
@@ -26,6 +32,7 @@
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
@@ -36,6 +43,7 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/prefs/pref_service.h"
 #include "components/saved_tab_groups/public/tab_group_sync_service.h"
+#include "components/sessions/content/session_tab_helper.h"
 #include "components/sessions/core/serialized_navigation_entry.h"
 #include "components/sessions/core/session_types.h"
 #include "components/sessions/core/tab_restore_service.h"
@@ -54,6 +62,86 @@
 #include "third_party/blink/public/common/page_state/page_state_serialization.h"
 
 using BraveSessionRestoreBrowserTest = InProcessBrowserTest;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveSessionRestoreBrowserTest,
+                       OriginSpaceDataSurvivesFullSessionRebuild) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(contents);
+  const SessionID tab_id = sessions::SessionTabHelper::IdForTab(contents);
+  const SessionID window_id = browser()->session_id();
+  const std::string empty_space_id =
+      workspace_service->GetOriginSpaces()[1].id;
+  controller->MoveTabToSpace(contents, empty_space_id);
+  ASSERT_EQ(empty_space_id, controller->GetSpaceIdForTab(contents));
+  ASSERT_TRUE(controller->SelectSpace(empty_space_id));
+  ASSERT_EQ(empty_space_id, controller->active_space_id());
+
+  const PrefService* prefs = browser()->GetProfile()->GetPrefs();
+  const std::string* backed_up_tab_space =
+      prefs->GetDict(kOriginTabSessionSpacesPref)
+          .FindString(base::NumberToString(tab_id.id()));
+  const std::string* backed_up_window_space =
+      prefs->GetDict(kOriginWindowSessionSpacesPref)
+          .FindString(base::NumberToString(window_id.id()));
+  ASSERT_TRUE(backed_up_tab_space);
+  ASSERT_TRUE(backed_up_window_space);
+  EXPECT_EQ(empty_space_id, *backed_up_tab_space);
+  EXPECT_EQ(empty_space_id, *backed_up_window_space);
+
+  SessionService* session_service =
+      SessionServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(session_service);
+  session_service->ResetFromCurrentBrowsers();
+  session_service->MoveCurrentSessionToLastSession();
+
+  base::RunLoop loop;
+  session_service->GetLastSession(base::BindLambdaForTesting(
+      [&](std::vector<std::unique_ptr<sessions::SessionWindow>> windows,
+          SessionID /*active_window*/, bool error_reading) {
+        loop.Quit();
+        ASSERT_FALSE(error_reading);
+        const sessions::SessionWindow* saved_window = nullptr;
+        for (const auto& window : windows) {
+          if (window->window_id == window_id) {
+            saved_window = window.get();
+            break;
+          }
+        }
+        ASSERT_TRUE(saved_window);
+
+        const sessions::SessionTab* saved_tab = nullptr;
+        for (const auto& tab : saved_window->tabs) {
+          if (tab->tab_id == tab_id) {
+            saved_tab = tab.get();
+            break;
+          }
+        }
+        ASSERT_TRUE(saved_tab);
+        const std::string* saved_tab_space =
+            base::FindOrNull(saved_tab->extra_data, kBraveOriginSpaceIdKey);
+        EXPECT_FALSE(saved_tab_space);
+        const std::string* saved_active_space = base::FindOrNull(
+            saved_window->extra_data, kBraveOriginActiveSpaceIdKey);
+        EXPECT_FALSE(saved_active_space);
+      }));
+  loop.Run();
+
+  controller->BeginWindowRestore({});
+  controller->MaybeRestoreTabSpace(contents, {});
+  controller->FinishWindowRestore();
+  EXPECT_EQ(empty_space_id, controller->active_space_id());
+  EXPECT_EQ(empty_space_id, controller->GetSpaceIdForTab(contents));
+}
+#endif
 
 IN_PROC_BROWSER_TEST_F(BraveSessionRestoreBrowserTest,
                        SerializationClearNonEmptyPageState) {

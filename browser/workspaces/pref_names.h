@@ -25,4 +25,12 @@ inline constexpr char kOriginDomainSpaceRulesPref[] =
 inline constexpr char kOriginLastTemporaryLinkSpacePref[] =
     "brave.origin.last_temporary_link_space";
 
+// Durable fallbacks keyed by Chromium session IDs. Session command files can
+// be rebuilt without extension metadata, so these dictionaries preserve the
+// latest tab membership and selected Space until the next restore.
+inline constexpr char kOriginTabSessionSpacesPref[] =
+    "brave.origin.tab_session_spaces";
+inline constexpr char kOriginWindowSessionSpacesPref[] =
+    "brave.origin.window_session_spaces";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

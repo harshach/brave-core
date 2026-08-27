@@ -188,6 +188,7 @@ if (!is_android) {
       "//chrome/browser/profiles:profile",
       "//chrome/browser/sessions",
       "//chrome/browser/ui/tabs:tab_strip",
+      "//components/prefs",
       "//components/sessions",
       "//components/sessions:session_id",
       "//content/public/browser",

@@ -11,9 +11,11 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/sessions/brave_session_keys.h"
 #include "brave/browser/workspaces/features.h"
+#include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/components/constants/webui_url_constants.h"
@@ -23,6 +25,9 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/test/base/browser_with_test_window_test.h"
+#include "components/prefs/pref_service.h"
+#include "components/prefs/scoped_user_pref_update.h"
+#include "components/sessions/content/session_tab_helper.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/web_contents_tester.h"
 #include "extensions/browser/extension_system.h"
@@ -189,6 +194,45 @@ TEST_F(OriginSpaceControllerTest, RestoresAnEmptySelectedSpaceForTheWindow) {
   std::map<std::string, std::string> saved_window_data;
   controller_->MaybePopulateWindowExtraData(&saved_window_data);
   EXPECT_EQ(saved_window_data[kBraveOriginActiveSpaceIdKey], empty_id);
+}
+
+TEST_F(OriginSpaceControllerTest,
+       RestoresSpaceMetadataFromDurableSessionBackup) {
+  const std::string home_id = controller_->active_space_id();
+  const std::string empty_id =
+      workspace_service_->CreateOriginSpace("Planning", "📝");
+  content::WebContents* restored_tab = AddTab(/*foreground=*/true);
+  const auto* session_helper =
+      sessions::SessionTabHelper::FromWebContents(restored_tab);
+  ASSERT_TRUE(session_helper);
+  const std::string tab_session_key =
+      base::NumberToString(session_helper->session_id().id());
+
+  ASSERT_TRUE(controller_->SelectSpace(empty_id));
+  controller_->MoveTabToSpace(restored_tab, empty_id);
+  ASSERT_EQ(controller_->GetSpaceIdForTab(restored_tab), empty_id);
+
+  // Model the durable values written before a session command reset dropped
+  // its Origin extra data.
+  {
+    ScopedDictPrefUpdate tab_backups(*profile()->GetPrefs(),
+                                     kOriginTabSessionSpacesPref);
+    tab_backups->Set(tab_session_key, home_id);
+  }
+  const std::string* saved_window_space =
+      profile()->GetPrefs()
+          ->GetDict(kOriginWindowSessionSpacesPref)
+          .FindString(base::NumberToString(browser()->session_id().id()));
+  ASSERT_TRUE(saved_window_space);
+  EXPECT_EQ(*saved_window_space, empty_id);
+
+  controller_->BeginWindowRestore({});
+  controller_->MaybeRestoreTabSpace(restored_tab, {});
+  controller_->FinishWindowRestore();
+
+  EXPECT_EQ(controller_->active_space_id(), empty_id);
+  EXPECT_FALSE(controller_->ActiveSpaceHasTabs());
+  EXPECT_EQ(controller_->GetSpaceIdForTab(restored_tab), home_id);
 }
 
 TEST_F(OriginSpaceControllerTest, InvalidRestoreDataFallsBackToHome) {

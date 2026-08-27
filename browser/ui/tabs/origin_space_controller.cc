@@ -6,6 +6,7 @@
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 
 #include <algorithm>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -13,20 +14,86 @@
 #include "base/containers/map_util.h"
 #include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/sessions/brave_session_keys.h"
+#include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/sessions/session_service.h"
 #include "chrome/browser/sessions/session_service_factory.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
+#include "components/prefs/pref_service.h"
+#include "components/prefs/scoped_user_pref_update.h"
 #include "components/sessions/content/session_tab_helper.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_user_data.h"
 #include "url/url_constants.h"
 
 namespace {
+
+constexpr size_t kMaxSessionSpaceBackups = 4096;
+
+std::string SessionIdKey(SessionID id) {
+  return base::NumberToString(id.id());
+}
+
+void SetSessionSpaceBackup(PrefService* prefs,
+                           const char* pref_name,
+                           SessionID session_id,
+                           const std::string& space_id) {
+  if (!prefs || !session_id.is_valid()) {
+    return;
+  }
+  const std::string key = SessionIdKey(session_id);
+  ScopedDictPrefUpdate backups(*prefs, pref_name);
+  if (backups->size() >= kMaxSessionSpaceBackups && !backups->Find(key)) {
+    const std::string pruned_key = backups->begin()->first;
+    backups->Remove(pruned_key);
+  }
+  backups->Set(key, space_id);
+}
+
+std::optional<std::string> GetSessionSpaceBackup(PrefService* prefs,
+                                                 const char* pref_name,
+                                                 SessionID session_id) {
+  if (!prefs || !session_id.is_valid()) {
+    return std::nullopt;
+  }
+  const std::string* space_id =
+      prefs->GetDict(pref_name).FindString(SessionIdKey(session_id));
+  return space_id ? std::optional<std::string>(*space_id) : std::nullopt;
+}
+
+void SetTabSessionSpaceBackup(PrefService* prefs,
+                              content::WebContents* contents,
+                              const std::string& space_id) {
+  const auto* session_helper =
+      sessions::SessionTabHelper::FromWebContents(contents);
+  if (!session_helper) {
+    return;
+  }
+  SetSessionSpaceBackup(prefs, kOriginTabSessionSpacesPref,
+                        session_helper->session_id(), space_id);
+}
+
+std::string GetBackedUpTabSpaceOrFallback(
+    PrefService* prefs,
+    const WorkspaceService* workspace_service,
+    content::WebContents* contents,
+    const std::string& fallback_space_id) {
+  const auto* session_helper =
+      sessions::SessionTabHelper::FromWebContents(contents);
+  if (!session_helper) {
+    return fallback_space_id;
+  }
+  std::optional<std::string> backup = GetSessionSpaceBackup(
+      prefs, kOriginTabSessionSpacesPref, session_helper->session_id());
+  return backup && workspace_service->GetOriginSpace(*backup)
+             ? std::move(*backup)
+             : fallback_space_id;
+}
 
 class OriginSpaceTabData
     : public content::WebContentsUserData<OriginSpaceTabData> {
@@ -66,8 +133,12 @@ OriginSpaceController::OriginSpaceController(Profile* profile,
   tab_strip_model_->AddObserver(this);
 
   for (int index = 0; index < tab_strip_model_->count(); ++index) {
-    EnsureSpaceForTab(tab_strip_model_->GetWebContentsAt(index),
-                      active_space_id_);
+    content::WebContents* contents =
+        tab_strip_model_->GetWebContentsAt(index);
+    EnsureSpaceForTab(contents,
+                      GetBackedUpTabSpaceOrFallback(
+                          profile_->GetPrefs(), workspace_service_, contents,
+                          active_space_id_));
   }
 }
 
@@ -307,12 +378,30 @@ void OriginSpaceController::MaybeRestoreTabSpace(
     const std::map<std::string, std::string>& extra_data) {
   const std::string* restored_space_id =
       base::FindOrNull(extra_data, kBraveOriginSpaceIdKey);
-  const std::string space_id =
-      restored_space_id &&
-              workspace_service_->GetOriginSpace(*restored_space_id)
-          ? *restored_space_id
-          : DefaultSpaceId();
-  MoveTabToSpace(restored_contents, space_id);
+  std::string space_id;
+  if (restored_space_id &&
+      workspace_service_->GetOriginSpace(*restored_space_id)) {
+    space_id = *restored_space_id;
+  } else if (const auto* session_helper =
+                 sessions::SessionTabHelper::FromWebContents(
+                     restored_contents)) {
+    std::optional<std::string> backup = GetSessionSpaceBackup(
+        profile_->GetPrefs(), kOriginTabSessionSpacesPref,
+        session_helper->session_id());
+    if (backup && workspace_service_->GetOriginSpace(*backup)) {
+      space_id = std::move(*backup);
+    }
+  }
+  if (space_id.empty()) {
+    space_id = DefaultSpaceId();
+  }
+  if (GetSpaceIdForTab(restored_contents) == space_id) {
+    // Restored tabs start in the default Space. Persist that assignment even
+    // when no move is needed, otherwise a later full session rebuild loses it.
+    WriteTabSessionData(restored_contents);
+  } else {
+    MoveTabToSpace(restored_contents, space_id);
+  }
   if (tab_strip_model_->GetActiveWebContents() == restored_contents) {
     if (!restoring_active_space_id_) {
       active_space_id_ = space_id;
@@ -335,6 +424,14 @@ void OriginSpaceController::BeginWindowRestore(
       base::FindOrNull(extra_data, kBraveOriginActiveSpaceIdKey);
   if (!restored_space_id ||
       !workspace_service_->GetOriginSpace(*restored_space_id)) {
+    const std::optional<std::string> backup = GetSessionSpaceBackup(
+        profile_->GetPrefs(), kOriginWindowSessionSpacesPref, window_id_);
+    if (backup && workspace_service_->GetOriginSpace(*backup)) {
+      restoring_active_space_id_ = *backup;
+      active_space_id_ = *backup;
+      NotifyChanged();
+      return;
+    }
     restoring_active_space_id_.reset();
     return;
   }
@@ -373,7 +470,10 @@ void OriginSpaceController::OnTabStripModelChanged(
     const TabStripSelectionChange& selection) {
   if (change.type() == TabStripModelChange::Type::kInserted) {
     for (const auto& inserted : change.GetInsert()->contents) {
-      EnsureSpaceForTab(inserted.contents, active_space_id_);
+      EnsureSpaceForTab(inserted.contents,
+                        GetBackedUpTabSpaceOrFallback(
+                            profile_->GetPrefs(), workspace_service_,
+                            inserted.contents, active_space_id_));
       WriteTabSessionData(inserted.contents);
     }
   } else if (change.type() == TabStripModelChange::Type::kReplaced) {
@@ -525,18 +625,24 @@ void OriginSpaceController::EnsureActiveTabInActiveSpace() {
 
 void OriginSpaceController::WriteTabSessionData(
     content::WebContents* contents) {
+  auto* session_helper = sessions::SessionTabHelper::FromWebContents(contents);
+  if (!session_helper) {
+    return;
+  }
+  const std::string space_id = GetSpaceIdForTab(contents);
+  SetTabSessionSpaceBackup(profile_->GetPrefs(), contents, space_id);
   SessionService* session_service =
       SessionServiceFactory::GetForProfileIfExisting(profile_);
-  auto* session_helper = sessions::SessionTabHelper::FromWebContents(contents);
-  if (!session_service || !session_helper) {
+  if (!session_service) {
     return;
   }
   session_service->AddTabExtraData(window_id_, session_helper->session_id(),
-                                   kBraveOriginSpaceIdKey,
-                                   GetSpaceIdForTab(contents));
+                                   kBraveOriginSpaceIdKey, space_id);
 }
 
 void OriginSpaceController::WriteWindowSessionData() {
+  SetSessionSpaceBackup(profile_->GetPrefs(), kOriginWindowSessionSpacesPref,
+                        window_id_, active_space_id_);
   SessionService* session_service =
       SessionServiceFactory::GetForProfileIfExisting(profile_);
   if (!session_service) {
