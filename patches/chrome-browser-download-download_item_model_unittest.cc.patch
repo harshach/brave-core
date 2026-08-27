@@ -1,0 +1,13 @@
+diff --git a/chrome/browser/download/download_item_model_unittest.cc b/chrome/browser/download/download_item_model_unittest.cc
+index f66f3a244b2cf7e7a7d262151ba3a5ae2fde2800..79b92731aefe4f130d3062929a1d44a00e27b6e9 100644
+--- a/chrome/browser/download/download_item_model_unittest.cc
++++ b/chrome/browser/download/download_item_model_unittest.cc
+@@ -485,7 +485,7 @@ TEST_F(DownloadItemModelTest, InProgressStatus) {
+       {1, 2, false, true, true, "1/2 B, Paused", "1/2 B \xE2\x80\xA2 Paused"},
+       {0, 2, true, true, true, "0/2 B, Paused", "0/2 B \xE2\x80\xA2 Paused"},
+       {1, 2, true, true, true, "1/2 B, Paused", "1/2 B \xE2\x80\xA2 Paused"},
+-      {5, 5, false, false, false, "", "5 B \xE2\x80\xA2 Done"}};
++      {5, 5, false, false, false, "", "5 B \xE2\x80\xA2 Finishing\xE2\x80\xA6"}};
+ 
+   SetupDownloadItemDefaults();
+ 
