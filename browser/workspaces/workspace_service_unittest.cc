@@ -157,6 +157,19 @@ TEST_F(WorkspaceServiceTest, OriginDomainRules_RemoveDeletedSpace) {
   EXPECT_FALSE(service_->GetOriginSpaceForDomain(url));
 }
 
+TEST_F(WorkspaceServiceTest, OriginLastTemporaryLinkSpacePersistsAndClears) {
+  const std::string space_id = service_->GetOriginSpaces()[1].id;
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
+  EXPECT_FALSE(service_->SetLastOriginTemporaryLinkSpace("missing-space"));
+  ASSERT_TRUE(service_->SetLastOriginTemporaryLinkSpace(space_id));
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+  ASSERT_TRUE(service_->DeleteOriginSpace(space_id));
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
+}
+
 // Verify saving preference adds workspace to list
 TEST_F(WorkspaceServiceTest, SaveMetadata_AppearsInList) {
   base::Time t = base::Time::FromSecondsSinceUnixEpoch(1700000000.0);

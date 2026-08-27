@@ -184,6 +184,9 @@ bool WorkspaceService::DeleteOriginSpace(const std::string& id) {
       rules->Remove(domain);
     }
   }
+  if (pref_service_->GetString(kOriginLastTemporaryLinkSpacePref) == id) {
+    pref_service_->ClearPref(kOriginLastTemporaryLinkSpacePref);
+  }
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
   return true;
@@ -234,6 +237,25 @@ bool WorkspaceService::ClearOriginSpaceForDomain(const GURL& url) {
   }
   ScopedDictPrefUpdate rules(*pref_service_, kOriginDomainSpaceRulesPref);
   return rules->Remove(domain);
+}
+
+std::optional<std::string> WorkspaceService::GetLastOriginTemporaryLinkSpace()
+    const {
+  const std::string& space_id =
+      pref_service_->GetString(kOriginLastTemporaryLinkSpacePref);
+  if (space_id.empty() || !GetOriginSpace(space_id)) {
+    return std::nullopt;
+  }
+  return space_id;
+}
+
+bool WorkspaceService::SetLastOriginTemporaryLinkSpace(
+    const std::string& space_id) {
+  if (!GetOriginSpace(space_id)) {
+    return false;
+  }
+  pref_service_->SetString(kOriginLastTemporaryLinkSpacePref, space_id);
+  return true;
 }
 
 bool WorkspaceService::ReorderOriginSpace(const std::string& id,

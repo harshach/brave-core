@@ -13,12 +13,14 @@
 #include "base/base64.h"
 #include "base/check.h"
 #include "base/functional/callback.h"
+#include "base/memory/weak_ptr.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
@@ -51,11 +53,14 @@
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_bubble_type.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/layout_constants.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -193,6 +198,21 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
   OriginQuickOpenView* origin_quick_open_view() {
     return brave_browser_view()->origin_quick_open_view_;
   }
+
+  OriginTemporaryLinkView* origin_temporary_link_view(Browser* browser) {
+    return BraveBrowserView::From(
+               BrowserView::GetBrowserViewForBrowser(browser))
+        ->origin_temporary_link_view_;
+  }
+
+  Browser* OpenOriginTemporaryLink(const GURL& url) {
+    NavigateParams params(browser(), url, ui::PAGE_TRANSITION_LINK);
+    origin_external_link::ConfigureNavigation(url, browser(), &params);
+    Browser* temporary_browser =
+        params.browser ? params.browser->GetBrowserForMigrationOnly() : nullptr;
+    Navigate(&params);
+    return temporary_browser;
+  }
 #endif
 };
 
@@ -294,6 +314,56 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return model->count() == initial_tab_count + 1; }));
   EXPECT_EQ(model->GetActiveWebContents(), third);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginTemporaryLinkLayoutAndDiscardShortcut) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  ASSERT_TRUE(content::NavigateToURL(
+      browser()->tab_strip_model()->GetActiveWebContents(),
+      embedded_test_server()->GetURL("/title2.html")));
+
+  Browser* temporary_browser =
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  ASSERT_TRUE(origin_external_link::IsTemporaryLinkBrowser(temporary_browser));
+  ASSERT_TRUE(origin_temporary_link_view(temporary_browser));
+  content::WebContents* temporary_contents =
+      temporary_browser->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(temporary_contents);
+  ASSERT_TRUE(content::WaitForLoadStop(temporary_contents));
+
+  auto* temporary_view =
+      BrowserView::GetBrowserViewForBrowser(temporary_browser);
+  temporary_view->DeprecatedLayoutImmediately();
+  EXPECT_EQ(origin_external_link::CalculateTemporaryLinkContentBounds(
+                temporary_view->GetLocalBounds()),
+            temporary_view->contents_container()->bounds());
+
+  ASSERT_TRUE(content::ExecJs(temporary_contents,
+                              "document.body.innerHTML = '<input id=editor>';"
+                              "document.querySelector('#editor').focus();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return temporary_contents->IsFocusedElementEditable(); }));
+
+  input::NativeWebKeyboardEvent discard_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  discard_event.windows_key_code = ui::VKEY_D;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
+            temporary_view->PreHandleKeyboardEvent(discard_event));
+  EXPECT_FALSE(temporary_browser->IsDeleteScheduled());
+
+  ASSERT_TRUE(content::ExecJs(temporary_contents,
+                              "document.querySelector('#editor').blur();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !temporary_contents->IsFocusedElementEditable(); }));
+  base::WeakPtr<Browser> temporary_browser_weak =
+      temporary_browser->AsWeakPtr();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            temporary_view->PreHandleKeyboardEvent(discard_event));
+  EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
 }
 
 class OriginExtensionInputShortcutBrowserTest

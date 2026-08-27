@@ -22,4 +22,9 @@ TEST(OriginExternalLinkRouterTest, TemporaryWindowAdaptsToSmallBounds) {
   EXPECT_TRUE(CalculateTemporaryLinkWindowBounds(gfx::Rect()).IsEmpty());
 }
 
+TEST(OriginExternalLinkRouterTest, TemporaryContentLeavesHeaderAndMargin) {
+  EXPECT_EQ(gfx::Rect(8, 52, 1384, 840),
+            CalculateTemporaryLinkContentBounds(gfx::Rect(0, 0, 1400, 900)));
+}
+
 }  // namespace origin_external_link

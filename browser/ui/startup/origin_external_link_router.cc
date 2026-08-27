@@ -29,6 +29,7 @@
 #include "ui/base/base_window.h"
 #include "ui/base/window_open_disposition.h"
 #include "ui/display/screen.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rect.h"
 #include "url/gurl.h"
 #include "url/url_constants.h"
@@ -38,6 +39,8 @@ namespace {
 
 constexpr char kTemporaryLinkAppName[] = "brave-origin-temporary-link";
 constexpr int kTemporaryWindowInset = 24;
+constexpr int kTemporaryLinkBarHeight = 44;
+constexpr int kTemporaryLinkContentMargin = 8;
 constexpr int kFallbackTemporaryWindowWidth = 960;
 constexpr int kFallbackTemporaryWindowHeight = 600;
 
@@ -177,6 +180,15 @@ gfx::Rect CalculateTemporaryLinkWindowBounds(
   return temporary_bounds;
 }
 
+gfx::Rect CalculateTemporaryLinkContentBounds(const gfx::Rect& client_bounds) {
+  gfx::Rect content_bounds = client_bounds;
+  content_bounds.Inset(gfx::Insets::TLBR(
+      kTemporaryLinkBarHeight + kTemporaryLinkContentMargin,
+      kTemporaryLinkContentMargin, kTemporaryLinkContentMargin,
+      kTemporaryLinkContentMargin));
+  return content_bounds;
+}
+
 bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser) {
   if (!browser) {
     return false;
@@ -261,6 +273,10 @@ std::string GetSuggestedSpaceId(Browser* temporary_browser, const GURL& url) {
   }
   if (const auto mapped = workspace_service->GetOriginSpaceForDomain(url)) {
     return *mapped;
+  }
+  if (const auto last_kept =
+          workspace_service->GetLastOriginTemporaryLinkSpace()) {
+    return *last_kept;
   }
 
   const std::string domain = WorkspaceService::GetOriginDomainKey(url);
@@ -348,6 +364,7 @@ bool KeepActivePage(Browser* temporary_browser,
   }
   content::WebContents* inserted = target_model->GetWebContentsAt(target_index);
   controller->MoveTabToSpace(inserted, space_id);
+  workspace_service->SetLastOriginTemporaryLinkSpace(space_id);
 
   const int split_partner_index =
       split_partner ? target_model->GetIndexOfWebContents(split_partner)
@@ -362,6 +379,11 @@ bool KeepActivePage(Browser* temporary_browser,
         {split_partner_index},
         split_tabs::SplitTabVisualData(split_tabs::SplitTabLayout::kSideBySide),
         split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
+  }
+  controller->SelectSpace(space_id);
+  const int kept_index = target_model->GetIndexOfWebContents(inserted);
+  if (kept_index != TabStripModel::kNoTab) {
+    target_model->ActivateTabAt(kept_index);
   }
   if (BrowserWindow* window = BrowserWindow::FromBrowser(target)) {
     window->Show();

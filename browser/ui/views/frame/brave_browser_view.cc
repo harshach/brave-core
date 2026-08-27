@@ -685,10 +685,7 @@ void BraveBrowserView::Layout(PassKey) {
   if (origin_temporary_link_view_) {
     origin_temporary_link_view_->SetBounds(0, 0, width(),
                                            OriginTemporaryLinkView::kBarHeight);
-    gfx::Rect contents_bounds = GetLocalBounds();
-    contents_bounds.Inset(
-        gfx::Insets::TLBR(OriginTemporaryLinkView::kBarHeight + 8, 8, 8, 8));
-    contents_container()->SetBoundsRect(contents_bounds);
+    const gfx::Rect contents_bounds = contents_container()->bounds();
     contents_background_view_->SetBoundsRect(contents_bounds);
     if (auto* multi_contents = GetBraveMultiContentsView()) {
       multi_contents->SetBoundsRect(contents_container()->GetLocalBounds());
@@ -1996,6 +1993,10 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           return content::KeyboardEventProcessingResult::HANDLED;
         }
         if (!has_modifiers && accelerator.key_code() == ui::VKEY_ESCAPE) {
+          origin_temporary_link_view_->Discard();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_D) {
           origin_temporary_link_view_->Discard();
           return content::KeyboardEventProcessingResult::HANDLED;
         }

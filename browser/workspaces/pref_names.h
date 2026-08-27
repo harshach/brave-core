@@ -20,4 +20,9 @@ inline constexpr char kOriginSpacesPref[] = "brave.origin.spaces";
 inline constexpr char kOriginDomainSpaceRulesPref[] =
     "brave.origin.domain_space_rules";
 
+// Last Space chosen when keeping an external link. This becomes the suggested
+// destination for the next temporary link unless a domain rule applies.
+inline constexpr char kOriginLastTemporaryLinkSpacePref[] =
+    "brave.origin.last_temporary_link_space";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

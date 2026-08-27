@@ -6,6 +6,7 @@
 #include "brave/browser/workspaces/workspace_service_factory.h"
 
 #include <memory>
+#include <string>
 
 #include "brave/browser/workspaces/features.h"
 #include "brave/browser/workspaces/pref_names.h"
@@ -65,6 +66,8 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
   registry->RegisterDictionaryPref(kWorkspacesMetadataPref);
   registry->RegisterListPref(kOriginSpacesPref);
   registry->RegisterDictionaryPref(kOriginDomainSpaceRulesPref);
+  registry->RegisterStringPref(kOriginLastTemporaryLinkSpacePref,
+                               std::string());
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

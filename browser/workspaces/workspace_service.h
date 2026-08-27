@@ -74,6 +74,8 @@ class WorkspaceService : public KeyedService {
   std::optional<std::string> GetOriginSpaceForDomain(const GURL& url) const;
   bool SetOriginSpaceForDomain(const GURL& url, const std::string& space_id);
   bool ClearOriginSpaceForDomain(const GURL& url);
+  std::optional<std::string> GetLastOriginTemporaryLinkSpace() const;
+  bool SetLastOriginTemporaryLinkSpace(const std::string& space_id);
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
 

@@ -29,14 +29,18 @@ bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser);
 // bounds so the window underneath remains visible around every edge.
 gfx::Rect CalculateTemporaryLinkWindowBounds(const gfx::Rect& anchor_bounds);
 
+// Returns the stable web-content canvas below the temporary-link header.
+gfx::Rect CalculateTemporaryLinkContentBounds(const gfx::Rect& client_bounds);
+
 // Routes an operating-system link directly to a mapped Space, or to the
 // profile's single ephemeral link window when no mapping exists.
 void ConfigureNavigation(const GURL& url,
                          BrowserWindowInterface* fallback_browser,
                          NavigateParams* params);
 
-// Returns the best destination for an unassigned link: a persisted rule, a
-// Space already containing the domain, or the last active Space.
+// Returns the best destination for an unassigned link: a persisted domain
+// rule, the last Space chosen with Keep, a Space already containing the domain,
+// or the last active Space.
 std::string GetSuggestedSpaceId(Browser* temporary_browser, const GURL& url);
 
 // Moves the active temporary page into a normal browser window. When
