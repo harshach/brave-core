@@ -37,8 +37,9 @@ namespace origin_external_link {
 namespace {
 
 constexpr char kTemporaryLinkAppName[] = "brave-origin-temporary-link";
-constexpr int kTemporaryWindowWidth = 960;
-constexpr int kTemporaryWindowHeight = 600;
+constexpr int kTemporaryWindowInset = 24;
+constexpr int kFallbackTemporaryWindowWidth = 960;
+constexpr int kFallbackTemporaryWindowHeight = 600;
 
 Browser* AsBrowser(BrowserWindowInterface* browser) {
   return browser ? browser->GetBrowserForMigrationOnly() : nullptr;
@@ -109,15 +110,13 @@ Browser* CreateTemporaryBrowser(Profile* profile,
     anchor_bounds = display::Screen::Get()->GetPrimaryDisplay().work_area();
   }
   if (!anchor_bounds.IsEmpty()) {
-    const int width = std::min(kTemporaryWindowWidth, anchor_bounds.width());
-    const int height = std::min(kTemporaryWindowHeight, anchor_bounds.height());
     create_params.initial_bounds =
-        gfx::Rect(anchor_bounds.CenterPoint().x() - width / 2,
-                  anchor_bounds.CenterPoint().y() - height / 2, width, height);
+        CalculateTemporaryLinkWindowBounds(anchor_bounds);
   }
   if (create_params.initial_bounds.IsEmpty()) {
-    create_params.initial_bounds =
-        gfx::Rect(120, 100, kTemporaryWindowWidth, kTemporaryWindowHeight);
+    create_params.initial_bounds = gfx::Rect(
+        120, 100, kFallbackTemporaryWindowWidth,
+        kFallbackTemporaryWindowHeight);
   }
   return Browser::Create(create_params);
 }
@@ -160,6 +159,23 @@ OriginSpaceController* GetSpaceController(Browser* browser) {
 }
 
 }  // namespace
+
+gfx::Rect CalculateTemporaryLinkWindowBounds(
+    const gfx::Rect& anchor_bounds) {
+  if (anchor_bounds.IsEmpty()) {
+    return {};
+  }
+
+  // Keep the preview almost as large as its browser while retaining a visible
+  // frame of the underlying window. Adapt the inset for unusually small test
+  // or restored bounds so the result never collapses to an empty rectangle.
+  const int inset =
+      std::min({kTemporaryWindowInset, (anchor_bounds.width() - 1) / 2,
+                (anchor_bounds.height() - 1) / 2});
+  gfx::Rect temporary_bounds = anchor_bounds;
+  temporary_bounds.Inset(inset);
+  return temporary_bounds;
+}
 
 bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser) {
   if (!browser) {

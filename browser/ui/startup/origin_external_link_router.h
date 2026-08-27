@@ -8,6 +8,8 @@
 
 #include <string>
 
+#include "ui/gfx/geometry/rect.h"
+
 class Browser;
 class BrowserWindowInterface;
 class GURL;
@@ -22,6 +24,10 @@ enum class KeepDisposition {
 };
 
 bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser);
+
+// Returns the temporary link window bounds inset from the browser or display
+// bounds so the window underneath remains visible around every edge.
+gfx::Rect CalculateTemporaryLinkWindowBounds(const gfx::Rect& anchor_bounds);
 
 // Routes an operating-system link directly to a mapped Space, or to the
 // profile's single ephemeral link window when no mapping exists.
