@@ -1,4 +1,4 @@
-name: Origin macOS binary
+name: Socket macOS binary
 
 on:
   workflow_call:
@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: origin-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.ref }}
+  group: socket-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -34,7 +34,7 @@ env:
 
 jobs:
   build:
-    name: macOS ${{ inputs.architecture || 'ARM64' }}
+    name: Socket macOS ${{ inputs.architecture || 'ARM64' }}
     runs-on:
       - self-hosted
       - origin-build
@@ -88,7 +88,7 @@ jobs:
             echo "TARGET_ARCH=x64" >> "$GITHUB_ENV"
           fi
 
-      - name: Configure optimized Origin release
+      - name: Configure optimized Socket release
         working-directory: workspace/src/brave
         run: |
           printf '%s\n' \
@@ -108,7 +108,7 @@ jobs:
           --target_arch="${TARGET_ARCH}"
           --no-history
 
-      - name: Build unsigned Origin disk image
+      - name: Build unsigned Socket disk image
         working-directory: workspace/src/brave
         run: >-
           pnpm run create_dist Release
@@ -120,7 +120,7 @@ jobs:
       - name: Upload macOS packages
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: origin-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.sha }}
+          name: socket-macos-${{ inputs.architecture || 'ARM64' }}-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |

@@ -69,9 +69,9 @@ brave_dist_dir = "$root_out_dir/dist"
 
 # Use different installer/product names for Brave Origin
 if (is_brave_origin_branded) {
-  _product_brand = "Origin"
-  brave_dist_name = "brave-origin"
-  brave_linux_package_name = "brave-origin"
+  _product_brand = "Socket"
+  brave_dist_name = "socket"
+  brave_linux_package_name = "socket-browser"
 } else {
   _product_brand = "Browser"
   brave_dist_name = "brave"

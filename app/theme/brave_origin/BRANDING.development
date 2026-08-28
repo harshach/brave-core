@@ -1,10 +1,10 @@
-COMPANY_FULLNAME=Brave Software, Inc.
-COMPANY_SHORTNAME=Brave Software
+COMPANY_FULLNAME=Socket
+COMPANY_SHORTNAME=Socket
 PRODUCT_FULLNAME=Socket
 PRODUCT_SHORTNAME=Socket
 PRODUCT_INSTALLER_FULLNAME=Socket Installer
 PRODUCT_INSTALLER_SHORTNAME=Socket Installer
 COPYRIGHT=Copyright 2016 The Brave Authors. All rights reserved.
-MAC_BUNDLE_ID=com.brave.Browser.origin.development
+MAC_BUNDLE_ID=com.harshach.socket.development
 MAC_CREATOR_CODE=Cr24
-MAC_TEAM_ID=KL8N8XSYF4
+MAC_TEAM_ID=XAE6WQ2RM5

@@ -1,4 +1,4 @@
-name: Origin Windows binary
+name: Socket Windows binary
 
 on:
   workflow_call:
@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: origin-windows-${{ github.ref }}
+  group: socket-windows-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -18,7 +18,7 @@ env:
 
 jobs:
   build:
-    name: Windows x64
+    name: Socket Windows x64
     runs-on: [self-hosted, origin-build, Windows, X64]
     timeout-minutes: 720
 
@@ -44,7 +44,7 @@ jobs:
           version: 11.22.0
           run_install: false
 
-      - name: Configure optimized Origin release
+      - name: Configure optimized Socket release
         working-directory: workspace/src/brave
         shell: pwsh
         run: |
@@ -66,7 +66,7 @@ jobs:
           --target_arch=x64
           --no-history
 
-      - name: Build unsigned Origin installer
+      - name: Build unsigned Socket installer
         working-directory: workspace/src/brave
         shell: pwsh
         run: >-
@@ -79,10 +79,10 @@ jobs:
       - name: Upload Windows packages
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: origin-windows-x64-${{ github.sha }}
+          name: socket-windows-x64-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |
             workspace/src/out/**/brave_installer.exe
-            workspace/src/out/**/BraveOrigin*Setup*.exe
+            workspace/src/out/**/BraveSocket*Setup*.exe
             workspace/src/out/**/dist/**/*.zip

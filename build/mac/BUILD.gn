@@ -341,7 +341,7 @@ if (install_omaha4_with_pkg) {
   }
 }
 
-if (is_official_build && !skip_signing) {
+if (is_official_build && !skip_signing && !is_brave_origin_branded) {
   if (is_release_channel) {
     provisionprofile_basename = "release"
   } else {
@@ -356,9 +356,11 @@ if (is_official_build && !skip_signing) {
 action("package") {
   outputs = [
     dmg_path,
-    "$packaged_basename.pkg",
     zip_path,
   ]
+  if (!is_brave_origin_branded) {
+    outputs += [ "$packaged_basename.pkg" ]
+  }
   deps = [
     ":copy_browser_install_script",
     ":copy_dmg_background_image",
@@ -374,7 +376,7 @@ action("package") {
   ]
   script = "$packaging_dir/sign_chrome.py"
   installer_identity = mac_installer_signing_identifier
-  if (skip_signing && installer_identity == "") {
+  if ((skip_signing || is_brave_origin_branded) && installer_identity == "") {
     # Prevent an AssertionError in upstream:
     installer_identity = "stub"
   }
@@ -393,9 +395,12 @@ action("package") {
   }
   if (skip_signing) {
     args += [ "--skip_signing" ]
-  } else if (is_official_build) {
+  } else if (is_official_build && !is_brave_origin_branded) {
     deps += [ ":copy_provisionprofile" ]
     args += [ "--provisioning_profile_basename=$provisionprofile_basename" ]
+  }
+  if (is_brave_origin_branded) {
+    args += [ "--dmg-only" ]
   }
   if (notarize) {
     args += [ "--notarize" ]
