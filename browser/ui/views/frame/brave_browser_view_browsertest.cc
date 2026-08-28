@@ -30,6 +30,7 @@
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
+#include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
@@ -92,6 +93,7 @@
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
+#include "ui/base/hit_test.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
@@ -103,6 +105,7 @@
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget_delegate.h"
+#include "ui/views/window/non_client_view.h"
 
 #if BUILDFLAG(IS_MAC)
 #include "base/mac/mac_util.h"
@@ -346,6 +349,14 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(origin_external_link::CalculateTemporaryLinkContentBounds(
                 temporary_view->GetLocalBounds()),
             temporary_view->contents_container()->bounds());
+
+  gfx::Point header_point(temporary_view->width() / 2,
+                          OriginTemporaryLinkView::kBarHeight / 2);
+  auto* frame_view =
+      temporary_view->GetWidget()->non_client_view()->frame_view();
+  ASSERT_TRUE(frame_view);
+  views::View::ConvertPointToTarget(temporary_view, frame_view, &header_point);
+  EXPECT_EQ(HTCLIENT, frame_view->NonClientHitTest(header_point));
 
   ASSERT_TRUE(content::ExecJs(temporary_contents,
                               "document.body.innerHTML = '<input id=editor>';"

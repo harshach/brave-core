@@ -122,6 +122,8 @@ class BraveBrowserView : public BrowserView,
   void ShowUpdateChromeDialog() override;
   void ShowOriginQuickOpen(
       std::optional<ui::KeyboardCode> activation_key = std::nullopt);
+  bool IsPointInOriginTemporaryLinkHeader(
+      const gfx::Point& point_in_widget) const;
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a

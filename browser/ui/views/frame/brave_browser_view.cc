@@ -1970,6 +1970,21 @@ void BraveBrowserView::DidStopLoading() {
 #endif
 }
 
+bool BraveBrowserView::IsPointInOriginTemporaryLinkHeader(
+    const gfx::Point& point_in_widget) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_temporary_link_view_ &&
+      origin_temporary_link_view_->GetVisible() && GetWidget() &&
+      origin_temporary_link_view_->GetWidget() == GetWidget()) {
+    gfx::Point point_in_header(point_in_widget);
+    views::View::ConvertPointFromWidget(origin_temporary_link_view_,
+                                        &point_in_header);
+    return origin_temporary_link_view_->HitTestPoint(point_in_header);
+  }
+#endif
+  return false;
+}
+
 content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
     const input::NativeWebKeyboardEvent& event) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
