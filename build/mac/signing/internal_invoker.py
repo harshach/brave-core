@@ -9,6 +9,9 @@
 # that are necessary for Brave. It collaborates with the similar hook
 # `internal_config.py` in this directory.
 
+import os
+import tempfile
+
 from os.path import basename, join
 from signing import standard_invoker, commands, pipeline
 
@@ -36,6 +39,7 @@ class Invoker(standard_invoker.Invoker):
 def strip_release_app_extended_attributes():
     """Remove metadata that invalidates nested code signatures in packages."""
     customize_and_sign_chrome_orig = pipeline._customize_and_sign_chrome
+    package_dmg_orig = pipeline._package_dmg
 
     async def customize_and_sign_chrome(paths, dist_config, dest_dir,
                                         signed_frameworks):
@@ -49,6 +53,53 @@ def strip_release_app_extended_attributes():
         ])
 
     pipeline._customize_and_sign_chrome = customize_and_sign_chrome
+
+    def package_dmg(paths, dist, config):
+        dmg_path = package_dmg_orig(paths, dist, config)
+
+        # hdiutil makehybrid can synthesize FinderInfo while creating its HFS+
+        # filesystem, even after the source app's extended attributes have
+        # been cleared. Remove it from the filesystem itself before the outer
+        # disk image is signed. Conversion preserves the DMG layout and files.
+        with tempfile.TemporaryDirectory(dir=paths.work,
+                                         prefix='clean-dmg-') as temp_dir:
+            writable_dmg = join(temp_dir, 'writable.dmg')
+            clean_dmg = join(temp_dir, 'clean.dmg')
+            mount_point = join(temp_dir, 'mount')
+            commands.make_dir(mount_point)
+            commands.run_command([
+                'hdiutil', 'convert', dmg_path, '-format', 'UDRW', '-o',
+                writable_dmg, '-quiet'
+            ])
+
+            mounted = False
+            try:
+                commands.run_command([
+                    'hdiutil', 'attach', writable_dmg, '-nobrowse',
+                    '-mountpoint', mount_point, '-quiet'
+                ])
+                mounted = True
+                app_path = join(mount_point, config.app_dir)
+                commands.run_command(['xattr', '-cr', app_path])
+                commands.run_command([
+                    'codesign', '--verify', '--deep', '--strict',
+                    '--verbose=4', app_path
+                ])
+            finally:
+                if mounted:
+                    commands.run_command(
+                        ['hdiutil', 'detach', mount_point, '-quiet'])
+
+            commands.run_command([
+                'hdiutil', 'convert', writable_dmg, '-format', 'ULMO',
+                '-imagekey', 'udif-chunk-size=8192', '-o', clean_dmg,
+                '-quiet'
+            ])
+            os.replace(clean_dmg, dmg_path)
+
+        return dmg_path
+
+    pipeline._package_dmg = package_dmg
 
 
 # Add dmg_preinstall.sh to the DMG as .preinstall
