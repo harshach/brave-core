@@ -5,19 +5,20 @@
 
 #include "chrome/browser/ui/views/tabs/tab_style_views.h"
 
+#include <chrome/browser/ui/views/tabs/tab_style_views.cc>
+
 #include "base/check.h"
 #include "base/dcheck_is_on.h"
 #include "base/logging.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/tabs/brave_tab.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/tabs/tab_container.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
 #include "ui/views/view_utils.h"
-
-#include <chrome/browser/ui/views/tabs/tab_style_views.cc>
 
 namespace {
 
@@ -456,6 +457,22 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     flags.setStrokeWidth(scale);
     canvas->DrawPath(stroke_path, flags);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldShowVerticalTabs() && tab()->IsActive()) {
+    gfx::ScopedCanvas scoped_canvas(canvas);
+    const float scale = canvas->UndoDeviceScaleFactor();
+    const SkPath stroke_path =
+        GetPath(TabStyle::PathType::kBorder, scale, /*flags=*/{});
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    flags.setColor(SkColorSetARGB(0x57, 0xFB, 0x54, 0x2B));
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(scale);
+    canvas->DrawPath(stroke_path, flags);
+  }
+#endif
 
   // Paint tab accent if needed.
   if (should_paint_tab_accent) {

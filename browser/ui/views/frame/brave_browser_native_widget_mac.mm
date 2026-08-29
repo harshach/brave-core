@@ -9,6 +9,8 @@
 #include "brave/app/brave_command_ids.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
+#include "brave/browser/ui/views/frame/brave_browser_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -85,6 +87,17 @@ bool BraveBrowserNativeWidgetMac::ExecuteCommand(
     int32_t command,
     WindowOpenDisposition window_open_disposition,
     bool is_before_first_responder) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // macOS dispatches menu key equivalents such as Command+T through the
+  // native window command bridge instead of BrowserView::AcceleratorPressed.
+  if (command == IDC_NEW_TAB) {
+    if (BrowserView* browser_view = browser_view_.get()) {
+      BraveBrowserView::From(browser_view)->ShowOriginQuickOpen();
+      return true;
+    }
+  }
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+
   if (base::FeatureList::IsEnabled(tabs::kBraveSharedPinnedTabs)) {
     // is_before_first_responder tells whether or not the app/window was in
     // focus while the keyboard command was fired. In current method, it helps

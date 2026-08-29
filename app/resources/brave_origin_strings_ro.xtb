@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">Selectează orice din pagină</translation>
 <translation id="142389341645668510">Personalizează Brave</translation>
 <translation id="2174917724755363426">Instalarea nu este finalizată. Sigur anulezi?</translation>
-<translation id="8841019650931243995">Brave Origin – conectare la rețea – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – conectare la rețea – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Eroare de verificare a actualizării: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Elimină contul din Brave</translation>
 <translation id="4022045673362955204">Folosește aplicația Brave pentru a profita din mers de cele mai bune instrumente de cumpărături</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">Selectează text cu Căutarea de imagini</translation>
 <translation id="70183448213529602">Brave încearcă să înlocuiască parolele existente. Introdu parola Windows pentru a permite acest lucru.</translation>
 <translation id="7798069806040634998">Pentru a descărca fișiere, Brave necesită acces la stocare</translation>
-<translation id="2351700486811407088">Brave Origin Helper</translation>
+<translation id="9082785458664620820">Socket Helper</translation>
 <translation id="2575822587468774919">Selectează orice vrei să cauți cu Căutarea de imagini</translation>
 <translation id="3830890663494219270">Pentru a accesa parolele și alte date pe toate dispozitivele, conectează-te la Brave</translation>
 <translation id="6908148552215338695">Scanează codul QR cu telefonul pentru a descărca Brave și a te conecta la Contul Brave.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">Elimină din Brave...</translation>
 <translation id="5265419033369521352">Te protejează în Brave și poate fi folosită pentru a spori securitatea în alte aplicații Brave dacă te-ai conectat.</translation>
 <translation id="2885378588091291677">Manager de activități</translation>
-<translation id="2176825726964012531">Despre &amp;Brave</translation>
+<translation id="3984800435132982628">Despre &amp;Socket</translation>
 <translation id="2915996080311180594">Repornește mai târziu</translation>
 <translation id="2481553173340651149">Datele tale sunt criptate cu expresia de acces. Introdu-o pentru a folosi și a salva datele Brave în Contul Brave.</translation>
 <translation id="2945997411976714835">Eroare la instalare: procesul programului de instalare nu a început.</translation>
@@ -262,7 +262,7 @@
 <translation id="3846683726093018685">**Rezumă:** într-o propoziție cu mai puțin de 30 de cuvinte, descrie subiectul principal și scopul conținutului din captura de ecran.
 
           **Sugerează întrebări:** generează o listă cu marcatori cu 3 – 5 întrebări care dau de gândit pe care un utilizator le-ar putea pune pentru a înțelege mai bine captura de ecran. Aceste întrebări trebuie să includă cel puțin una care să se refere în mod specific la un obiect vizual, la designul sau plasarea acestuia.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">Selector de limbă</translation>
 <translation id="6315734375101223238">Personalizează și controlează Brave. Ceva are nevoie de atenția ta – dă clic pentru detalii.</translation>
 <translation id="7130675370997202556">Dați clic pe numele dvs. pentru a deschide Brave și a începe să navigați.</translation>
@@ -276,7 +276,7 @@
 <translation id="4194619960643453552">Află cum te protejează Brave</translation>
 <translation id="3967822245660637423">Descărcare finalizată</translation>
 <translation id="1486377520191913768">Când introduci text în bara de adrese sau în caseta de căutare, Brave trimite ceea ce introduci către instrumentele de căutare, AI și de agent ale organizației tale pentru a primi sugestii.</translation>
-<translation id="1311808042904310985">Despre Brave for Testing</translation>
+<translation id="3813099290530551762">Despre Socket for Testing</translation>
 <translation id="1152920704813762236">Despre sistemul de operare Brave</translation>
 <translation id="8282895427217902177">Când accesezi un site, Brave trimite la <ph name="BEGIN_LINK"/>Navigarea sigură Brave<ph name="END_LINK"/> o parte obscurizată a adresei URL printr-un server pentru confidențialitate care îți ascunde adresa IP. Dacă un site are un comportament suspect, sunt trimise și adresele URL complete și fragmente din conținutul paginilor.</translation>
 <translation id="4016217212818346953">Rămâi în siguranță cu Managerul de parole</translation>
@@ -295,7 +295,7 @@
 <translation id="10925962326134232">Personalizează Brave pentru a-i oferi browserului un aspect nou.</translation>
 <translation id="6596295505984504022">P&amp;ersonalizează Brave</translation>
 <translation id="4148957013307229264">Se instalează...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – conectare la rețea – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – conectare la rețea – Socket</translation>
 <translation id="2871190378186459992">Descoperă aplicații, jocuri, extensii și teme extraordinare pentru Brave.</translation>
 <translation id="462105622535258178">Pentru a accesa această extensie și altele pe toate computerele, conectează-te la Brave</translation>
 <translation id="6670140629169983459">Pentru a fi mai în siguranță online cu alegerile părintelui tău, treci la profilul Brave în care te-ai conectat deja ca <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -327,7 +327,7 @@
 <translation id="4493028449971051158">Eroare la pornire: rulează programul de instalare ca administrator.</translation>
 <translation id="4501471624619070934">Instalarea nu a reușit deoarece accesul este restricționat în această țară.</translation>
 <translation id="8594994021633965927">Extensia nu a publicat practici de confidențialitate, cum ar fi modul în care colectează și folosește date. Brave recomandă să o elimini.</translation>
-<translation id="770557926599450702">Bun venit la Brave Origin; fereastră de browser nouă deschisă</translation>
+<translation id="3788134970312783571">Bun venit la Socket; fereastră de browser nouă deschisă</translation>
 <translation id="137732229629632648">Brave are nevoie de permisiune pentru a mapa împrejurimile și a-ți urmări mâinile</translation>
 <translation id="5036046007335188949">Te-ai conectat deja ca <ph name="USER_EMAIL_ADDRESS"/> în alt profil Brave</translation>
 <translation id="1878185978731985193">Brave preîncarcă paginile, astfel încât navigarea și căutarea să fie mai rapide. <ph name="BEGIN_LINK"/>Află mai multe despre preîncărcarea paginilor<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@
 <translation id="8669339108356170796">Brave a blocat descărcarea, deoarece ai dezactivat Navigarea sigură, iar fișierul nu poate fi confirmat</translation>
 <translation id="7583343841997441047">Încearcă Google Lens cu Brave pe telefon</translation>
 <translation id="4594305310729380060">Către Managerul de parole, pe acest dispozitiv</translation>
-<translation id="7776200949522126045">Aplicații Brave Origin</translation>
+<translation id="1662388968719244110">Aplicații Socket</translation>
 <translation id="4598116752460667024">Caută orice proces din listă.</translation>
 <translation id="4970880042055371251">Versiunea sistemului de operare Brave</translation>
 <translation id="2182657378556811785">Aproape actualizat! Repornește Brave pentru a finaliza actualizarea.</translation>
@@ -353,8 +353,8 @@
 <translation id="844451748565342664">Dacă Gemini în Brave este deschis, panoul lateral rămâne deschis când creezi file noi</translation>
 <translation id="215320507915280336">Folosește același verificator ortografic folosit în Căutarea Brave. Textul pe care îl introduci în browser este trimis la Brave. Poți schimba acest comportament în setări.</translation>
 <translation id="2899369907387169108">Folosește Brave fără un cont</translation>
-<translation id="1833893255023048385">Regula de intrare pentru Brave Origin pentru a permite traficul mDNS.</translation>
-<translation id="711601904575862069">Relansează pentru a actualiza &amp;Brave</translation>
+<translation id="6972301482162050771">Regula de intrare pentru Socket pentru a permite traficul mDNS.</translation>
+<translation id="2428387668457441558">Relansează pentru a actualiza &amp;Socket</translation>
 <translation id="4918086044614829423">Acceptă</translation>
 <translation id="4918844574251943176">Imaginea a fost copiată</translation>
 <translation id="8797356639448065696">Brave este în modul fundal.</translation>
@@ -394,7 +394,7 @@
 <translation id="5267531627648004734">Eliminați din Brave</translation>
 <translation id="4620757336635063467">Reduce performanța, dar face Brave mai rezistent la atacuri</translation>
 <translation id="239760341987199724">Setați Brave ca browser prestabilit</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave recomandă să întrerupi fila care încetinește browserul}few{Brave recomandă să întrerupi filele care încetinesc browserul}other{Brave recomandă să întrerupi filele care încetinesc browserul}}</translation>
 <translation id="894936507076470937">Este posibil ca Brave să nu funcționeze corespunzător, deoarece nu mai este acceptat pe această versiune Linux</translation>
 <translation id="2596557398669145729">Brave a blocat descărcarea deoarece fișierul poate dăuna conturilor tale personale și din rețelele sociale</translation>
@@ -427,7 +427,7 @@ Dacă această pagină nu funcționează conform așteptărilor, încearcă să 
 <translation id="95980832839683236">Accelerează site-urile cu motorul V8 din Brave, dar reduce ușor rezistența Brave la atacuri. Setarea este dezactivată.</translation>
 <translation id="1224606669200461217">Pentru a folosi și a salva datele Brave în Contul Brave, actualizează Brave</translation>
 <translation id="5824893331272123205">Nu s-a putut încărca panoul. Încearcă din nou.</translation>
-<translation id="4467664627714200493">Bun venit la Brave Origin</translation>
+<translation id="1125671961408630460">Bun venit la Socket</translation>
 <translation id="4026807082142463673">Activează funcții suplimentare ca să oferi cele mai eficiente protecții din Brave</translation>
 <translation id="5871205389137001634">Dă clic pentru a ieși din Căutarea de imagini</translation>
 <translation id="8054200348483755053">Brave a descoperit că următoarele elemente conțin programe malware:</translation>
@@ -493,7 +493,7 @@ Dacă această pagină nu funcționează conform așteptărilor, încearcă să 
 <translation id="6388799252195623474">ajută-mă cu asta</translation>
 <translation id="7920857181125123335">Pentru a continua, conectează-te la Brave ca <ph name="EMAIL"/>. Astfel, te asiguri că ai politicile organizației.</translation>
 <translation id="3256100650978957522">Sigla Brave pe un ecran de computer.</translation>
-<translation id="5880764554173582719">Brave Origin este un browser web care rulează pagini web și aplicații cu viteza fulgerului. Este rapid, stabil și ușor de utilizat. Navigați pe web în condiții de mai multă siguranță, beneficiind de o protecție sporită, încorporată în Brave Origin, împotriva programelor malware și a tentativelor de phishing.</translation>
+<translation id="7527968786016866645">Socket este un browser web care rulează pagini web și aplicații cu viteza fulgerului. Este rapid, stabil și ușor de utilizat. Navigați pe web în condiții de mai multă siguranță, beneficiind de o protecție sporită, încorporată în Socket, împotriva programelor malware și a tentativelor de phishing.</translation>
 <translation id="4091049150278654573">Pentru a te asigura că poți folosi și salva oricând datele Brave în Contul Brave, confirmă-ți identitatea</translation>
 <translation id="2532326772258858491">Brave rulează mai rapid și funcțiile care folosesc JavaScript ar trebui să ruleze corespunzător</translation>
 <translation id="6436260184216827876">Căutarea de imagini nu este disponibilă. Încearcă din nou mai târziu.</translation>
@@ -541,7 +541,7 @@ Este posibil ca unele funcții să nu fie disponibile. Specificați un director 
 <translation id="6831043979455480757">Tradu</translation>
 <translation id="8211837073776713955">Brave te anunță dacă parolele tale sunt compromise</translation>
 <translation id="684888714667046800">Nu se poate realiza conexiunea la internet. Dacă folosești un firewall, verifică dacă <ph name="PRODUCT_EXE_NAME"/> se află în lista cu acces permis.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Atinge pentru a continua</translation>
 <translation id="6862030660799253820">Caută această imagine cu Căutarea de imagini</translation>
 <translation id="3028928628792374067">Brave a descoperit că <ph name="EXTENSION_NAME"/> conține programe malware</translation>
@@ -609,7 +609,7 @@ Brave nu poate recupera setările.</translation>
 <translation id="284799389314308801">1. Dă clic pe <ph name="BUTTON_LABEL"/> mai jos.
 2. Dă clic pe <ph name="BUTTON_2"/> în setările Windows.
 3. Dă clic pe <ph name="BUTTON_3"/> în notificarea Windows ca să fixezi Brave în bara de activități pentru acces rapid.</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Brave Origin pentru dezvoltatori</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Socket pentru dezvoltatori</translation>
 <translation id="7450541714075000668">Text copiat</translation>
 <translation id="2034072705932785495">Brave are nevoie de permisiune ca să acceseze camera foto pentru acest site</translation>
 <translation id="7129342855140808694">Pentru a folosi microfonul, permite accesul Brave în <ph name="BEGIN_LINK"/>setările de sistem<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave nu poate recupera setările.</translation>
 <translation id="8543787950557226450">Revino la tema Brave prestabilită</translation>
 <translation id="4976450819672499783">Setează Brave ca browser prestabilit și fixează-l în bara de activități</translation>
 <translation id="1978509466033734608">Crește eficiența în Brave</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Împiedică persoanele care au acces la traficul tău de internet să vadă ce site-uri accesezi. Brave folosește o conexiune securizată pentru a căuta adresa IP a unui site în DNS (Sistemul denumirilor de domenii).</translation>
 <translation id="7810005234485217901">Poți să fixezi Căutarea de imagini pentru acces ușor</translation>
 <translation id="1652855885539187849">Există deja un profil Brave asociat acestui cont pe dispozitiv</translation>
@@ -667,7 +667,7 @@ Brave nu poate recupera setările.</translation>
 <translation id="6175141682081019059">Dezactivează rularea Brave în fundal pentru aplicații</translation>
 <translation id="80790299200510644">Căutare de imagini</translation>
 <translation id="8086881907087796310">Nu s-a instalat deoarece computerul nu îndeplinește cerințele minime de hardware.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for Testing</translation>
 <translation id="2061155704815580583">Brave necesită permisiuni pentru locație pentru acest site</translation>
 <translation id="3576319845915562805">Când vei deschide din nou Brave pe <ph name="DEVICE_TYPE"/>, vei vedea o solicitare de a activa alertele de urmărire a prețurilor.</translation>
 <translation id="3728025339793417202">Primește alerte privind scăderea prețurilor la articolele care te interesează cu aplicația Brave pe telefon</translation>
@@ -778,8 +778,8 @@ Brave nu poate recupera setările.</translation>
 <translation id="9148058034647219655">Ieși</translation>
 <translation id="2792073155252170448">Continuă de unde ai rămas: Brave poate restabili filele de fiecare dată când repornești. Pentru a activa opțiunea, accesează</translation>
 <translation id="2444257125841652328">Administratorul de sistem a configurat Brave să deschidă un browser secundar pentru a accesa <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Relansează pentru a actualiza &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Relansează pentru a actualiza &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Personalizează Brave</translation>
 <translation id="7977787072794666032">Este posibil ca Brave să nu funcționeze corespunzător, deoarece nu mai este acceptat pe Windows XP sau Windows Vista</translation>
 <translation id="8462937515915443472">Beneficiază de cele mai bune funcții de siguranță de la Brave din mers cu Brave.</translation>

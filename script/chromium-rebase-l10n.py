@@ -175,7 +175,7 @@ def _replace_text_in_element(elem, old, new):
         _replace_text_in_element(child, old, new)
 
 
-# Messages where "Brave" should become "Brave Origin" for Origin builds.
+# Product messages rebranded as Socket in Origin builds.
 ORIGIN_BRANDED_MESSAGES = [
     'IDS_PRODUCT_NAME',
     'IDS_SHORT_PRODUCT_NAME',
@@ -191,6 +191,8 @@ ORIGIN_BRANDED_MESSAGES = [
     'IDS_ACCESSIBLE_BETA_BROWSER_WINDOW_TITLE_FORMAT',
     'IDS_ACCESSIBLE_DEV_BROWSER_WINDOW_TITLE_FORMAT',
     'IDS_ACCESSIBLE_CANARY_BROWSER_WINDOW_TITLE_FORMAT',
+    'IDS_ABOUT',
+    'IDS_RELAUNCH_TO_UPDATE',
     'IDS_APP_MENU_PRODUCT_NAME',
     'IDS_HELPER_NAME',
     'IDS_SHORT_HELPER_NAME',
@@ -209,16 +211,22 @@ ORIGIN_BRANDED_MESSAGES = [
 ]
 
 
+def _replace_origin_branding(elem):
+    """Replace either legacy Origin product name with Socket."""
+    _replace_text_in_element(elem, 'Brave Origin', 'Socket')
+    _replace_text_in_element(elem, 'Brave', 'Socket')
+
+
 def apply_origin_branding(source_string_path, xml_tree):
-    """Apply 'Brave Origin' branding to origin-specific strings and
-    update XTB fingerprints to match."""
+    """Apply Socket branding and update XTB fingerprints to match."""
+
     # Build a map of old fingerprint -> new fingerprint before modifying.
     fp_map = {}
     for msg_name in ORIGIN_BRANDED_MESSAGES:
         for elem in xml_tree.xpath(f'//message[@name="{msg_name}"]'):
             old_fp = get_fingerprint_for_xtb(elem)
             new_elem = copy.deepcopy(elem)
-            _replace_text_in_element(new_elem, 'Brave', 'Brave Origin')
+            _replace_origin_branding(new_elem)
             new_fp = get_fingerprint_for_xtb(new_elem)
             if old_fp != new_fp:
                 fp_map[old_fp] = new_fp
@@ -226,10 +234,9 @@ def apply_origin_branding(source_string_path, xml_tree):
     # Apply branding to GRD messages.
     for msg_name in ORIGIN_BRANDED_MESSAGES:
         for elem in xml_tree.xpath(f'//message[@name="{msg_name}"]'):
-            _replace_text_in_element(elem, 'Brave', 'Brave Origin')
+            _replace_origin_branding(elem)
 
-    # Update XTB files: remap fingerprints and replace "Brave" with
-    # "Brave Origin" in matching translations.
+    # Update XTB files and their fingerprints to match the product name.
     grd_base_path = os.path.dirname(source_string_path)
     xtb_files = get_xtb_files(source_string_path)
     for (_lang, xtb_path) in xtb_files:
@@ -242,7 +249,7 @@ def apply_origin_branding(source_string_path, xml_tree):
             old_fp = translation.attrib.get('id')
             if old_fp in fp_map:
                 translation.attrib['id'] = fp_map[old_fp]
-                _replace_text_in_element(translation, 'Brave', 'Brave Origin')
+                _replace_origin_branding(translation)
                 modified = True
         if modified:
             content = (b'<?xml version="1.0" ?>\n' +

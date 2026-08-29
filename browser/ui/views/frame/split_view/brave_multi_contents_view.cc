@@ -157,6 +157,16 @@ void BraveMultiContentsView::UpdateContentsCornerRadii(
   UpdateContentsBorderAndOverlay();
 }
 
+gfx::Rect BraveMultiContentsView::GetMainContentsBounds() const {
+  gfx::Rect bounds;
+  for (const auto& container : contents_container_views_) {
+    if (container->GetVisible()) {
+      bounds.Union(container->bounds());
+    }
+  }
+  return bounds;
+}
+
 views::ProposedLayout BraveMultiContentsView::CalculateProposedLayout(
     const views::SizeBounds& size_bounds) const {
   if (!size_bounds.is_fully_bounded()) {

@@ -25,6 +25,7 @@
 
 namespace views {
 class ImageButton;
+class ImageView;
 }  // namespace views
 
 namespace tabs {
@@ -89,10 +90,16 @@ class BraveTab : public Tab
   bool IsActive() const override;
   TabSizeInfo GetTabSizeInfo() const override;
   TabNestingInfo GetTabNestingInfo() const override;
+  bool HasOriginHierarchyDescendants() const;
   bool IsInCollapsedTreeTabNode() const override;
   void MaybeUpdateHoverStatus(const ui::MouseEvent& event) override;
+  void OnMouseExited(const ui::MouseEvent& event) override;
+  void OnPaint(gfx::Canvas* canvas) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
+
+  // Marks this row as the page hierarchy target during an Origin tab drag.
+  void SetOriginHierarchyDropTarget(bool targeted);
 
   // Returns whether this tab should have an accent painted.
   bool ShouldPaintTabAccent() const;
@@ -180,10 +187,16 @@ class BraveTab : public Tab
   // of the tree toggle button.
   void LayoutTreeToggleButton();
 
+  void ToggleOriginPinned();
+  void UpdateOriginPinButton();
+
   // Returns whether the tree tab node is collapsed.
   bool IsTreeNodeCollapsed() const;
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
+  raw_ptr<views::ImageButton> origin_pin_button_ = nullptr;
+  raw_ptr<views::View> origin_drag_handle_ = nullptr;
+  bool origin_hierarchy_drop_target_ = false;
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;

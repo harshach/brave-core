@@ -178,6 +178,26 @@ TEST_F(DownloadBubbleTest, DeleteLocalFileCommand_Complete) {
   EXPECT_TRUE(ContainsDeleteLocalFileCommand());
 }
 
+TEST_F(DownloadBubbleTest, FinalizingStateUsesLoopingProgressAndAccurateStatus) {
+  SetupDownloadItemDefaults();
+  SetupInProgressDownloadItem();
+  DownloadItemModel bubble_model(
+      &item_, std::make_unique<DownloadUIModel::BubbleStatusTextBuilder>());
+
+  auto progress_bar = ProgressBarForDownload(bubble_model);
+  EXPECT_TRUE(progress_bar.is_visible);
+  EXPECT_FALSE(progress_bar.is_looping);
+
+  ON_CALL(item_, AllDataSaved()).WillByDefault(Return(true));
+  ON_CALL(item_, GetReceivedBytes()).WillByDefault(Return(5));
+  ON_CALL(item_, GetTotalBytes()).WillByDefault(Return(5));
+  progress_bar = ProgressBarForDownload(bubble_model);
+  EXPECT_TRUE(progress_bar.is_visible);
+  EXPECT_TRUE(progress_bar.is_looping);
+
+  EXPECT_EQ(u"5 B \u2022 Finishing\u2026", bubble_model.GetStatusText());
+}
+
 TEST_F(DownloadBubbleTest, DownloadCommands_DeleteLocalFileEnabled) {
   SetupDownloadItemDefaults();
   SetupCompletedDownloadItem();

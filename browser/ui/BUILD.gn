@@ -82,6 +82,7 @@ source_set("ui") {
     "//brave/components/brave_news/common:mojom",
     "//brave/components/brave_news/common/buildflags",
     "//brave/components/brave_origin",
+    "//brave/components/brave_origin/buildflags",
     "//brave/components/brave_private_cdn",
     "//brave/components/brave_rewards/core/buildflags",
     "//brave/components/brave_shields/core/browser",
@@ -295,6 +296,19 @@ source_set("ui") {
 
   if (is_brave_origin_branded) {
     deps += [ "//brave/browser/ui/views/brave_origin" ]
+  }
+
+  if (is_brave_origin_branded && !is_android) {
+    sources += [
+      "startup/origin_external_link_router.cc",
+      "startup/origin_external_link_router.h",
+      "views/frame/origin_temporary_link_view.cc",
+      "views/frame/origin_temporary_link_view.h",
+    ]
+    deps += [
+      "//components/split_tabs",
+      "//ui/display",
+    ]
   }
 
   deps += [ "//brave/browser/ui/brave_origin" ]
@@ -656,6 +670,8 @@ source_set("ui") {
       "views/frame/brave_tab_strip_region_view.h",
       "views/frame/brave_window_frame_graphic.cc",
       "views/frame/brave_window_frame_graphic.h",
+      "views/frame/origin_quick_open_view.cc",
+      "views/frame/origin_quick_open_view.h",
       "views/omnibox/brave_omnibox_popup_view_views.cc",
       "views/omnibox/brave_omnibox_popup_view_views.h",
       "views/omnibox/brave_omnibox_result_view.cc",
@@ -721,6 +737,7 @@ source_set("ui") {
       "//brave/browser/ui/darker_theme",
       "//brave/browser/ui/focus_mode",
       "//brave/browser/ui/side_panel",
+      "//brave/browser/ui/tabs:origin_space_controller",
       "//brave/browser/ui/views:layout_provider",
       "//brave/browser/ui/views/frame:frame_impl",
       "//brave/browser/ui/views/location_bar",
@@ -728,6 +745,7 @@ source_set("ui") {
       "//brave/browser/ui/views/tabs/accent_color",
       "//brave/browser/ui/views/workspaces",
       "//chrome/browser:shell_integration",
+      "//chrome/browser/autocomplete",
       "//chrome/browser/devtools",
       "//chrome/browser/enterprise/watermark:watermark_lib",
       "//chrome/browser/glic",
@@ -749,6 +767,7 @@ source_set("ui") {
       "//chrome/browser/ui/views/tabs/shared",
       "//chrome/browser/ui/views/toolbar",
       "//components/bookmarks/browser",
+      "//components/omnibox/browser",
     ]
 
     if (enable_brave_vpn) {
@@ -981,6 +1000,7 @@ source_set("ui") {
     "//components/tab_groups",
     "//components/update_client",
     "//components/user_prefs",
+    "//components/vector_icons",
     "//components/webui/flags",
     "//content/public/browser",
     "//content/public/common",
@@ -992,6 +1012,7 @@ source_set("ui") {
     "//ui/accessibility",
     "//ui/base",
     "//ui/base/mojom",
+    "//ui/content_accelerators",
     "//ui/gfx",
     "//ui/resources",
     "//ui/shell_dialogs",
@@ -1478,7 +1499,10 @@ source_set("brave_tab_prefs") {
     "tabs/brave_tab_prefs.cc",
     "tabs/brave_tab_prefs.h",
   ]
-  deps = [ "//components/prefs" ]
+  deps = [
+    "//brave/components/brave_origin/buildflags",
+    "//components/prefs",
+  ]
 
   if (!is_android) {
     deps += [ "//chrome/browser/ui/tabs:features" ]
@@ -1494,16 +1518,24 @@ source_set("unit_tests") {
       "brave_scheme_utils_unittest.cc",
       "managed_ui_unittest.cc",
       "tabs/brave_tab_prefs_unittest.cc",
+      "tabs/origin_space_controller_unittest.cc",
       "views/side_panel/side_panel_web_ui_view_unittest.cc",
     ]
     deps = [
       ":brave_tab_prefs",
       "//base/test:test_support",
+      "//brave/browser/ui/tabs:origin_space_controller",
+      "//brave/browser/workspaces",
       "//brave/components/l10n/common:test_support",
+      "//chrome/browser/extensions:test_support",
       "//chrome/browser/ui",
       "//chrome/browser/ui/tabs:features",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//chrome/test:test_support",
       "//components/javascript_dialogs",
       "//components/prefs:test_support",
+      "//components/sessions",
+      "//content/test:test_support",
       "//testing/gmock",
       "//testing/gtest",
       "//ui/base:test_support",
@@ -1530,6 +1562,9 @@ source_set("unit_tests") {
         "//brave/components/brave_vpn/browser/connection/ikev2:sim",
       ]
     }
+    if (is_brave_origin_branded) {
+      sources += [ "startup/origin_external_link_router_unittest.cc" ]
+    }
   }
 }
 
@@ -1546,6 +1581,7 @@ source_set("browser_tests") {
 
     deps = [
       "//brave/app:command_ids",
+      "//brave/components/brave_origin/buildflags",
       "//brave/components/constants",
       "//chrome/browser",
       "//chrome/browser/devtools:test_support",

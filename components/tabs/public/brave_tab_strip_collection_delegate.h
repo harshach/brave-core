@@ -52,6 +52,11 @@ class BraveTabStripCollectionDelegate {
       bool new_pinned_state,
       const TabCollection::TypeEnumSet retain_collection_types) = 0;
 
+  // Moves the complete tree node containing `child` beneath the tree node
+  // containing `parent`. The moved node keeps its descendants. Returns false
+  // when either tab is not in a tree node or the move would create a cycle.
+  virtual bool ReparentTreeTabNode(TabInterface* child, TabInterface* parent);
+
   // Inserts a tab collection (e.g. split or group) at a strip index. Used by
   // TabStripModel when re-attaching detached collections after drag-and-drop.
   virtual void InsertTabCollectionAt(

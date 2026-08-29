@@ -6,8 +6,10 @@
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <optional>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -17,12 +19,19 @@
 #include "base/dcheck_is_on.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
+#include "base/location.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/strings/string_split.h"
+#include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
+#include "base/task/sequenced_task_runner.h"
+#include "base/time/time.h"
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/focus_mode/focus_mode_utils.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -31,48 +40,71 @@
 #include "brave/browser/ui/views/tabs/brave_new_tab_button.h"
 #include "brave/browser/ui/views/tabs/brave_tab_container.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/vector_icons/vector_icons.h"
+#include "cc/paint/paint_flags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/themes/theme_properties.h"
+#include "chrome/browser/themes/theme_service.h"
+#include "chrome/browser/themes/theme_service_factory.h"
 #include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/frame/window_frame_util.h"
 #include "chrome/browser/ui/tabs/features.h"
+#include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/ui/views/tabs/dragging/drag_session_data.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/grit/generated_resources.h"
 #include "components/prefs/pref_service.h"
+#include "components/vector_icons/vector_icons.h"
 #include "ui/base/cursor/cursor.h"
 #include "ui/base/hit_test.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/base/mojom/dialog_button.mojom.h"
 #include "ui/compositor/compositor.h"
 #include "ui/compositor/layer.h"
 #include "ui/display/screen.h"
 #include "ui/events/event_observer.h"
+#include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/canvas.h"
+#include "ui/gfx/color_utils.h"
 #include "ui/gfx/paint_vector_icon.h"
 #include "ui/gfx/scoped_canvas.h"
 #include "ui/views/accessibility/accessibility_paint_checks.h"
 #include "ui/views/animation/ink_drop.h"
+#include "ui/views/bubble/bubble_border.h"
+#include "ui/views/bubble/bubble_dialog_delegate_view.h"
+#include "ui/views/bubble/bubble_frame_view.h"
+#include "ui/views/controls/button/image_button.h"
+#include "ui/views/controls/button/label_button.h"
+#include "ui/views/controls/focus_ring.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/controls/image_view.h"
+#include "ui/views/controls/label.h"
 #include "ui/views/controls/resize_area.h"
+#include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/layout/box_layout.h"
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_types.h"
+#include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/window/hit_test_utils.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "ui/views/win/hwnd_util.h"
@@ -84,8 +116,545 @@
 
 namespace {
 
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 constexpr int kSeparatorHeight = 1;
 constexpr int kBorderThickness = 1;
+#endif
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+constexpr int kOriginWorkspaceRailWidth = 56;
+constexpr int kOriginSidebarMinimumWidth =
+    kOriginWorkspaceRailWidth + 180;
+constexpr int kOriginSidebarMaximumWidth =
+    kOriginWorkspaceRailWidth + 360;
+constexpr int kOriginWorkspaceHeaderHeight = 58;
+constexpr int kOriginSearchFieldHeight = 30;
+constexpr int kOriginPageListTop = 66;
+constexpr int kOriginNewPageRowHeight = 32;
+constexpr int kOriginStatusRowHeight = 26;
+constexpr int kOriginPageListFooterHeight = 34;
+constexpr int kOriginWorkspaceGap = 6;
+constexpr SkColor kOriginPickerSurface = SkColorSetRGB(0x1C, 0x1F, 0x25);
+constexpr SkColor kOriginPickerField = SkColorSetARGB(0x0D, 0xFF, 0xFF, 0xFF);
+constexpr SkColor kOriginPickerSecondaryText = SkColorSetRGB(0x94, 0x96, 0x9C);
+constexpr SkColor kOriginActiveAccent = SkColorSetRGB(0xFB, 0x54, 0x2B);
+
+struct OriginWorkspaceIconChoice {
+  std::string_view key;
+  std::u16string_view name;
+  std::string_view keywords;
+};
+
+constexpr std::array<OriginWorkspaceIconChoice, 10>
+    kOriginWorkspaceIconChoices = {{
+        {kOriginSpaceIconHome, u"Home", "home personal house"},
+        {kOriginSpaceIconWork, u"Work", "work briefcase business"},
+        {kOriginSpaceIconPlayground, u"Playground", "play lab experiment"},
+        {kOriginSpaceIconReading, u"Reading", "reading book research"},
+        {kOriginSpaceIconTerminal, u"Development", "terminal code developer"},
+        {kOriginSpaceIconIdeas, u"Ideas", "ideas project spark"},
+        {kOriginSpaceIconMessages, u"Messages", "messages chat social"},
+        {kOriginSpaceIconSchool, u"School", "school study learning"},
+        {kOriginSpaceIconShopping, u"Shopping", "shopping store bag"},
+        {kOriginSpaceIconTravel, u"Travel", "travel trip compass"},
+    }};
+
+const gfx::VectorIcon& GetOriginWorkspaceIcon(std::string_view key) {
+  if (key == kOriginSpaceIconHome) {
+    return kLeoContainerPersonalIcon;
+  }
+  if (key == kOriginSpaceIconWork) {
+    return kLeoContainerWorkIcon;
+  }
+  if (key == kOriginSpaceIconPlayground) {
+    return kLeoRocketIcon;
+  }
+  if (key == kOriginSpaceIconReading) {
+    return kLeoReadingListIcon;
+  }
+  if (key == kOriginSpaceIconTerminal) {
+    return kLeoCodeIcon;
+  }
+  if (key == kOriginSpaceIconMessages) {
+    return kLeoContainerMessagingIcon;
+  }
+  if (key == kOriginSpaceIconSchool) {
+    return kLeoContainerSchoolIcon;
+  }
+  if (key == kOriginSpaceIconShopping) {
+    return kLeoContainerShoppingIcon;
+  }
+  if (key == kOriginSpaceIconTravel) {
+    return kLeoContainerTravelIcon;
+  }
+  if (key == "add") {
+    return kLeoPlusAddIcon;
+  }
+  return kLeoSpacesIcon;
+}
+
+gfx::FontList OriginChromeFont(int size, gfx::Font::Weight weight) {
+#if BUILDFLAG(IS_MAC)
+  constexpr char kFamily[] = "SF Pro Text";
+#elif BUILDFLAG(IS_WIN)
+  constexpr char kFamily[] = "Segoe UI";
+#else
+  constexpr char kFamily[] = "Inter";
+#endif
+  return gfx::FontList({kFamily}, gfx::Font::NORMAL, size, weight);
+}
+
+class OriginWorkspaceButton : public views::LabelButton {
+  METADATA_HEADER(OriginWorkspaceButton, views::LabelButton)
+ public:
+  OriginWorkspaceButton(PressedCallback callback,
+                        std::string icon,
+                        const std::u16string& accessible_name,
+                        bool selected)
+      : LabelButton(std::move(callback), std::u16string()),
+        icon_(std::move(icon)),
+        selected_(selected) {
+    SetPreferredSize(gfx::Size(36, 36));
+    SetBorder(views::CreateEmptyBorder(gfx::Insets()));
+    SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
+    SetAccessibleName(accessible_name);
+    SetTooltipText(accessible_name);
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+    UpdateWorkspaceIcon();
+  }
+
+  void SetOriginIcon(std::string icon) {
+    icon_ = std::move(icon);
+    UpdateWorkspaceIcon();
+  }
+
+  void SetWorkspaceSelected(bool selected) {
+    selected_ = selected;
+    UpdateWorkspaceIcon();
+    SchedulePaint();
+  }
+
+  void SetWorkspaceDropTarget(bool drop_targeted) {
+    if (drop_targeted_ == drop_targeted) {
+      return;
+    }
+    drop_targeted_ = drop_targeted;
+    UpdateWorkspaceIcon();
+    SchedulePaint();
+  }
+
+  void StateChanged(ButtonState old_state) override {
+    LabelButton::StateChanged(old_state);
+    UpdateWorkspaceIcon();
+    SchedulePaint();
+  }
+
+  void OnThemeChanged() override {
+    LabelButton::OnThemeChanged();
+    UpdateWorkspaceIcon();
+  }
+
+  void OnPaintBackground(gfx::Canvas* canvas) override {
+    const bool dark =
+        !GetColorProvider() ||
+        color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
+    const bool highlighted = selected_ || drop_targeted_ ||
+                             GetState() == STATE_HOVERED ||
+                             GetState() == STATE_PRESSED;
+    if (highlighted) {
+      cc::PaintFlags fill;
+      fill.setAntiAlias(true);
+      fill.setStyle(cc::PaintFlags::kFill_Style);
+      fill.setColor(selected_ ? (dark ? SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF)
+                                      : SkColorSetRGB(0xF5, 0xF5, 0xF5))
+                              : (dark ? SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF)
+                                      : SkColorSetRGB(0xF5, 0xF5, 0xF5)));
+      canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), 10, fill);
+    }
+    if (!selected_ && !drop_targeted_) {
+      return;
+    }
+
+    cc::PaintFlags ring;
+    ring.setAntiAlias(true);
+    ring.setStyle(cc::PaintFlags::kStroke_Style);
+    ring.setStrokeWidth(drop_targeted_ ? 2.0f : 1.0f);
+    ring.setColor(drop_targeted_
+                      ? kOriginActiveAccent
+                      : (dark ? SkColorSetARGB(0x21, 0xFF, 0xFF, 0xFF)
+                              : SkColorSetRGB(0xE9, 0xEA, 0xEB)));
+    gfx::RectF ring_bounds(GetLocalBounds());
+    ring_bounds.Inset(drop_targeted_ ? 1.0f : 0.5f);
+    canvas->DrawRoundRect(ring_bounds, 10, ring);
+
+    if (!selected_) {
+      return;
+    }
+
+    cc::PaintFlags accent;
+    accent.setAntiAlias(true);
+    accent.setStyle(cc::PaintFlags::kFill_Style);
+    accent.setColor(kOriginActiveAccent);
+    canvas->DrawRoundRect(gfx::RectF(6, 11, 3, 14), 2, accent);
+  }
+
+ private:
+  void UpdateWorkspaceIcon() {
+    const bool dark =
+        !GetColorProvider() ||
+        color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
+    const bool highlighted = selected_ || drop_targeted_ ||
+                             GetState() == STATE_HOVERED ||
+                             GetState() == STATE_PRESSED;
+    const SkColor icon_color = highlighted
+                                   ? (dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
+                                           : SkColorSetRGB(0x18, 0x1D, 0x27))
+                                   : (dark ? SkColorSetRGB(0x6B, 0x6E, 0x75)
+                                           : SkColorSetRGB(0x71, 0x76, 0x80));
+    SetImageModel(ButtonState::STATE_NORMAL,
+                  ui::ImageModel::FromVectorIcon(GetOriginWorkspaceIcon(icon_),
+                                                 icon_color, 18));
+  }
+
+  std::string icon_;
+  bool selected_;
+  bool drop_targeted_ = false;
+};
+
+BEGIN_METADATA(OriginWorkspaceButton)
+END_METADATA
+
+class OriginWorkspaceTitleButton : public views::LabelButton {
+  METADATA_HEADER(OriginWorkspaceTitleButton, views::LabelButton)
+ public:
+  OriginWorkspaceTitleButton(PressedCallback callback,
+                             const std::u16string& text)
+      : LabelButton(std::move(callback), text) {
+    label()->SetFontList(OriginChromeFont(16, gfx::Font::Weight::SEMIBOLD));
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+  }
+};
+
+BEGIN_METADATA(OriginWorkspaceTitleButton)
+END_METADATA
+
+class OriginPageListActionButton : public views::Button {
+  METADATA_HEADER(OriginPageListActionButton, views::Button)
+
+ public:
+  OriginPageListActionButton(PressedCallback callback,
+                             const gfx::VectorIcon& icon,
+                             std::u16string text,
+                             std::u16string key_hint,
+                             bool field)
+      : Button(std::move(callback)), field_(field) {
+    SetPreferredSize(gfx::Size(
+        0, field ? kOriginSearchFieldHeight : kOriginNewPageRowHeight));
+    SetFocusBehavior(FocusBehavior::ALWAYS);
+    SetAccessibleName(text);
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+    auto* layout = SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kHorizontal,
+        gfx::Insets::TLBR(0, 8, 0, 8), 8));
+    layout->set_cross_axis_alignment(
+        views::BoxLayout::CrossAxisAlignment::kCenter);
+
+    icon_ = AddChildView(std::make_unique<views::ImageView>());
+    icon_->SetPreferredSize(gfx::Size(16, 16));
+    icon_->SetImageSize(gfx::Size(16, 16));
+    vector_icon_ = &icon;
+
+    label_ = AddChildView(std::make_unique<views::Label>(std::move(text)));
+    label_->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    label_->SetElideBehavior(gfx::ELIDE_TAIL);
+    label_->SetFontList(OriginChromeFont(13, gfx::Font::Weight::NORMAL));
+    layout->SetFlexForView(label_, 1);
+
+    key_hint_ =
+        AddChildView(std::make_unique<views::Label>(std::move(key_hint)));
+    key_hint_->SetFontList(OriginChromeFont(10, gfx::Font::Weight::SEMIBOLD));
+    RefreshStyle();
+  }
+
+  void StateChanged(ButtonState old_state) override {
+    Button::StateChanged(old_state);
+    RefreshStyle();
+  }
+
+  void OnThemeChanged() override {
+    Button::OnThemeChanged();
+    RefreshStyle();
+  }
+
+ private:
+  void RefreshStyle() {
+    const bool dark =
+        !GetColorProvider() ||
+        color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
+    const bool hovered =
+        GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    const SkColor primary = dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
+                                 : SkColorSetRGB(0x18, 0x1D, 0x27);
+    const SkColor secondary = dark ? SkColorSetRGB(0x94, 0x96, 0x9C)
+                                   : SkColorSetRGB(0x53, 0x58, 0x62);
+    const SkColor muted = dark ? SkColorSetRGB(0x6B, 0x6E, 0x75)
+                               : SkColorSetRGB(0x71, 0x76, 0x80);
+    const SkColor background =
+        hovered ? (dark ? SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF)
+                        : SkColorSetRGB(0xF5, 0xF5, 0xF5))
+                : (field_ ? (dark ? SkColorSetARGB(0x0D, 0xFF, 0xFF, 0xFF)
+                                  : SkColorSetRGB(0xF5, 0xF5, 0xF5))
+                          : SK_ColorTRANSPARENT);
+    SetBackground(views::CreateRoundedRectBackground(background, 8));
+    // The bottom New page affordance should sit quietly in the shell until
+    // the user aims at it; Sigma does not give it the same visual weight as a
+    // selected page title.
+    label_->SetEnabledColor(field_ ? secondary : (hovered ? primary : muted));
+    key_hint_->SetEnabledColor(muted);
+    icon_->SetImage(ui::ImageModel::FromVectorIcon(
+        *vector_icon_, field_ ? secondary : muted, 16));
+  }
+
+  const bool field_;
+  raw_ptr<const gfx::VectorIcon> vector_icon_ = nullptr;
+  raw_ptr<views::ImageView> icon_ = nullptr;
+  raw_ptr<views::Label> label_ = nullptr;
+  raw_ptr<views::Label> key_hint_ = nullptr;
+};
+
+BEGIN_METADATA(OriginPageListActionButton)
+END_METADATA
+
+class OriginSettingsRowButton : public views::Button {
+  METADATA_HEADER(OriginSettingsRowButton, views::Button)
+
+ public:
+  OriginSettingsRowButton(PressedCallback callback,
+                          std::u16string title,
+                          std::u16string url,
+                          SkColor primary,
+                          SkColor secondary,
+                          SkColor hover)
+      : Button(std::move(callback)), hover_(hover) {
+    SetAccessibleName(title);
+    SetTooltipText(url);
+    SetFocusBehavior(FocusBehavior::ALWAYS);
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+    auto* layout = SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kVertical,
+        gfx::Insets::TLBR(7, 10, 7, 10), 1));
+    layout->set_cross_axis_alignment(
+        views::BoxLayout::CrossAxisAlignment::kStart);
+
+    auto* title_label =
+        AddChildView(std::make_unique<views::Label>(std::move(title)));
+    title_label->SetSubpixelRenderingEnabled(false);
+    title_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    title_label->SetFontList(OriginChromeFont(13, gfx::Font::Weight::NORMAL));
+    title_label->SetEnabledColor(primary);
+
+    auto* url_label =
+        AddChildView(std::make_unique<views::Label>(std::move(url)));
+    url_label->SetSubpixelRenderingEnabled(false);
+    url_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    url_label->SetFontList(OriginChromeFont(11, gfx::Font::Weight::NORMAL));
+    url_label->SetEnabledColor(secondary);
+    RefreshStyle();
+  }
+
+  void StateChanged(ButtonState old_state) override {
+    Button::StateChanged(old_state);
+    RefreshStyle();
+  }
+
+ private:
+  void RefreshStyle() {
+    const bool highlighted =
+        GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    SetBackground(views::CreateRoundedRectBackground(
+        highlighted ? hover_ : SK_ColorTRANSPARENT, 8));
+  }
+
+  const SkColor hover_;
+};
+
+BEGIN_METADATA(OriginSettingsRowButton)
+END_METADATA
+
+class OriginWorkspaceIconPickerBubble : public views::View,
+                                        public views::TextfieldController {
+  METADATA_HEADER(OriginWorkspaceIconPickerBubble, views::View)
+
+ public:
+  using IconSelectedCallback = base::RepeatingCallback<void(std::string)>;
+
+  static base::WeakPtr<views::Widget> Show(
+      views::View* anchor,
+      std::string selected_icon,
+      IconSelectedCallback icon_selected_callback) {
+    auto picker = std::make_unique<OriginWorkspaceIconPickerBubble>(
+        anchor, std::move(selected_icon), std::move(icon_selected_callback));
+    auto* picker_ptr = picker.get();
+    auto bubble_delegate = std::make_unique<views::BubbleDialogDelegate>(
+        anchor, views::BubbleBorder::LEFT_TOP,
+        views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
+    auto* bubble_delegate_ptr = bubble_delegate.get();
+    bubble_delegate->SetButtons(
+        static_cast<int>(ui::mojom::DialogButton::kNone));
+    bubble_delegate->SetShowTitle(false);
+    bubble_delegate->SetShowCloseButton(false);
+    bubble_delegate->SetAccessibleTitle(u"Choose a Space icon");
+    bubble_delegate->set_adjust_if_offscreen(true);
+    bubble_delegate->set_close_on_deactivate(true);
+    bubble_delegate->set_fixed_width(300);
+    bubble_delegate->set_margins(gfx::Insets::TLBR(12, 12, 14, 12));
+    bubble_delegate->SetBackgroundColor(kOriginPickerSurface);
+    bubble_delegate->SetContentsView(std::move(picker));
+    auto* widget = views::BubbleDialogDelegate::CreateBubbleDeprecated(
+        std::move(bubble_delegate),
+        views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET);
+    auto* frame = bubble_delegate_ptr->GetBubbleFrameView();
+    frame->SetRoundedCorners(gfx::RoundedCornersF(20));
+    frame->SetDisplayVisibleArrow(true);
+    frame->bubble_border()->set_draw_border_stroke(true);
+    widget->Show();
+    picker_ptr->search_field_->RequestFocus();
+    return widget->GetWeakPtr();
+  }
+
+  OriginWorkspaceIconPickerBubble(views::View* anchor,
+                                  std::string selected_icon,
+                                  IconSelectedCallback icon_selected_callback)
+      : selected_icon_(std::move(selected_icon)),
+        icon_selected_callback_(std::move(icon_selected_callback)) {
+    SetBackground(views::CreateSolidBackground(kOriginPickerSurface));
+    SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kVertical, gfx::Insets(), 8));
+
+    search_container_ = AddChildView(std::make_unique<views::View>());
+    search_container_->SetBackground(
+        views::CreateRoundedRectBackground(kOriginPickerField, 10));
+    auto* search_layout =
+        search_container_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+            views::BoxLayout::Orientation::kHorizontal,
+            gfx::Insets::TLBR(6, 10, 6, 10), 6));
+    auto* search_icon =
+        search_container_->AddChildView(std::make_unique<views::ImageView>());
+    search_icon->SetImage(ui::ImageModel::FromVectorIcon(
+        vector_icons::kSearchIcon, kOriginPickerSecondaryText, 16));
+    search_field_ =
+        search_container_->AddChildView(std::make_unique<views::Textfield>());
+    search_field_->SetPlaceholderText(u"Search Space icons");
+    search_field_->SetAccessibleName(u"Search Space icons");
+    search_field_->SetFontList(OriginChromeFont(14, gfx::Font::Weight::NORMAL));
+    search_field_->SetBackgroundEnabled(false);
+    search_field_->SetBorder(views::CreateEmptyBorder(gfx::Insets()));
+    search_field_->set_controller(this);
+    views::FocusRing::Remove(search_field_);
+    search_layout->SetFlexForView(search_field_, 1);
+
+    content_container_ = AddChildView(std::make_unique<views::View>());
+    content_container_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kVertical, gfx::Insets(), 6));
+    RebuildChoices();
+  }
+
+  OriginWorkspaceIconPickerBubble(const OriginWorkspaceIconPickerBubble&) =
+      delete;
+  OriginWorkspaceIconPickerBubble& operator=(
+      const OriginWorkspaceIconPickerBubble&) = delete;
+  ~OriginWorkspaceIconPickerBubble() override = default;
+
+  void ContentsChanged(views::Textfield* sender,
+                       const std::u16string& new_contents) override {
+    if (sender == search_field_) {
+      RebuildChoices();
+    }
+  }
+
+ private:
+  bool MatchesSearch(const OriginWorkspaceIconChoice& choice) const {
+    const std::string query = base::ToLowerASCII(base::UTF16ToUTF8(
+        base::CollapseWhitespace(search_field_->GetText(), false)));
+    if (query.empty()) {
+      return true;
+    }
+    std::string searchable(choice.keywords);
+    searchable.append(" ");
+    searchable.append(base::UTF16ToUTF8(choice.name));
+    searchable.append(" ");
+    searchable.append(choice.key);
+    return base::ToLowerASCII(searchable).find(query) != std::string::npos;
+  }
+
+  template <size_t N>
+  void AddChoices(const std::array<OriginWorkspaceIconChoice, N>& choices) {
+    views::View* row = nullptr;
+    size_t matched_count = 0;
+    for (const auto& choice : choices) {
+      if (!MatchesSearch(choice)) {
+        continue;
+      }
+      if (matched_count % 5 == 0) {
+        row = content_container_->AddChildView(std::make_unique<views::View>());
+        row->SetLayoutManager(std::make_unique<views::BoxLayout>(
+            views::BoxLayout::Orientation::kHorizontal, gfx::Insets(), 12));
+      }
+      std::u16string accessible_name = u"Use ";
+      accessible_name.append(choice.name);
+      accessible_name.append(u" icon");
+      row->AddChildView(std::make_unique<OriginWorkspaceButton>(
+          base::BindRepeating(&OriginWorkspaceIconPickerBubble::SelectIcon,
+                              base::Unretained(this), std::string(choice.key)),
+          std::string(choice.key), accessible_name,
+          choice.key == selected_icon_));
+      ++matched_count;
+    }
+    if (matched_count == 0) {
+      auto* empty_label = content_container_->AddChildView(
+          std::make_unique<views::Label>(u"No matching icons"));
+      empty_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    }
+  }
+
+  void RebuildChoices() {
+    content_container_->RemoveAllChildViews();
+    auto* section_label = content_container_->AddChildView(
+        std::make_unique<views::Label>(u"Line icons"));
+    section_label->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    section_label->SetFontList(
+        OriginChromeFont(13, gfx::Font::Weight::SEMIBOLD));
+    section_label->SetEnabledColor(kOriginPickerSecondaryText);
+    AddChoices(kOriginWorkspaceIconChoices);
+
+    content_container_->InvalidateLayout();
+    PreferredSizeChanged();
+    if (GetWidget()) {
+      GetWidget()
+          ->widget_delegate()
+          ->AsBubbleDialogDelegate()
+          ->SizeToContents();
+    }
+  }
+
+  void SelectIcon(std::string icon) {
+    icon_selected_callback_.Run(std::move(icon));
+    GetWidget()->Close();
+  }
+
+  const std::string selected_icon_;
+  const IconSelectedCallback icon_selected_callback_;
+  raw_ptr<views::View> search_container_ = nullptr;
+  raw_ptr<views::Textfield> search_field_ = nullptr;
+  raw_ptr<views::View> content_container_ = nullptr;
+};
+
+BEGIN_METADATA(OriginWorkspaceIconPickerBubble)
+END_METADATA
+
+#endif
 
 class ShortcutBox : public views::View {
   METADATA_HEADER(ShortcutBox, views::View)
@@ -169,8 +738,12 @@ class VerticalTabNewTabButton : public BraveNewTabButton {
                                  views::MaximumFlexSizeRule::kPreferred)
             .WithOrder(1));
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    text_ = AddChildView(std::make_unique<views::Label>(u"New Page"));
+#else
     text_ = AddChildView(std::make_unique<views::Label>(
         l10n_util::GetStringUTF16(IDS_ACCNAME_NEWTAB)));
+#endif
     text_->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
     text_->SetVerticalAlignment(gfx::VerticalAlignment::ALIGN_MIDDLE);
     constexpr int kGapBetweenIconAndText = 16;
@@ -182,10 +755,19 @@ class VerticalTabNewTabButton : public BraveNewTabButton {
                            views::MaximumFlexSizeRule::kPreferred)
                            .WithOrder(3));
 
-    constexpr int kFontSize = 12;
+    constexpr int kFontSize =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+        14;
+#else
+        12;
+#endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    text_->SetFontList(OriginChromeFont(kFontSize, gfx::Font::Weight::NORMAL));
+#else
     const auto text_font = text_->font_list();
     text_->SetFontList(
         text_font.DeriveWithSizeDelta(kFontSize - text_font.GetFontSize()));
+#endif
     text_->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
 
     auto* spacer = AddChildView(std::make_unique<views::View>());
@@ -309,10 +891,194 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
 
   // The default state is kExpanded, so reset animation state to 1.0.
   width_animation_.Reset(1.0);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  width_animation_.SetSlideDuration(base::Milliseconds(200));
+#endif
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_page_column_ = AddChildView(std::make_unique<views::View>());
+  origin_page_column_->SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+  region_view_container_ =
+      origin_page_column_->AddChildView(std::make_unique<views::View>());
+#else
   region_view_container_ = AddChildView(std::make_unique<views::View>());
+#endif
   region_view_container_->SetLayoutManager(
       std::make_unique<views::FillLayout>());
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_workspace_service_ =
+      WorkspaceServiceFactory::GetForProfile(browser_->GetProfile());
+  CHECK(origin_workspace_service_);
+  origin_workspace_service_->AddObserver(this);
+  origin_space_controller_ = browser_->GetFeatures().origin_space_controller();
+  CHECK(origin_space_controller_);
+  origin_space_controller_->AddObserver(this);
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+
+  origin_workspace_rail_ = AddChildView(std::make_unique<views::View>());
+  origin_workspace_rail_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets::TLBR(8, 10, 8, 10),
+      kOriginWorkspaceGap));
+  origin_workspace_rail_->SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+
+  origin_workspace_header_ =
+      origin_page_column_->AddChildView(std::make_unique<views::View>());
+  origin_workspace_header_->SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+  auto* workspace_header_layout = origin_workspace_header_->SetLayoutManager(
+      std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::TLBR(7, 8, 5, 8), 7));
+  workspace_header_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+
+  origin_workspace_icon_button_ = origin_workspace_header_->AddChildView(
+      std::make_unique<OriginWorkspaceButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::ShowOriginWorkspaceIconPicker,
+              base::Unretained(this)),
+          kOriginSpaceIconIdeas, u"Change Space icon", false));
+  origin_workspace_icon_button_->SetPreferredSize(gfx::Size(26, 26));
+
+  auto* workspace_text =
+      origin_workspace_header_->AddChildView(std::make_unique<views::View>());
+  workspace_text->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 0));
+  workspace_header_layout->SetFlexForView(workspace_text, 1);
+
+  origin_workspace_title_ =
+      workspace_text->AddChildView(std::make_unique<OriginWorkspaceTitleButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::BeginOriginWorkspaceRename,
+              base::Unretained(this)),
+          std::u16string()));
+  origin_workspace_title_->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  origin_workspace_title_->SetBorder(views::CreateEmptyBorder(gfx::Insets()));
+
+  origin_workspace_name_editor_ =
+      workspace_text->AddChildView(std::make_unique<views::Textfield>());
+  origin_workspace_name_editor_->SetVisible(false);
+  origin_workspace_name_editor_->set_controller(this);
+  origin_workspace_name_editor_->SetFontList(
+      OriginChromeFont(16, gfx::Font::Weight::SEMIBOLD));
+  origin_workspace_name_editor_->SetBackgroundEnabled(false);
+  origin_workspace_name_editor_->SetBorder(
+      views::CreateEmptyBorder(gfx::Insets::TLBR(0, 0, 1, 0)));
+  views::FocusRing::Remove(origin_workspace_name_editor_);
+
+  origin_workspace_meta_ =
+      workspace_text->AddChildView(std::make_unique<views::Label>());
+  origin_workspace_meta_->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  origin_workspace_meta_->SetFontList(
+      OriginChromeFont(11, gfx::Font::Weight::NORMAL));
+  origin_workspace_meta_->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
+
+  origin_workspace_save_button_ = origin_workspace_header_->AddChildView(
+      std::make_unique<views::LabelButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::CommitOriginWorkspaceRename,
+              base::Unretained(this)),
+          u"Save"));
+  origin_workspace_save_button_->SetVisible(false);
+  origin_workspace_save_button_->SetIsDefault(true);
+  origin_workspace_save_button_->SetBorder(
+      views::CreateEmptyBorder(gfx::Insets::VH(6, 12)));
+  origin_workspace_save_button_->SetBackground(
+      views::CreateRoundedRectBackground(kColorBraveVerticalTabActiveBackground,
+                                         8));
+  views::InkDrop::Get(origin_workspace_save_button_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+  origin_workspace_more_button_ = origin_workspace_header_->AddChildView(
+      std::make_unique<views::LabelButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::BeginOriginWorkspaceRename,
+              base::Unretained(this)),
+          std::u16string()));
+  origin_workspace_more_button_->SetPreferredSize(gfx::Size(26, 26));
+  origin_workspace_more_button_->SetBorder(
+      views::CreateEmptyBorder(gfx::Insets()));
+  origin_workspace_more_button_->SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(kLeoEditBoxIcon,
+                                     kColorBraveVerticalTabNTBIconColor, 16));
+  origin_workspace_more_button_->SetTooltipText(u"Edit Space");
+  origin_workspace_more_button_->SetAccessibleName(u"Edit Space");
+  views::InkDrop::Get(origin_workspace_more_button_)
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+
+  origin_pages_header_ =
+      origin_page_column_->AddChildView(std::make_unique<views::View>());
+  origin_pages_header_->SetVisible(false);
+
+  origin_search_button_ = origin_page_column_->AddChildView(
+      std::make_unique<OriginPageListActionButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::ShowOriginQuickOpen,
+              base::Unretained(this)),
+          kLeoSearchIcon, u"Find or open a page", u"O   Ctrl T",
+          /*field=*/true));
+  // Quick Open already has first-class titlebar and keyboard entry points.
+  // Keeping a second search field inside the page list wastes the most useful
+  // part of a compact sidebar and diverges from Sigma's hierarchy.
+  origin_search_button_->SetVisible(false);
+  origin_new_page_button_ = container->SetOriginNewPageButton(
+      std::make_unique<OriginPageListActionButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::ShowOriginQuickOpen,
+              base::Unretained(this)),
+          kLeoPlusAddIcon, u"New page", u"N", /*field=*/false));
+
+  origin_status_row_ =
+      origin_page_column_->AddChildView(std::make_unique<views::View>());
+  auto* status_layout =
+      origin_status_row_->SetLayoutManager(std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::TLBR(0, 10, 0, 10), 4));
+  status_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  status_layout->set_main_axis_alignment(
+      views::BoxLayout::MainAxisAlignment::kEnd);
+  auto shortcut_button = std::make_unique<views::ImageButton>(
+      base::BindRepeating(
+          &BraveVerticalTabStripRegionView::ShowOriginShortcutHelp,
+          base::Unretained(this)));
+  shortcut_button->SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(vector_icons::kKeyboardIcon,
+                                     kColorBraveVerticalTabNTBIconColor, 15));
+  shortcut_button->SetPreferredSize(gfx::Size(24, 24));
+  shortcut_button->SetAccessibleName(u"Keyboard shortcuts");
+  shortcut_button->SetTooltipText(u"Keyboard shortcuts");
+  shortcut_button->SetFocusBehavior(views::View::FocusBehavior::ALWAYS);
+  views::InkDrop::Get(shortcut_button.get())
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+  origin_shortcut_button_ =
+      origin_status_row_->AddChildView(std::move(shortcut_button));
+
+  auto theme_button = std::make_unique<views::ImageButton>(base::BindRepeating(
+      &BraveVerticalTabStripRegionView::ShowOriginSettingsMenu,
+      base::Unretained(this)));
+  theme_button->SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(kLeoSettingsIcon,
+                                     kColorBraveVerticalTabNTBIconColor, 15));
+  theme_button->SetPreferredSize(gfx::Size(24, 24));
+  theme_button->SetAccessibleName(u"Settings");
+  theme_button->SetTooltipText(u"Settings");
+  theme_button->SetFocusBehavior(views::View::FocusBehavior::ALWAYS);
+  views::InkDrop::Get(theme_button.get())
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+  origin_settings_button_ =
+      origin_status_row_->AddChildView(std::move(theme_button));
+
+  RebuildOriginWorkspaceUI();
+#endif
 
   auto* placement_coordinator = GetPlacementCoordinator(browser_view);
   CHECK(placement_coordinator);
@@ -328,7 +1094,12 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       GetShortcutTextForNewTabButton(browser_view), browser_));
 
   resize_area_ = AddChildView(std::make_unique<ResettableResizeArea>(this));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  SetBackground(
+      views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+#else
   SetBackground(views::CreateSolidBackground(kColorToolbar));
+#endif
 
   auto* prefs = browser_->GetProfile()->GetPrefs();
 
@@ -417,6 +1188,16 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
 }
 
 BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_drag_target_destroy_callbacks_.Notify();
+  ClearOriginWorkspaceDropTarget();
+  if (origin_workspace_service_) {
+    origin_workspace_service_->RemoveObserver(this);
+  }
+  if (origin_space_controller_) {
+    origin_space_controller_->RemoveObserver(this);
+  }
+#endif
   auto* container =
       views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_);
   CHECK(container);
@@ -429,6 +1210,798 @@ BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
     coordinator->ClearPlacement(TabStripPlacementKind::kVerticalTabStrip);
   }
   UpdateLayout();
+}
+
+void BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected(
+    std::string id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_workspace_service_->GetOriginSpace(id)) {
+    return;
+  }
+
+  origin_space_controller_->SelectSpace(id);
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+  RebuildOriginWorkspaceUI();
+  ApplyOriginWorkspaceTabs();
+  InvalidateLayout();
+#endif
+}
+
+TabDragTarget* BraveVerticalTabStripRegionView::GetOriginTabDragTarget(
+    const gfx::Point& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (GetVisible() && origin_workspace_rail_ &&
+      origin_workspace_rail_->GetVisible() &&
+      !GetOriginWorkspaceDropSpaceId(point_in_screen).empty()) {
+    return this;
+  }
+#endif
+  return nullptr;
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragEntered() {}
+
+TabDragContext* BraveVerticalTabStripRegionView::OnTabDragUpdated(
+    TabDragTarget::DragController& controller,
+    const gfx::Point& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  std::string space_id = GetOriginWorkspaceDropSpaceId(point_in_screen);
+  if (space_id == origin_active_workspace_id_) {
+    space_id.clear();
+  }
+  SetOriginWorkspaceDropTarget(space_id);
+  // Keep the native tab drag attached to this browser while it crosses the
+  // narrow rail; the Space move is applied after Chromium finishes its drag
+  // cleanup.
+  return tab_strip()->GetDragContext();
+#else
+  return nullptr;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragExited(
+    const gfx::Point& point_in_screen) {
+  ClearOriginWorkspaceDropTarget();
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragEnded() {
+  ClearOriginWorkspaceDropTarget();
+  CompleteOriginWorkspaceDrop();
+}
+
+bool BraveVerticalTabStripRegionView::CanDropTab() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return !origin_drag_destination_space_id_.empty() &&
+         origin_drag_destination_space_id_ != origin_active_workspace_id_ &&
+         origin_workspace_service_->GetOriginSpace(
+             origin_drag_destination_space_id_);
+#else
+  return false;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::HandleTabDrop(
+    TabDragTarget::DragController& controller) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!CanDropTab()) {
+    return;
+  }
+
+  origin_pending_drop_space_id_ = origin_drag_destination_space_id_;
+  origin_pending_drop_contents_.clear();
+  for (const TabDragData& drag_data :
+       controller.GetSessionData().tab_drag_data_) {
+    if (!drag_data.contents ||
+        std::ranges::contains(origin_pending_drop_contents_,
+                              drag_data.contents)) {
+      continue;
+    }
+    origin_pending_drop_contents_.push_back(drag_data.contents);
+  }
+  ClearOriginWorkspaceDropTarget();
+#endif
+}
+
+base::CallbackListSubscription
+BraveVerticalTabStripRegionView::RegisterWillDestroyCallback(
+    base::OnceClosure callback) {
+  return origin_drag_target_destroy_callbacks_.Add(std::move(callback));
+}
+
+std::string BraveVerticalTabStripRegionView::GetOriginWorkspaceDropSpaceId(
+    const gfx::Point& point_in_screen) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_workspace_service_) {
+    return {};
+  }
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const size_t count =
+      std::min(spaces.size(), origin_workspace_buttons_.size());
+  for (size_t index = 0; index < count; ++index) {
+    const auto* button = origin_workspace_buttons_[index].get();
+    if (button && button->GetVisible() &&
+        button->GetBoundsInScreen().Contains(point_in_screen)) {
+      return spaces[index].id;
+    }
+  }
+#endif
+  return {};
+}
+
+void BraveVerticalTabStripRegionView::SetOriginWorkspaceDropTarget(
+    const std::string& space_id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (space_id == origin_drag_destination_space_id_) {
+    return;
+  }
+  ClearOriginWorkspaceDropTarget();
+  if (space_id.empty() || !origin_workspace_service_) {
+    return;
+  }
+
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const size_t count =
+      std::min(spaces.size(), origin_workspace_buttons_.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (spaces[index].id != space_id) {
+      continue;
+    }
+    origin_workspace_drop_target_button_ = origin_workspace_buttons_[index];
+    origin_drag_destination_space_id_ = space_id;
+    views::AsViewClass<OriginWorkspaceButton>(
+        origin_workspace_drop_target_button_.get())
+        ->SetWorkspaceDropTarget(true);
+    return;
+  }
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ClearOriginWorkspaceDropTarget() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_workspace_drop_target_button_) {
+    views::AsViewClass<OriginWorkspaceButton>(
+        origin_workspace_drop_target_button_.get())
+        ->SetWorkspaceDropTarget(false);
+  }
+#endif
+  origin_workspace_drop_target_button_ = nullptr;
+  origin_drag_destination_space_id_.clear();
+}
+
+void BraveVerticalTabStripRegionView::CompleteOriginWorkspaceDrop() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  std::string destination = std::move(origin_pending_drop_space_id_);
+  origin_pending_drop_space_id_.clear();
+  std::vector<content::WebContents*> contents;
+  contents.reserve(origin_pending_drop_contents_.size());
+  for (content::WebContents* tab_contents : origin_pending_drop_contents_) {
+    if (tab_contents && browser_->tab_strip_model()->GetIndexOfWebContents(
+                            tab_contents) != TabStripModel::kNoTab) {
+      contents.push_back(tab_contents);
+    }
+  }
+  origin_pending_drop_contents_.clear();
+  if (destination.empty() || contents.empty() ||
+      !origin_workspace_service_->GetOriginSpace(destination)) {
+    return;
+  }
+
+  // Tree membership is independent of Space membership. Promote the selected
+  // subtree first so its parent cannot remain hidden in the source Space.
+  static_cast<BraveTabStripModel*>(browser_->tab_strip_model())
+      ->PromoteSelectedTreeTabsToRoot();
+  origin_space_controller_->MoveTabsToSpace(contents, destination);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ClearOriginWorkspaceDropTarget();
+  // Release the tracked raw_ptr references while their views are still alive.
+  // Chromium's dangling-pointer detector intentionally rejects clearing these
+  // references after RemoveAllChildViews() has destroyed the buttons.
+  origin_workspace_buttons_.clear();
+  origin_workspace_rail_->RemoveAllChildViews();
+
+  for (const auto& space : origin_workspace_service_->GetOriginSpaces()) {
+    auto* button = origin_workspace_rail_->AddChildView(
+        std::make_unique<OriginWorkspaceButton>(
+            base::BindRepeating(
+                &BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected,
+                base::Unretained(this), space.id),
+            space.icon, base::UTF8ToUTF16(space.name),
+            space.id == origin_active_workspace_id_));
+    origin_workspace_buttons_.push_back(button);
+  }
+  origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
+      base::BindRepeating(
+          &BraveVerticalTabStripRegionView::CreateOriginWorkspace,
+          base::Unretained(this)),
+      "add", u"New Space", false));
+
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (active) {
+    const std::u16string name = base::UTF8ToUTF16(active->name);
+    origin_workspace_title_->SetText(name);
+    origin_workspace_title_->SetAccessibleName(u"Edit Space name: " + name);
+    origin_workspace_title_->SetTooltipText(u"Rename Space");
+    views::AsViewClass<OriginWorkspaceButton>(origin_workspace_icon_button_)
+        ->SetOriginIcon(active->icon);
+    origin_workspace_icon_button_->SetAccessibleName(u"Change icon for " +
+                                                     name);
+    origin_workspace_icon_button_->SetTooltipText(u"Change Space icon");
+  }
+  UpdateOriginWorkspaceMeta();
+  origin_workspace_rail_->InvalidateLayout();
+  origin_workspace_header_->InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CreateOriginWorkspace() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  std::string icon = kOriginSpaceIconIdeas;
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  for (const auto& choice : kOriginWorkspaceIconChoices) {
+    if (std::ranges::none_of(spaces, [&](const auto& space) {
+          return space.icon == choice.key;
+        })) {
+      icon = choice.key;
+      break;
+    }
+  }
+  const std::string id =
+      origin_workspace_service_->CreateOriginSpace("Untitled", icon);
+  OnOriginWorkspaceSelected(id);
+  // A new Space should feel immediately usable, not expose Chromium's
+  // underlying tab from the previous Space through an empty-color overlay.
+  // Creating the normal Brave NTP after selecting the Space also assigns that
+  // page to the new Space through OriginSpaceController's insertion observer.
+  chrome::NewTab(browser_, NewTabTypes::kNewTabCommand);
+  BeginOriginWorkspaceRename();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::BeginOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  origin_workspace_name_editor_->SetText(base::UTF8ToUTF16(active->name));
+  if (origin_workspace_icon_picker_widget_) {
+    origin_workspace_icon_picker_widget_->Close();
+    origin_workspace_icon_picker_widget_.reset();
+  }
+  SetOriginWorkspaceRenameMode(true);
+  origin_workspace_name_editor_->RequestFocus();
+  origin_workspace_name_editor_->SelectAll(false);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CommitOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  OriginSpaceMetadata updated = *active;
+  std::u16string name =
+      base::CollapseWhitespace(origin_workspace_name_editor_->GetText(), false);
+  if (name.empty()) {
+    name = base::UTF8ToUTF16(active->name);
+  }
+  if (name.size() > 40u) {
+    name.resize(40u);
+  }
+  updated.name = base::UTF16ToUTF8(name);
+  origin_workspace_service_->UpdateOriginSpace(updated);
+  SetOriginWorkspaceRenameMode(false);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::CancelOriginWorkspaceRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  SetOriginWorkspaceRenameMode(false);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::SetOriginWorkspaceRenameMode(
+    bool editing) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_workspace_title_->SetVisible(!editing);
+  origin_workspace_name_editor_->SetVisible(editing);
+  origin_workspace_save_button_->SetVisible(editing);
+  origin_workspace_icon_button_->SetVisible(true);
+  origin_workspace_meta_->SetVisible(!editing);
+  origin_workspace_more_button_->SetVisible(!editing);
+  origin_workspace_header_->SetBackground(
+      editing ? views::CreateRoundedRectBackground(
+                    kColorBraveVerticalTabHoveredBackground, 10)
+              : views::CreateSolidBackground(
+                    kColorBraveVerticalTabInactiveBackground));
+  origin_workspace_header_->InvalidateLayout();
+  origin_workspace_header_->SchedulePaint();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginQuickOpen() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  BraveBrowserView::From(browser_view_)->ShowOriginQuickOpen();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_shortcut_help_widget_) {
+    const bool was_visible = origin_shortcut_help_widget_->IsVisible();
+    origin_shortcut_help_widget_->Close();
+    origin_shortcut_help_widget_.reset();
+    if (was_visible) {
+      return;
+    }
+  }
+  if (origin_settings_widget_) {
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
+  }
+
+  auto content = std::make_unique<views::View>();
+  content->SetBackground(views::CreateSolidBackground(kOriginPickerSurface));
+  content->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 6));
+
+  auto* title =
+      content->AddChildView(std::make_unique<views::Label>(u"Keyboard shortcuts"));
+  title->SetSubpixelRenderingEnabled(false);
+  title->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+  title->SetFontList(OriginChromeFont(15, gfx::Font::Weight::SEMIBOLD));
+  title->SetEnabledColor(SkColorSetRGB(0xF5, 0xF5, 0xF6));
+  title->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(0, 2, 4, 2));
+
+  struct ShortcutEntry {
+    std::u16string_view key;
+    std::u16string_view description;
+  };
+  constexpr std::array<ShortcutEntry, 15> kShortcuts = {{
+      {u"O / N", u"Search or open a page"},
+      {u"J / K", u"Next / previous page"},
+      {u"1–5", u"Switch Space"},
+      {u"P", u"Pin / unpin page"},
+      {u"W", u"Close page"},
+      {u"D", u"Close page tree"},
+      {u"Z", u"Reopen closed page"},
+      {u"R", u"Reload page"},
+      {u"[ / ]", u"Back / forward"},
+      {u"I", u"Enter insert mode"},
+      {u"Esc", u"Leave insert mode"},
+      {u"⌘ 1–5", u"Switch Space directly"},
+      {u"⌘ ↑ / ↓", u"Previous / next Space"},
+      {u"⌘ ←", u"Show / hide sidebar"},
+      {u"⌘ →", u"Exit split view"},
+  }};
+
+  for (const ShortcutEntry& entry : kShortcuts) {
+    auto* row = content->AddChildView(std::make_unique<views::View>());
+    auto* row_layout =
+        row->SetLayoutManager(std::make_unique<views::BoxLayout>(
+            views::BoxLayout::Orientation::kHorizontal,
+            gfx::Insets::TLBR(2, 2, 2, 2), 10));
+    row_layout->set_cross_axis_alignment(
+        views::BoxLayout::CrossAxisAlignment::kCenter);
+
+    auto* description = row->AddChildView(
+        std::make_unique<views::Label>(std::u16string(entry.description)));
+    description->SetSubpixelRenderingEnabled(false);
+    description->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
+    description->SetFontList(OriginChromeFont(12, gfx::Font::Weight::NORMAL));
+    description->SetEnabledColor(kOriginPickerSecondaryText);
+    row_layout->SetFlexForView(description, 1);
+
+    auto* key = row->AddChildView(
+        std::make_unique<views::Label>(std::u16string(entry.key)));
+    key->SetSubpixelRenderingEnabled(false);
+    key->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
+    key->SetFontList(OriginChromeFont(10, gfx::Font::Weight::SEMIBOLD));
+    key->SetEnabledColor(SkColorSetRGB(0xD7, 0xD8, 0xDB));
+    key->SetBackground(views::CreateRoundedRectBackground(
+        SkColorSetARGB(0x19, 0xFF, 0xFF, 0xFF), 5));
+    key->SetBorder(
+        views::CreateEmptyBorder(gfx::Insets::TLBR(2, 7, 2, 7)));
+  }
+
+  auto bubble_delegate = std::make_unique<views::BubbleDialogDelegate>(
+      origin_shortcut_button_, views::BubbleBorder::BOTTOM_RIGHT,
+      views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
+  auto* bubble_delegate_ptr = bubble_delegate.get();
+  bubble_delegate->SetButtons(
+      static_cast<int>(ui::mojom::DialogButton::kNone));
+  bubble_delegate->SetShowTitle(false);
+  bubble_delegate->SetShowCloseButton(false);
+  bubble_delegate->SetAccessibleTitle(u"Keyboard shortcuts");
+  bubble_delegate->set_adjust_if_offscreen(true);
+  bubble_delegate->set_close_on_deactivate(true);
+  bubble_delegate->set_fixed_width(320);
+  bubble_delegate->set_margins(gfx::Insets::TLBR(14, 14, 14, 14));
+  bubble_delegate->SetBackgroundColor(kOriginPickerSurface);
+  bubble_delegate->SetContentsView(std::move(content));
+  auto* widget = views::BubbleDialogDelegate::CreateBubbleDeprecated(
+      std::move(bubble_delegate),
+      views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET);
+  auto* frame = bubble_delegate_ptr->GetBubbleFrameView();
+  frame->SetRoundedCorners(gfx::RoundedCornersF(16));
+  frame->SetDisplayVisibleArrow(true);
+  frame->bubble_border()->set_draw_border_stroke(true);
+  origin_shortcut_help_widget_ = widget->GetWeakPtr();
+  widget->Show();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginSettingsMenu() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_settings_widget_) {
+    const bool was_visible = origin_settings_widget_->IsVisible();
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
+    if (was_visible) {
+      return;
+    }
+  }
+  if (origin_shortcut_help_widget_) {
+    origin_shortcut_help_widget_->Close();
+    origin_shortcut_help_widget_.reset();
+  }
+
+  ThemeService* theme_service =
+      ThemeServiceFactory::GetForProfile(browser_->GetProfile());
+  if (!theme_service) {
+    return;
+  }
+  const ThemeService::BrowserColorScheme current_scheme =
+      theme_service->GetBrowserColorScheme();
+  const bool dark =
+      !browser_view_->GetColorProvider() ||
+      color_utils::IsDark(
+          browser_view_->GetColorProvider()->GetColor(kColorToolbar));
+  const SkColor surface = dark ? kOriginPickerSurface : SK_ColorWHITE;
+  const SkColor primary =
+      dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6) : SkColorSetRGB(0x18, 0x1D, 0x27);
+  const SkColor secondary =
+      dark ? SkColorSetRGB(0x6F, 0x72, 0x79) : SkColorSetRGB(0x71, 0x76, 0x80);
+  const SkColor divider_color = dark ? SkColorSetARGB(0x14, 0xFF, 0xFF, 0xFF)
+                                     : SkColorSetARGB(0x16, 0x18, 0x1D, 0x27);
+  const SkColor segmented_color =
+      dark ? SkColorSetRGB(0x29, 0x2C, 0x32) : SkColorSetRGB(0xEA, 0xEB, 0xEE);
+  const SkColor selected_color =
+      dark ? SkColorSetRGB(0x4B, 0x4E, 0x55) : SkColorSetRGB(0xFF, 0xFF, 0xFF);
+  const SkColor hover_color = dark ? SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF)
+                                   : SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27);
+
+  auto content = std::make_unique<views::View>();
+  content->SetBackground(views::CreateSolidBackground(surface));
+  content->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kVertical, gfx::Insets(), 0));
+
+  auto* appearance_row = content->AddChildView(std::make_unique<views::View>());
+  appearance_row->SetPreferredSize(gfx::Size(0, 34));
+  auto* appearance_layout =
+      appearance_row->SetLayoutManager(std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::TLBR(0, 10, 0, 10), 8));
+  appearance_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  auto* appearance_label = appearance_row->AddChildView(
+      std::make_unique<views::Label>(u"Appearance"));
+  appearance_label->SetSubpixelRenderingEnabled(false);
+  appearance_label->SetHorizontalAlignment(
+      gfx::HorizontalAlignment::ALIGN_LEFT);
+  appearance_label->SetFontList(
+      OriginChromeFont(13, gfx::Font::Weight::NORMAL));
+  appearance_label->SetEnabledColor(primary);
+  appearance_layout->SetFlexForView(appearance_label, 1);
+
+  auto* theme_control =
+      appearance_row->AddChildView(std::make_unique<views::View>());
+  theme_control->SetBackground(
+      views::CreateRoundedRectBackground(segmented_color, 8));
+  auto* theme_layout =
+      theme_control->SetLayoutManager(std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal, gfx::Insets::VH(2, 2),
+          2));
+  theme_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+
+  struct ThemeOption {
+    ThemeService::BrowserColorScheme scheme;
+    std::u16string_view glyph;
+    std::u16string_view label;
+  };
+  constexpr std::array<ThemeOption, 3> kThemeOptions = {{
+      {ThemeService::BrowserColorScheme::kDark, u"☾", u"Dark"},
+      {ThemeService::BrowserColorScheme::kLight, u"☀", u"Light"},
+      {ThemeService::BrowserColorScheme::kSystem, u"▭", u"System"},
+  }};
+
+  for (const ThemeOption& option : kThemeOptions) {
+    const bool selected = option.scheme == current_scheme;
+    auto button = std::make_unique<views::LabelButton>(
+        base::BindRepeating(
+            &BraveVerticalTabStripRegionView::SetOriginThemeMode,
+            weak_factory_.GetWeakPtr(), static_cast<int>(option.scheme)),
+        std::u16string(option.glyph));
+    button->SetAccessibleName(std::u16string(option.label));
+    button->SetTooltipText(std::u16string(option.label));
+    button->SetPreferredSize(gfx::Size(26, 22));
+    button->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
+    button->SetTextSubpixelRenderingEnabled(false);
+    button->SetEnabledTextColors(selected ? primary : secondary);
+    button->SetBorder(views::CreateEmptyBorder(gfx::Insets()));
+    button->SetBackground(views::CreateRoundedRectBackground(
+        selected ? selected_color : SK_ColorTRANSPARENT, 6));
+    views::InkDrop::Get(button.get())
+        ->SetMode(views::InkDropHost::InkDropMode::OFF);
+    theme_control->AddChildView(std::move(button));
+  }
+
+  auto* divider = content->AddChildView(std::make_unique<views::View>());
+  divider->SetPreferredSize(gfx::Size(0, 1));
+  divider->SetBackground(views::CreateSolidBackground(divider_color));
+  divider->SetProperty(views::kMarginsKey, gfx::Insets::TLBR(5, 4, 5, 4));
+
+  struct SettingsDestination {
+    std::u16string_view label;
+    std::string_view url;
+  };
+  constexpr std::array<SettingsDestination, 5> kDestinations = {{
+      {u"Browser settings", "brave://settings"},
+      {u"Spaces and pages", "brave://settings/spaces"},
+      {u"Sync", "brave://settings/braveSync"},
+      {u"Shields defaults", "brave://settings/shields"},
+      {u"Change shortcut keys", "brave://settings/system"},
+  }};
+  for (const SettingsDestination& destination : kDestinations) {
+    content->AddChildView(std::make_unique<OriginSettingsRowButton>(
+        base::BindRepeating(
+            &BraveVerticalTabStripRegionView::OpenOriginSettingsPage,
+            weak_factory_.GetWeakPtr(), std::string(destination.url)),
+        std::u16string(destination.label), base::UTF8ToUTF16(destination.url),
+        primary, secondary, hover_color));
+  }
+
+  auto bubble_delegate = std::make_unique<views::BubbleDialogDelegate>(
+      origin_settings_button_, views::BubbleBorder::BOTTOM_RIGHT,
+      views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
+  auto* bubble_delegate_ptr = bubble_delegate.get();
+  bubble_delegate->SetButtons(
+      static_cast<int>(ui::mojom::DialogButton::kNone));
+  bubble_delegate->SetShowTitle(false);
+  bubble_delegate->SetShowCloseButton(false);
+  bubble_delegate->SetAccessibleTitle(u"Settings");
+  bubble_delegate->set_adjust_if_offscreen(true);
+  bubble_delegate->set_close_on_deactivate(true);
+  bubble_delegate->set_fixed_width(252);
+  bubble_delegate->set_margins(gfx::Insets::VH(6, 6));
+  bubble_delegate->SetBackgroundColor(surface);
+  bubble_delegate->SetContentsView(std::move(content));
+  auto* widget = views::BubbleDialogDelegate::CreateBubbleDeprecated(
+      std::move(bubble_delegate),
+      views::Widget::InitParams::NATIVE_WIDGET_OWNS_WIDGET);
+  auto* frame = bubble_delegate_ptr->GetBubbleFrameView();
+  frame->SetRoundedCorners(gfx::RoundedCornersF(14));
+  frame->SetDisplayVisibleArrow(false);
+  frame->bubble_border()->set_draw_border_stroke(true);
+  origin_settings_widget_ = widget->GetWeakPtr();
+  widget->Show();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OpenOriginSettingsPage(std::string url) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const GURL destination(url);
+  if (!destination.is_valid()) {
+    return;
+  }
+  if (origin_settings_widget_) {
+    origin_settings_widget_->Close();
+    origin_settings_widget_.reset();
+  }
+
+  TabStripModel* model = browser_->tab_strip_model();
+  for (int index = 0; index < model->count(); ++index) {
+    if (model->GetWebContentsAt(index)->GetVisibleURL() == destination) {
+      model->ActivateTabAt(index);
+      return;
+    }
+  }
+  chrome::AddTabAt(browser_, destination, -1, true);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::SetOriginThemeMode(int mode) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto scheme = static_cast<ThemeService::BrowserColorScheme>(mode);
+  switch (scheme) {
+    case ThemeService::BrowserColorScheme::kSystem:
+    case ThemeService::BrowserColorScheme::kLight:
+    case ThemeService::BrowserColorScheme::kDark:
+      break;
+    default:
+      return;
+  }
+  // Theme changes synchronously visit every browser widget. Widget::Close()
+  // only hides a native bubble and schedules its destruction, so merely
+  // delaying SetBrowserColorScheme() can still leave a half-closed picker in
+  // BrowserWindowThemeObserver's widget walk. Leave the button callback first,
+  // destroy the picker synchronously on the next task, and apply the theme on
+  // a later task after that destruction has completed.
+  base::WeakPtr<views::Widget> picker = origin_settings_widget_;
+  origin_settings_widget_.reset();
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<views::Widget> picker_widget) {
+            if (picker_widget) {
+              // BubbleDialogDelegate observes its anchor widget and forwards
+              // OnWidgetThemeChanged() to the bubble. Detach that observation
+              // while both widgets are still fully alive; otherwise a closed
+              // native bubble can be reached during the browser's synchronous
+              // theme walk with its RootView already torn down.
+              if (auto* bubble = picker_widget->widget_delegate()
+                                     ->AsBubbleDialogDelegate()) {
+                bubble->SetAnchorView(nullptr);
+              }
+              picker_widget->CloseNow();
+            }
+          },
+          std::move(picker)));
+  base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+      FROM_HERE,
+      base::BindOnce(
+          [](base::WeakPtr<BraveVerticalTabStripRegionView> region,
+             ThemeService::BrowserColorScheme color_scheme) {
+            if (!region) {
+              return;
+            }
+            ThemeService* theme_service = ThemeServiceFactory::GetForProfile(
+                region->browser_->GetProfile());
+            if (theme_service) {
+              theme_service->SetBrowserColorScheme(color_scheme);
+            }
+          },
+          weak_factory_.GetWeakPtr(), scheme),
+      base::Milliseconds(500));
+#endif
+}
+
+void BraveVerticalTabStripRegionView::UpdateOriginWorkspaceMeta() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const size_t page_count = origin_space_controller_->GetPageCountForSpace(
+      origin_active_workspace_id_);
+
+  std::u16string meta = base::NumberToString16(page_count);
+  meta.append(page_count == 1 ? u" page" : u" pages");
+  origin_workspace_meta_->SetText(meta);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::EnsureOriginSpaceHasPage() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_new_page_pending_ = false;
+  if (!origin_space_controller_->ActiveSpaceHasTabs() &&
+      !browser_->tab_strip_model()->closing_all()) {
+    chrome::NewTab(browser_, NewTabTypes::kNewTabCommand);
+  }
+#endif
+}
+
+bool BraveVerticalTabStripRegionView::HandleKeyEvent(
+    views::Textfield* sender,
+    const ui::KeyEvent& key_event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (sender != origin_workspace_name_editor_ ||
+      key_event.type() != ui::EventType::kKeyPressed) {
+    return false;
+  }
+  if (key_event.key_code() == ui::VKEY_RETURN) {
+    CommitOriginWorkspaceRename();
+    return true;
+  }
+  if (key_event.key_code() == ui::VKEY_ESCAPE) {
+    CancelOriginWorkspaceRename();
+    return true;
+  }
+#endif
+  return false;
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginWorkspaceIconPicker() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_workspace_icon_picker_widget_) {
+    const bool was_visible = origin_workspace_icon_picker_widget_->IsVisible();
+    origin_workspace_icon_picker_widget_->Close();
+    origin_workspace_icon_picker_widget_.reset();
+    if (was_visible) {
+      return;
+    }
+  }
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active) {
+    return;
+  }
+  origin_workspace_icon_picker_widget_ = OriginWorkspaceIconPickerBubble::Show(
+      origin_workspace_icon_button_, active->icon,
+      base::BindRepeating(
+          &BraveVerticalTabStripRegionView::SetOriginWorkspaceIcon,
+          weak_factory_.GetWeakPtr()));
+#endif
+}
+
+void BraveVerticalTabStripRegionView::SetOriginWorkspaceIcon(std::string icon) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const auto* active =
+      origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
+  if (!active || icon.empty()) {
+    return;
+  }
+  OriginSpaceMetadata updated = *active;
+  updated.icon = std::move(icon);
+  origin_workspace_service_->UpdateOriginSpace(updated);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnOriginSpacesChanged() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_active_workspace_id_ = origin_space_controller_->active_space_id();
+  RebuildOriginWorkspaceUI();
+  ApplyOriginWorkspaceTabs();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnOriginSpaceControllerChanged() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const std::string active_space_id =
+      origin_space_controller_->active_space_id();
+  if (origin_active_workspace_id_ != active_space_id) {
+    origin_active_workspace_id_ = active_space_id;
+    RebuildOriginWorkspaceUI();
+  }
+  ApplyOriginWorkspaceTabs();
+  InvalidateLayout();
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ApplyOriginWorkspaceTabs() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* model = browser_->tab_strip_model();
+  auto* tab_container =
+      views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_);
+  CHECK(tab_container);
+
+  // Space filtering participates in BraveTabContainer::ShouldTabBeVisible().
+  // Rebuild ideal bounds before applying visibility; otherwise rows hidden in
+  // the previous Space retain zero-height cached bounds when that Space is
+  // selected again.
+  tab_container->InvalidateIdealBounds();
+  tab_container->CompleteAnimationAndLayout();
+  tab_container->SchedulePaint();
+  const bool active_space_empty =
+      !origin_space_controller_->ActiveSpaceHasTabs();
+  BraveBrowserView::From(browser_view_)
+      ->SetOriginSpaceEmpty(active_space_empty);
+  if (active_space_empty && !model->closing_all() &&
+      !origin_new_page_pending_) {
+    origin_new_page_pending_ = true;
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE,
+        base::BindOnce(
+            &BraveVerticalTabStripRegionView::EnsureOriginSpaceHasPage,
+            weak_factory_.GetWeakPtr()));
+  }
+  UpdateOriginWorkspaceMeta();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::ToggleState() {
@@ -529,7 +2102,11 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
   mouse_exit_timer_.Stop();
 
   last_state_ = std::exchange(state_, state);
-  resize_area_->SetEnabled(state == State::kExpanded);
+  // A revealed floating panel is still a real panel. Sigma keeps the resize
+  // affordance available whenever the page column is visible; disabling it in
+  // kFloating made an open sidebar look resizable while retaining the normal
+  // arrow cursor and ignoring drags.
+  resize_area_->SetEnabled(state != State::kCollapsed);
 
   if (!VerticalTabController::FromBrowser(browser_)
            ->ShouldShowBraveVerticalTabs()) {
@@ -567,6 +2144,10 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
   PreferredSizeChanged();
   UpdateBorder();
 
+  if (!width_animation_.is_animating()) {
+    FinalizeOriginContentsResize();
+  }
+
   if (last_state_ == State::kFloating && state_ == State::kExpanded) {
     // In this case we need to lay out pinned tabs so that they need to hide
     // title and close button.
@@ -577,6 +2158,10 @@ void BraveVerticalTabStripRegionView::SetState(State state) {
 }
 
 void BraveVerticalTabStripRegionView::SetExpandedWidth(int dest_width) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  dest_width = std::clamp(dest_width, kOriginSidebarMinimumWidth,
+                          kOriginSidebarMaximumWidth);
+#endif
   if (expanded_width_ == dest_width) {
     return;
   }
@@ -588,6 +2173,12 @@ void BraveVerticalTabStripRegionView::SetExpandedWidth(int dest_width) {
   }
 
   PreferredSizeChanged();
+}
+
+void BraveVerticalTabStripRegionView::FinalizeOriginContentsResize() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  BraveBrowserView::From(browser_view_)->FinalizeOriginContentsResize();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::UpdateStateAfterDragAndDropFinished(
@@ -624,8 +2215,15 @@ BraveVerticalTabStripRegionView::ExpandTabStripForDragging() {
 int BraveVerticalTabStripRegionView::GetAvailableWidthForTabContainer() {
   DCHECK(VerticalTabController::FromBrowser(browser_)
              ->ShouldShowBraveVerticalTabs());
-  return GetPreferredWidthForState(state_, /*include_border=*/false,
-                                   /*ignore_animation=*/false);
+  int width = GetPreferredWidthForState(state_, /*include_border=*/false,
+                                        /*ignore_animation=*/false);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The tab strip is hosted in the fixed 250 px page column, not across the
+  // complete sidebar. During the collapse animation this naturally shrinks to
+  // zero while the rail retains its full width.
+  width -= std::min(kOriginWorkspaceRailWidth, width);
+#endif
+  return std::max(0, width);
 }
 
 gfx::Size BraveVerticalTabStripRegionView::CalculatePreferredSize(
@@ -635,6 +2233,17 @@ gfx::Size BraveVerticalTabStripRegionView::CalculatePreferredSize(
 }
 
 gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Focus mode normally treats a revealed vertical tab strip as an overlay and
+  // leaves the renderer at full-window width. That makes responsive pages lay
+  // themselves out underneath Origin's much wider Space/page panel: once the
+  // panel is revealed, the visible page is the right-hand crop of that layout.
+  // Keep the hidden state overlay-sized, but reserve the panel's real width
+  // while it is visible so the renderer receives the viewport the user sees.
+  if (IsFloatingEnabledForBrowserMode() && state_ != State::kFloating) {
+    return {};
+  }
+#else
   if (IsFloatingEnabledForBrowserMode() ||
       ((VerticalTabController::FromBrowser(browser_)
             ->ShouldHideVerticalTabsCompletelyWhenCollapsed() &&
@@ -642,14 +2251,23 @@ gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
     // Vertical tab strip always overlaps the contents area.
     return {};
   }
+#endif
 
   auto target_state = state_;
 
   // Minimum size is used for host view's preferred size.
   // See BraveVerticalTabStripContainerView::ChildPreferredSizeChanged().
-  // When floating, host view's size should not be changed during the floating.
+  // Regular Brave keeps the host size stable while the strip floats. Origin's
+  // wider workspace panel intentionally reserves its expanded width below.
   if (state_ == State::kFloating) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Origin's floating panel is a full Space/page sidebar. Its host must track
+    // that visible width so web contents reflows beside it instead of remaining
+    // hidden underneath it.
+    target_state = State::kExpanded;
+#else
     target_state = State::kCollapsed;
+#endif
   }
 
   // Get size w/o border. Consider border width later.
@@ -660,6 +2278,11 @@ gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
     return size;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin has no panel border or half-margin compensation. The minimum width
+  // therefore remains the exact 56/306 px state width.
+  return size;
+#else
   // In rounded corners, border is changed on floating.
   // If we calculated preferred size with |include_border|,
   // it gives different size because of border change.
@@ -674,6 +2297,7 @@ gfx::Size BraveVerticalTabStripRegionView::GetMinimumSize() const {
   }
 
   return size;
+#endif
 }
 
 void BraveVerticalTabStripRegionView::Layout(PassKey) {
@@ -685,25 +2309,75 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 
   const auto contents_bounds = GetContentsBounds();
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const int rail_width =
+      std::min(kOriginWorkspaceRailWidth, contents_bounds.width());
+  origin_workspace_rail_->SetBounds(contents_bounds.x(), contents_bounds.y(),
+                                    rail_width, contents_bounds.height());
+
+  const int workspace_x = 0;
+  const int workspace_width =
+      std::max(0, contents_bounds.width() - rail_width);
+  const int contents_view_width = workspace_width;
+  origin_page_column_->SetVisible(workspace_width > 0);
+  origin_page_column_->SetBounds(contents_bounds.x() + rail_width,
+                                 contents_bounds.y(), workspace_width,
+                                 contents_bounds.height());
+  origin_workspace_header_->SetBounds(workspace_x, 0, contents_view_width,
+                                      kOriginWorkspaceHeaderHeight);
+  origin_search_button_->SetBoundsRect(gfx::Rect());
+
+  origin_status_row_->SetBounds(
+      0, std::max(0, contents_bounds.height() - kOriginStatusRowHeight - 4),
+      workspace_width, kOriginStatusRowHeight);
+  origin_pages_header_->SetBoundsRect(gfx::Rect());
+#else
+  const int workspace_x = contents_bounds.x();
+  const int workspace_width = contents_bounds.width();
+  const int contents_view_width = workspace_width;
+#endif
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const int contents_view_max_height =
+      std::max(0, contents_bounds.height() - kOriginPageListTop -
+                      kOriginPageListFooterHeight);
+#else
   constexpr int kNewTabButtonHeight = tabs::kVerticalTabHeight;
   const int contents_view_max_height =
       contents_bounds.height() - tabs::kMarginForVerticalTabContainers -
       kNewTabButtonHeight - tabs::kMarginForVerticalTabContainers -
       kSeparatorHeight;
+#endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const int contents_view_height = contents_view_max_height;
+#else
   // Using tab_container_'s preferred height because tab_strip's preferred
   // height could be 0 in tests.
   const int contents_view_preferred_height =
       tab_strip()->tab_container_->GetPreferredSize().height();
+  const int contents_view_height =
+      std::min(contents_view_max_height, contents_view_preferred_height);
+#endif
 
-  region_view_container_->SetBoundsRect(gfx::Rect(
-      contents_bounds.origin(),
-      gfx::Size(
-          contents_bounds.width(),
-          std::min(contents_view_max_height, contents_view_preferred_height))));
+  region_view_container_->SetBoundsRect(
+      gfx::Rect(gfx::Point(workspace_x,
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+                           kOriginPageListTop
+#else
+                           contents_bounds.y()
+#endif
+                           ),
+                gfx::Size(contents_view_width, contents_view_height)));
 
-  gfx::Rect separator_bounds(
-      region_view_container_->bounds().bottom_left(),
-      gfx::Size(contents_bounds.width(), kSeparatorHeight));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Quick Open is Origin's single page-creation surface. Keeping the legacy
+  // vertical-tab new-tab button here duplicates that action and leaves a
+  // permanent footer which Sigma-style workspaces do not have.
+  separator_->SetBoundsRect(gfx::Rect());
+  new_tab_button_->SetBoundsRect(gfx::Rect());
+#else
+  gfx::Rect separator_bounds(region_view_container_->bounds().bottom_left(),
+                             gfx::Size(workspace_width, kSeparatorHeight));
   separator_bounds.Inset(
       gfx::Insets::VH(0, tabs::kMarginForVerticalTabContainers));
   separator_->SetBoundsRect(separator_bounds);
@@ -712,16 +2386,16 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
       gfx::Size(separator_bounds.width(), kNewTabButtonHeight));
   new_tab_button_bounds.Offset(0, tabs::kMarginForVerticalTabContainers);
   new_tab_button_->SetBoundsRect(new_tab_button_bounds);
+#endif
 
-  // Put resize area, overlapped with contents.
-  if (vertical_tab_on_right_.GetPrefName().empty()) {
-    // Not initialized yet.
-    return;
-  }
-
-  constexpr int kResizeAreaWidth = 4;
+  // Put the resize area over the inside edge. Lay it out even during the first
+  // pass, before the side preference is initialized, so it can never remain
+  // at empty bounds for the lifetime of a newly-created window.
+  const bool tabs_on_right = !vertical_tab_on_right_.GetPrefName().empty() &&
+                             *vertical_tab_on_right_;
+  constexpr int kResizeAreaWidth = 12;
   resize_area_->SetBounds(
-      *vertical_tab_on_right_ ? 0 : width() - kResizeAreaWidth,
+      tabs_on_right ? 0 : width() - kResizeAreaWidth,
       contents_bounds.y(), kResizeAreaWidth, contents_bounds.height());
 }
 
@@ -918,14 +2592,23 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
       *resize_offset_ - GetInsets().width();
   // Passed |true| but it doesn't have any meaning becuase we always use same
   // width.
-  dest_width =
-      std::clamp(dest_width, tab_style_->GetPinnedWidth(/*is_split*/ true) * 3,
-                 tab_style_->GetStandardWidth(/*is_split*/ true) * 2);
+  dest_width = std::clamp(
+      dest_width,
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      kOriginSidebarMinimumWidth, kOriginSidebarMaximumWidth
+#else
+      tab_style_->GetPinnedWidth(/*is_split*/ true) * 3,
+      tab_style_->GetStandardWidth(/*is_split*/ true) * 2
+#endif
+  );
   if (done_resizing) {
     resize_offset_ = std::nullopt;
   }
 
   if (expanded_width_ == dest_width) {
+    if (done_resizing) {
+      FinalizeOriginContentsResize();
+    }
     return;
   }
 
@@ -939,6 +2622,9 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
   }
 
   SetExpandedWidth(dest_width);
+  if (done_resizing) {
+    FinalizeOriginContentsResize();
+  }
 }
 
 void BraveVerticalTabStripRegionView::AnimationProgressed(
@@ -949,6 +2635,7 @@ void BraveVerticalTabStripRegionView::AnimationProgressed(
 void BraveVerticalTabStripRegionView::AnimationEnded(
     const gfx::Animation* animation) {
   PreferredSizeChanged();
+  FinalizeOriginContentsResize();
 
   if (state_ == State::kCollapsed) {
     OnCollapseAnimationEnded();
@@ -960,16 +2647,26 @@ void BraveVerticalTabStripRegionView::UpdateNewTabButtonVisibility() {
                                     ->ShouldShowBraveVerticalTabs();
   auto* original_ntb = original_region_view_->new_tab_button();
   original_ntb->SetVisible(!is_vertical_tabs);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  new_tab_button_->SetVisible(false);
+  separator_->SetVisible(false);
+#else
   new_tab_button_->SetVisible(is_vertical_tabs);
   separator_->SetVisible(is_vertical_tabs);
+#endif
 }
 
 int BraveVerticalTabStripRegionView::GetTabStripViewportMaxHeight() const {
   // Don't depend on |contents_view_|'s current height. It could be bigger than
   // the actual viewport height.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return std::max(0, GetContentsBounds().height() - kOriginPageListTop -
+                         kOriginPageListFooterHeight);
+#else
   return GetContentsBounds().height() -
          (separator_->height() + tabs::kMarginForVerticalTabContainers) -
          new_tab_button_->height();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::ResetExpandedWidth() {
@@ -980,6 +2677,12 @@ void BraveVerticalTabStripRegionView::ResetExpandedWidth() {
 }
 
 void BraveVerticalTabStripRegionView::UpdateBorder() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The Origin panel is one continuous surface. Any border here becomes a
+  // visible divider between the 250 px page list and the web canvas.
+  SetBorder(nullptr);
+  PreferredSizeChanged();
+#else
   auto show_visible_border = [&]() {
     // The color provider might not be available during initialization.
     if (!GetColorProvider()) {
@@ -1036,6 +2739,7 @@ void BraveVerticalTabStripRegionView::UpdateBorder() {
   }
 
   PreferredSizeChanged();
+#endif
 }
 
 void BraveVerticalTabStripRegionView::OnCollapsedPrefChanged() {
@@ -1086,10 +2790,16 @@ void BraveVerticalTabStripRegionView::
 
 void BraveVerticalTabStripRegionView::OnShowToggleButtonPrefChanged() {
   if (!show_toggle_button_pref_.GetValue()) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Origin always exposes its native panel control. Ignore a legacy Brave
+    // preference that used to hide that control rather than making a fully
+    // collapsed sidebar impossible to restore.
+#else
     // There is no other way to expand collapsed vertical tabs when the
     // toggle button is hidden, so force the base/resting state to collapsed.
     collapsed_pref_.SetValue(true);
     SetState(State::kCollapsed);
+#endif
   }
 
   // Floating mode is forced on when the toggle button is hidden; make sure
@@ -1135,6 +2845,10 @@ int BraveVerticalTabStripRegionView::GetPreferredWidthForState(
   };
 
   auto calculate_collapsed_width = [&]() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    return kOriginWorkspaceRailWidth +
+           (include_border ? GetInsets().width() : 0);
+#else
     if (IsFloatingEnabledForBrowserMode()) {
       // In this case, vertical tab strip should be invisible but show up when
       // mouse hovers.
@@ -1149,6 +2863,7 @@ int BraveVerticalTabStripRegionView::GetPreferredWidthForState(
     return tabs::kVerticalTabMinWidth +
            tabs::kMarginForVerticalTabContainers * 2 +
            (include_border ? GetInsets().width() : 0);
+#endif
   };
 
   if (!ignore_animation && width_animation_.is_animating()) {
@@ -1179,11 +2894,18 @@ int BraveVerticalTabStripRegionView::GetPreferredWidthForState(
 }
 
 bool BraveVerticalTabStripRegionView::IsFloatingVerticalTabsEnabled() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A manually hidden Origin sidebar stays hidden until the toolbar control or
+  // keyboard shortcut restores it. Focus/fullscreen mode can still request a
+  // transient floating state through IsFloatingEnabledForBrowserMode().
+  return IsFloatingEnabledForBrowserMode();
+#else
   return IsFloatingEnabledForBrowserMode() ||
          VerticalTabController::FromBrowser(browser_)
              ->IsFloatingVerticalTabsEnabled() ||
          VerticalTabController::FromBrowser(browser_)
              ->ShouldHideVerticalTabsCompletelyWhenCollapsed();
+#endif
 }
 
 bool BraveVerticalTabStripRegionView::IsFloatingEnabledForBrowserFullscreen()

@@ -7,6 +7,7 @@
 #define BRAVE_BROWSER_WORKSPACES_WORKSPACE_SERVICE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,7 @@
 #include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/memory/weak_ptr.h"
+#include "base/observer_list.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_metadata.h"
@@ -22,6 +24,7 @@
 
 class PrefService;
 class Profile;
+class GURL;
 
 // Per-profile service that manages saving and restoring named workspaces.
 //
@@ -41,6 +44,11 @@ class Profile;
 // sequence, then all blocking I/O tasks are posted to that same runner.
 class WorkspaceService : public KeyedService {
  public:
+  class Observer : public base::CheckedObserver {
+   public:
+    virtual void OnOriginSpacesChanged() = 0;
+  };
+
   explicit WorkspaceService(Profile& profile);
   ~WorkspaceService() override;
 
@@ -51,6 +59,25 @@ class WorkspaceService : public KeyedService {
   // modified (most-recent first).  Reads from the profile preference; no disk
   // I/O.
   std::vector<WorkspaceMetadata> ListWorkspaces() const;
+
+  // Live Sigma-style spaces shared across all windows in this profile.
+  const std::vector<OriginSpaceMetadata>& GetOriginSpaces() const;
+  const OriginSpaceMetadata* GetOriginSpace(const std::string& id) const;
+  std::string CreateOriginSpace(std::string name, std::string icon);
+  bool UpdateOriginSpace(const OriginSpaceMetadata& space);
+  bool DeleteOriginSpace(const std::string& id);
+  bool ReorderOriginSpace(const std::string& id, size_t target_index);
+
+  // Returns the registrable domain used by external-link routing. Host-only
+  // URLs such as localhost and IP addresses use their canonical host.
+  static std::string GetOriginDomainKey(const GURL& url);
+  std::optional<std::string> GetOriginSpaceForDomain(const GURL& url) const;
+  bool SetOriginSpaceForDomain(const GURL& url, const std::string& space_id);
+  bool ClearOriginSpaceForDomain(const GURL& url);
+  std::optional<std::string> GetLastOriginTemporaryLinkSpace() const;
+  bool SetLastOriginTemporaryLinkSpace(const std::string& space_id);
+  void AddObserver(Observer* observer);
+  void RemoveObserver(Observer* observer);
 
   // Writes workspace metadata into the profile preference.  Called on the UI
   // thread after a successful WriteWorkspaceToDisk background task.
@@ -85,6 +112,9 @@ class WorkspaceService : public KeyedService {
   void Shutdown() override;
 
  private:
+  void LoadOriginSpaces();
+  void SaveOriginSpaces();
+  void NotifyOriginSpacesChanged();
   // Called on the UI thread with the commands read from disk by
   // RestoreWorkspace.
   void DoRestoreWorkspace(
@@ -94,6 +124,8 @@ class WorkspaceService : public KeyedService {
   const base::FilePath workspaces_path_;
   raw_ref<PrefService> pref_service_;
   scoped_refptr<base::SequencedTaskRunner> io_task_runner_;
+  std::vector<OriginSpaceMetadata> origin_spaces_;
+  base::ObserverList<Observer> observers_;
 
   base::WeakPtrFactory<WorkspaceService> weak_ptr_factory_{this};
 };

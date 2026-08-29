@@ -14,6 +14,7 @@
 #include "base/i18n/rtl.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
@@ -553,9 +554,13 @@ void BraveBrowserViewTabbedLayoutImpl::InsetContentsContainerBounds(
        views().vertical_tab_strip_host->GetPreferredSize().width() != 0) &&
       !delegate().IsFullscreenForBrowser()) {
     const int margin_with_vertical_tab =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+        0;
+#else
         delegate().ShouldUseBraveWebViewRoundedCornersForContents()
             ? (tabs::kMarginForVerticalTabContainers / 2)
             : 0;
+#endif
     if (IsVerticalTabStripLeading()) {
       contents_margins.set_left(margin_with_vertical_tab);
     } else {
@@ -632,9 +637,16 @@ gfx::Insets BraveBrowserViewTabbedLayoutImpl::GetContentsMargins() const {
 
   gfx::Insets margins(kRoundedCornersContentsViewMargin);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The web canvas begins directly under the unified 44 px titlebar. Its right
+  // and bottom edges retain the 8 px shell inset; the vertical-tab side is
+  // handled below so the page edge remains aligned with the URL field.
+  margins.set_top(0);
+#else
   if (!IsContentsAtTopEdge()) {
     margins.set_top(0);
   }
+#endif
 
   return margins;
 }
@@ -694,6 +706,9 @@ BraveBrowserViewTabbedLayoutImpl::CalculateContentsCornerRadii() const {
     return {};
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return gfx::RoundedCornersF(10);
+#else
   auto* layout_provider = views::LayoutProvider::Get();
   const float window_corner_radius = layout_provider->GetCornerRadiusMetric(
       views::ShapeContextTokensOverride::
@@ -743,6 +758,7 @@ BraveBrowserViewTabbedLayoutImpl::CalculateContentsCornerRadii() const {
   }
 
   return corner_radii;
+#endif
 }
 
 gfx::Insets BraveBrowserViewTabbedLayoutImpl::GetContentsMarginsForTesting()

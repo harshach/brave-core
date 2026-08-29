@@ -22,6 +22,8 @@ source_set("impl") {
     "//base",
     "//chrome/browser/ui",
     "//chrome/browser/ui/tabs:tab_strip",
+    "//net",
+    "//url",
   ]
 }
 source_set("workspaces") {
@@ -37,6 +39,7 @@ source_set("workspaces") {
 
   public_deps = [
     "//base",
+    "//brave/components/brave_origin/buildflags",
     "//chrome/browser/profiles:profile",
     "//components/keyed_service/core",
     "//components/pref_registry",
@@ -57,5 +60,6 @@ source_set("unit_tests") {
     "//components/sync_preferences:test_support",
     "//content/test:test_support",
     "//testing/gtest",
+    "//url",
   ]
 }

@@ -112,7 +112,7 @@
 <translation id="2170098639895543546">पेजवरील कोणतीही गोष्ट निवडा</translation>
 <translation id="142389341645668510">Brave कस्टमाइझ करा</translation>
 <translation id="2174917724755363426">इंस्टॉलेशन पूर्ण झाले नाही. तुम्हाला नक्की रद्द करायचे आहे का?</translation>
-<translation id="8841019650931243995">Brave Origin - नेटवर्क साइन इन - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - नेटवर्क साइन इन - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">अपडेट तपासणीदरम्यान एरर आली: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Brave मधून खाते काढून टाका</translation>
 <translation id="4022045673362955204">फिरतीवर असताना सर्वोत्तम खरेदी टूल वापरण्यासाठी Brave अ‍ॅप वापरा</translation>
@@ -147,7 +147,7 @@
 <translation id="2542968102051442371">इमेज शोध वापरून मजकूर निवडा</translation>
 <translation id="70183448213529602">Brave सध्याचे पासवर्ड बदलण्याचा प्रयत्न करत आहे. यासाठी अनुमती देण्यासाठी तुमचा Windows पासवर्ड टाइप करा.</translation>
 <translation id="7798069806040634998">फाइल डाउनलोड करण्यासाठी Brave ला स्टोरेज ॲक्सेस हवा आहे</translation>
-<translation id="2351700486811407088">Brave Origin मदतनीस</translation>
+<translation id="9082785458664620820">Socket मदतनीस</translation>
 <translation id="2575822587468774919">इमेज शोध वापरून शोधण्यासाठी काहीही निवडा</translation>
 <translation id="3830890663494219270">तुमच्या सर्व डिव्हाइसवर तुमचे पासवर्ड आणि आणखी बरेच काही मिळवण्यासाठी, Brave मध्ये साइन इन करा</translation>
 <translation id="6908148552215338695">Brave डाउनलोड करण्यासाठी आणि तुमच्या Brave खाते मध्ये साइन इन करण्यासाठी तुमचा फोन वापरून QR कोड स्कॅन करा.</translation>
@@ -177,7 +177,7 @@
 <translation id="777113543093865885">Brave मधून काढून टाका...</translation>
 <translation id="5265419033369521352">तुम्ही साइन इन केलेले असते तेव्हा, तुम्हाला Brave वर सुरक्षित ठेवतो आणि इतर Brave अ‍ॅप्सवरील तुमच्या सुरक्षेमध्ये सुधारणा करण्यासाठी वापरला जाऊ शकतो</translation>
 <translation id="2885378588091291677">टास्क मॅनेजर</translation>
-<translation id="2176825726964012531">&amp;Brave बद्दल</translation>
+<translation id="3984800435132982628">&amp;Socket बद्दल</translation>
 <translation id="2915996080311180594">नंतर रीस्टार्ट करा</translation>
 <translation id="2481553173340651149">तुमचा डेटा हा तुमचा पासफ्रेझ वापरून एन्क्रिप्ट केलेला आहे. तुमच्या Brave खाते मधील Brave डेटा वापरण्यासाठी आणि सेव्ह करण्यासाठी तो एंटर करा.</translation>
 <translation id="2945997411976714835">इंस्टॉलसंबंधित एरर: इंस्टॉलर प्रक्रिया सुरू झाली नाही.</translation>
@@ -263,7 +263,7 @@
 <translation id="3846683726093018685">**सारांश द्या:** स्क्रीनशॉटमधील मजकुराचा मुख्य विषय आणि उद्देश यांचे वर्णन ३० हून कमी शब्दांच्या एका वाक्यात करा.
 
           **प्रश्न सुचवा:** स्क्रीनशॉट अधिक चांगल्या प्रकारे समजून घेण्यासाठी वापरकर्ता विचारू शकेल, अशा विचारप्रवृत्त करणाऱ्या ३-५ प्रश्नांची बुलेट पॉइंट सूची तयार करा. या प्रश्नांमध्ये किमान एका प्रश्नाचा समावेश असावा, जो विशेषत: व्हिज्युअल ऑब्जेक्ट, त्याची रचना किंवा त्याची प्लेसमेंट याबद्दल असेल.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">भाषा निवडक</translation>
 <translation id="6315734375101223238">Brave कस्टमाइझ करा आणि नियंत्रित करा. एका गोष्टीवर तुम्ही लक्ष द्यायला हवे - तपशिलांसाठी क्लिक करा.</translation>
 <translation id="7130675370997202556">Brave उघडण्यासाठी तुमचे नाव क्लिक करा आणि ब्राउझिंग सुरू करा.</translation>
@@ -277,7 +277,7 @@
 <translation id="4194619960643453552">Brave तुम्हाला सुरक्षित कसे ठेवते याबद्दल जाणून घ्या</translation>
 <translation id="3967822245660637423">पूर्ण डाउनलोड करा</translation>
 <translation id="1486377520191913768">तुम्ही अ‍ॅड्रेस बार किंवा सर्च बॉक्समध्ये टाइप करता, तेव्हा सूचना मिळवण्यासाठी Brave तुम्ही जे टाइप करता ते तुमच्या संस्थेचा शोध, AI आणि एजंट टूल यांना पाठवते.</translation>
-<translation id="1311808042904310985">&amp;Brave for Testing विषयी</translation>
+<translation id="3813099290530551762">&amp;Socket for Testing विषयी</translation>
 <translation id="1152920704813762236">ChromeOS बद्दल</translation>
 <translation id="8282895427217902177">तुम्ही साइटला भेट देता, तेव्हा Brave तुमचा आयपी अ‍ॅड्रेस लपवणाऱ्या गोपनीयता सर्व्हरद्वारे <ph name="BEGIN_LINK"/>Brave सुरक्षित ब्राउझिंग<ph name="END_LINK"/> ला URL चा क्लिष्ट भाग पाठवते. साइटने काहीतरी संशयास्पद केल्यास, पूर्ण URLs आणि पेज आशयाचे भागदेखील पाठवले जातात.</translation>
 <translation id="4016217212818346953">Password Manager सह सुरक्षित रहा</translation>
@@ -296,7 +296,7 @@
 <translation id="10925962326134232">तुमच्या ब्राउझरला नवीन लुक देण्यासाठी Brave कस्टमाइझ करा</translation>
 <translation id="6596295505984504022">तुमचे Brave कस्टमाइझ करा</translation>
 <translation id="4148957013307229264">स्थापना करत आहे...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - नेटवर्क साइन इन - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - नेटवर्क साइन इन - Socket</translation>
 <translation id="2871190378186459992">Brave साठी उत्कृष्ट ॲप्स, गेम, विस्तार आणि थीम शोधा</translation>
 <translation id="462105622535258178">तुमच्या सर्व काँप्युटरवर हे एक्स्टेंशन आणि आणखी बऱ्याच गोष्टी मिळवण्यासाठी, Brave मध्ये साइन इन करा</translation>
 <translation id="6670140629169983459">तुमच्या पालकांच्या निवडींसह ऑनलाइन अधिक सुरक्षित राहण्यासाठी, तुमच्या Brave प्रोफाइलवर स्विच करा, जिथे तुम्ही आधीच <ph name="USER_EMAIL_ADDRESS"/> म्हणून साइन इन केले आहे</translation>
@@ -328,7 +328,7 @@
 <translation id="4493028449971051158">स्टार्टअप एरर: कृपया अ‍ॅडमिनिस्ट्रेटर म्हणून इंस्टॉलर रन करा.</translation>
 <translation id="4501471624619070934">या देशामध्ये अ‍ॅक्सेस प्रतिबंधित असल्यामुळे इंस्टॉलेशन अयशस्वी झाले.</translation>
 <translation id="8594994021633965927">या एक्स्टेंशनने गोपनीयता व्यवहार प्रकाशित केलेले नाहीत, जसे की ते डेटा कसे गोळा करते आणि वापरते. तुम्ही ते काढून टाकावे अशी Brave शिफारस करते.</translation>
-<translation id="770557926599450702">Brave Origin मध्ये स्वागत आहे; नवीन ब्राउझर विंडो उघडली</translation>
+<translation id="3788134970312783571">Socket मध्ये स्वागत आहे; नवीन ब्राउझर विंडो उघडली</translation>
 <translation id="137732229629632648">Brave ला तुमच्या आसपासच्या परिसराचा नकाशा तयार करण्यासाठी आणि तुमच्या हातांचा माग ठेवण्यासाठी परवानगी हवी आहे</translation>
 <translation id="5036046007335188949">तुम्ही आधीच दुसऱ्या Brave प्रोफाइलमध्ये <ph name="USER_EMAIL_ADDRESS"/> म्हणून साइन इन केले आहे</translation>
 <translation id="1878185978731985193">Brave पेज प्रीलोड करते, यामुळे आणखी जलद ब्राउझ करता आणि शोधता येते. <ph name="BEGIN_LINK"/>प्रीलोड पेजबद्दल अधिक जाणून घ्या<ph name="END_LINK"/></translation>
@@ -336,7 +336,7 @@
 <translation id="8669339108356170796">तुम्ही सुरक्षित ब्राउझिंग बंद केल्याने Brave ने हे डाउनलोड ब्लॉक केले असून फाइलची पडताळणी केली जाऊ शकत नाही</translation>
 <translation id="7583343841997441047">तुमच्या फोनवर Brave सह Google Lens वापरून पहा</translation>
 <translation id="4594305310729380060">या डिव्हाइसवरील पासवर्ड मॅनेजर वर</translation>
-<translation id="7776200949522126045">Brave Origin Apps</translation>
+<translation id="1662388968719244110">Socket Apps</translation>
 <translation id="4598116752460667024">सूचीमधील कोणतीही प्रक्रिया शोधा.</translation>
 <translation id="4970880042055371251">ChromeOS ची आवृत्ती</translation>
 <translation id="2182657378556811785">अद्ययावत करणे जवळजवळ पूर्ण झाले! अपडेट करणे समाप्त करण्यासाठी Brave रीलाँच करा.</translation>
@@ -354,8 +354,8 @@
 <translation id="844451748565342664">Brave मध्ये Gemini उघडे असल्यास, नवीन टॅब तयार करताना साइड पॅनल उघडे राहते</translation>
 <translation id="215320507915280336">Brave Search मध्ये वापरत असेलेले समान स्पेल चेकर हे वापरते. तुम्ही ब्राउझरमध्ये टाइप करत असलेला मजकूर Brave कडे पाठवला जातो. तुम्ही हे वर्तन कधीही सेटिंग्ज मध्ये बदलू शकता.</translation>
 <translation id="2899369907387169108">खात्याशिवाय Brave वापरा</translation>
-<translation id="1833893255023048385">mDNS रहदारीस अनुमती देण्यासाठी Brave Origin साठी अंतर्गामी नियम.</translation>
-<translation id="711601904575862069">&amp;Brave अपडेट करण्यासाठी पुन्हा लाँच करा</translation>
+<translation id="6972301482162050771">mDNS रहदारीस अनुमती देण्यासाठी Socket साठी अंतर्गामी नियम.</translation>
+<translation id="2428387668457441558">&amp;Socket अपडेट करण्यासाठी पुन्हा लाँच करा</translation>
 <translation id="4918086044614829423">स्वीकारा</translation>
 <translation id="4918844574251943176">इमेज कॉपी केली</translation>
 <translation id="8797356639448065696">Brave पार्श्वभूमी मोड मध्ये आहे.</translation>
@@ -395,7 +395,7 @@
 <translation id="5267531627648004734">Brave मधून काढा</translation>
 <translation id="4620757336635063467">परफॉर्मन्स कमी करते, पण त्यामुळे Brave ची हल्ले रोखण्याची क्षमता वाढते</translation>
 <translation id="239760341987199724">तुमचा डीफॉल्ट ब्राउझर म्हणून Brave सेट करा</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin बीटा</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket बीटा</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave तुमच्या ब्राउझर चा वेग कमी करणारा टॅब थांबवण्याची शिफारस करते}other{Brave तुमच्या ब्राउझर चा वेग कमी करणारे टॅब थांबवण्याची शिफारस करते}}</translation>
 <translation id="894936507076470937">या Linux सिस्टीमवर Brave सपोर्ट नसल्याने कदाचित ते योग्यरितीने काम करू शकत नाही</translation>
 <translation id="2596557398669145729">Brave ने हा डाउनलोड ब्लॉक केला आहे, कारण ही फाइल तुमच्या वैयक्तिक आणि सोशल नेटवर्क खात्यांना हानी पोहोचवू शकते</translation>
@@ -428,7 +428,7 @@
 <translation id="95980832839683236">Brave चे V8 इंजीन साइटचा वेग वाढवते, पण त्यामुळे Brave ची हल्ले रोखण्याची क्षमता किंचित कमी होते. हे सेटिंग बंद आहे.</translation>
 <translation id="1224606669200461217">तुमच्या Brave खाते मध्ये Brave डेटा वापरण्यासाठी आणि सेव्ह करण्यासाठी, Brave अपडेट करा</translation>
 <translation id="5824893331272123205">हे पॅनल लोड करता आले नाही, पुन्हा प्रयत्न करा</translation>
-<translation id="4467664627714200493">Brave Origin वर तुमचे स्‍वागत आहे</translation>
+<translation id="1125671961408630460">Socket वर तुमचे स्‍वागत आहे</translation>
 <translation id="4026807082142463673">Brave चे सर्वात मजबूत संरक्षण पुरवण्यासाठी अतिरिक्त वैशिष्ट्ये सुरू करते</translation>
 <translation id="5871205389137001634">इमेज शोध मधून बाहेर पडण्यासाठी क्लिक करा</translation>
 <translation id="8054200348483755053">Brave ला या आयटममध्ये मालवेअरचा समावेश असल्याचे आढळले:</translation>
@@ -494,7 +494,7 @@
 <translation id="6388799252195623474">यामध्ये माझी मदत करा</translation>
 <translation id="7920857181125123335">पुढे सुरू ठेवण्यासाठी, <ph name="EMAIL"/> म्हणून Brave मध्ये साइन इन करा. यामुळे तुम्ही तुमच्या संस्थेची धोरणे वाचल्याची खात्री होते.</translation>
 <translation id="3256100650978957522">कॉंप्युटर स्क्रीनवरील Brave लोगो.</translation>
-<translation id="5880764554173582719">Brave Origin हे एक वेबब्राउझर असून ते वेबपेज आणि अ‍ॅप्स अतिशय वेगात चालवते. हे वापरण्यास जलद, स्थिर आणि सोपे आहे. Brave Origin मध्ये तयार करण्यासाठी मालवेअर आणि फिशिंग संरक्षणासह वेब अधिक सुरक्षितपणे ब्राउझ करा.</translation>
+<translation id="7527968786016866645">Socket हे एक वेबब्राउझर असून ते वेबपेज आणि अ‍ॅप्स अतिशय वेगात चालवते. हे वापरण्यास जलद, स्थिर आणि सोपे आहे. Socket मध्ये तयार करण्यासाठी मालवेअर आणि फिशिंग संरक्षणासह वेब अधिक सुरक्षितपणे ब्राउझ करा.</translation>
 <translation id="4091049150278654573">तुम्ही तुमच्या Brave खात्यामध्ये Brave डेटा नेहमी वापरू आणि सेव्ह करू शकाल याची खात्री करण्यासाठी, ही व्यक्ती तुम्हीच आहात याची पडताळणी करा</translation>
 <translation id="2532326772258858491">Brave अधिक जलद रन होते आणि JavaScript वापरणारी वैशिष्ट्ये डिझाइन केल्यानुसार काम करतात</translation>
 <translation id="6436260184216827876">इमेज शोध उपलब्ध नाही. नंतर पुन्हा प्रयत्न करा.</translation>
@@ -542,7 +542,7 @@
 <translation id="6831043979455480757">भाषांतर करा</translation>
 <translation id="8211837073776713955">तुमचे पासवर्ड कधीही धोक्यात असल्यास, Brave तुम्हाला कळवते</translation>
 <translation id="684888714667046800">इंटरनेटशी कनेक्ट करता आले नाही. तुम्ही फायरवॉल वापरल्यास, कृपया <ph name="PRODUCT_EXE_NAME"/> अनुमती सूचीमध्ये असल्याची खात्री करा.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">पुढे सुरू ठेवण्यासाठी टॅब करा</translation>
 <translation id="6862030660799253820">इमेज शोध वापरून ही इमेज शोधा</translation>
 <translation id="3028928628792374067">Brave ला "<ph name="EXTENSION_NAME"/>" मध्ये मालवेअरचा समावेश असल्याचे आढळले</translation>
@@ -610,7 +610,7 @@ Brave तुमची सेटिंग्ज रिकव्हर करू �
 <translation id="284799389314308801">१. खाली <ph name="BUTTON_LABEL"/> वर क्लिक करा
 २. तुमच्या Windows सेटिंग्जमध्ये <ph name="BUTTON_2"/> वर क्लिक करा
 ३. झटपट अ‍ॅक्सेससाठी Brave तुमच्या टास्कबारवर पिन करण्याकरिता Windows नोटिफिकेशनमध्ये <ph name="BUTTON_3"/> वर क्लिक करा</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin डेव्हलपर</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket डेव्हलपर</translation>
 <translation id="7450541714075000668">मजकूर कॉपी केला</translation>
 <translation id="2034072705932785495">या साइटसाठी Brave ला तुमचा कॅमेरा ॲक्सेस करण्याची परवानगी हवी आहे</translation>
 <translation id="7129342855140808694">तुमचा मायक्रोफोन वापरण्यासाठी, Brave ला <ph name="BEGIN_LINK"/>सिस्टीम सेटिंग्ज<ph name="END_LINK"/> मध्ये अ‍ॅक्सेस द्या</translation>
@@ -641,7 +641,7 @@ Brave तुमची सेटिंग्ज रिकव्हर करू �
 <translation id="8543787950557226450">डीफॉल्ट Brave वर रीसेट करा</translation>
 <translation id="4976450819672499783">Brave ला डीफॉल्ट म्हणून सेट करा आणि ते टास्कबारवर पिन करा</translation>
 <translation id="1978509466033734608">Brave ला आणखी जलद बनवा</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin कॅनरी</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket कॅनरी</translation>
 <translation id="2684504034454188774">तुमच्या इंटरनेट ट्रॅफिकचा ॲक्सेस असलेल्या लोकांसाठी तुम्ही कोणत्या साइटला भेट देता हे पाहणे कठीण करा. DNS (डोमेन नेम सिस्टीम) मध्ये साइटचा आयपी अ‍ॅड्रेस शोधण्यासाठी Brave सुरक्षित कनेक्शन वापरते.</translation>
 <translation id="7810005234485217901">सोप्या अ‍ॅक्सेससाठी तुम्ही इमेज शोध पिन करू शकता</translation>
 <translation id="1652855885539187849">या खात्यासह असलेली Brave प्रोफाइल आधीपासून या डिव्हाइसवर अस्तित्वात आहे</translation>
@@ -668,7 +668,7 @@ Brave तुमची सेटिंग्ज रिकव्हर करू �
 <translation id="6175141682081019059">अ‍ॅप्ससाठी बॅकग्राउंडमध्ये रन होणारे Brave बंद करा</translation>
 <translation id="80790299200510644">इमेज शोध</translation>
 <translation id="8086881907087796310">इंस्टॉलेशन यशस्वी झाले नाही, कारण तुमचा कॉंप्युटर हा हार्डवेअरच्या किमान आवश्यकतांची पूर्तता करत नाही.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Brave ला या साइटसाठी स्थानाशी संबंधित परवानगी आवश्यक आहे</translation>
 <translation id="3576319845915562805">तुम्ही पुढील वेळी तुमच्या <ph name="DEVICE_TYPE"/> वर Brave उघडल्यावर, तुम्हाला किमतीचा माग ठेवण्याशी संबंधित अलर्ट सुरू करण्यासाठी प्रॉम्प्ट दिसेल.</translation>
 <translation id="3728025339793417202">तुमच्या फोनवरील Brave अ‍ॅपसह तुम्हाला स्वारस्य असलेल्या आयटमवर किमतीतील घट यासंबंधित अलर्ट मिळवा</translation>
@@ -779,8 +779,8 @@ Brave तुमची सेटिंग्ज रिकव्हर करू �
 <translation id="9148058034647219655">निर्गमन</translation>
 <translation id="2792073155252170448">तुम्ही सोडले होते तिथून पुढे सुरू ठेवा: तुम्ही रीस्टार्ट करता, तेव्हा प्रत्येक वेळी Brave तुमचे टॅब रिस्टोअर करू शकते. हे सुरू करण्यासाठी, यावर जा</translation>
 <translation id="2444257125841652328">तुमच्या सिस्टीम अ‍ॅडमिनिस्ट्रेटरने <ph name="TARGET_URL_HOSTNAME"/>ॲक्सेस करण्याकरिता पर्यायी ब्राउझर उघडण्यासाठी Brave कॉन्फिगर केले आहे.</translation>
-<translation id="7902365066753170041">&amp;Brave अपडेट करण्यासाठी पुन्हा लाँच करा</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-मध्ये)</translation>
+<translation id="8649131107612558845">&amp;Socket अपडेट करण्यासाठी पुन्हा लाँच करा</translation>
+<translation id="4540787955808828187">Socket (mDNS-मध्ये)</translation>
 <translation id="296137235951584143">Brave ला तुमचे हक्काचे ठिकाण बनवा</translation>
 <translation id="7977787072794666032">Brave ला आता Windows XP किंवा Windows Vista चा सपोर्ट नसल्यामुळे ते आता कदाचित अचूकपणे काम करणार नाही</translation>
 <translation id="8462937515915443472">Brave वापरून फिरतीवर असताना Brave ची सर्वोत्तम सुरक्षितता वैशिष्ट्ये मिळवा.</translation>

@@ -8,6 +8,7 @@
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/browser_commands.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/devtools/devtools_window_testing.h"
@@ -40,6 +41,8 @@
 #include "content/public/test/browser_test_utils.h"
 #include "content/public/test/test_navigation_observer.h"
 #include "content/public/test/test_utils.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
+#include "third_party/blink/public/common/input/web_mouse_event.h"
 
 using BraveBrowserBrowserTest = InProcessBrowserTest;
 
@@ -73,7 +76,95 @@ void AddBookmarkNode(Profile* profile) {
   EXPECT_EQ(1UL, nodes.size());
 }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+void InstallFullViewportLink(content::WebContents* contents,
+                             const GURL& target_url,
+                             bool target_blank) {
+  ASSERT_TRUE(content::ExecJs(contents, content::JsReplace(
+                                            R"(
+      document.body.innerHTML = '';
+      const link = document.createElement('a');
+      link.href = $1;
+      if ($2) {
+        link.target = '_blank';
+      }
+      link.style.cssText =
+          'position:fixed;inset:0;display:block;background:white';
+      link.textContent = 'open target';
+      document.body.appendChild(link);
+    )",
+                                            target_url, target_blank)));
+  content::SimulateEndOfPaintHoldingOnPrimaryMainFrame(contents);
+}
+
+int NewTabModifier() {
+#if BUILDFLAG(IS_MAC)
+  return blink::WebInputEvent::kMetaKey;
+#else
+  return blink::WebInputEvent::kControlKey;
+#endif
+}
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+
 }  // namespace
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       NewTabKeepsNavigationModeFocus) {
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));
+  content::WebContents* const contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(contents);
+  EXPECT_FALSE(static_cast<BraveBrowser*>(browser())
+                   ->ShouldFocusLocationBarByDefault(contents));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       PlainTargetBlankClickReusesCurrentPage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL source_url = embedded_test_server()->GetURL("/empty.html");
+  const GURL target_url = embedded_test_server()->GetURL("/title1.html");
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), source_url));
+
+  TabStripModel* const model = browser()->tab_strip_model();
+  content::WebContents* const source = model->GetActiveWebContents();
+  ASSERT_EQ(1, model->count());
+  InstallFullViewportLink(source, target_url, /*target_blank=*/true);
+
+  content::TestNavigationObserver navigation_observer(source);
+  content::SimulateMouseClick(source, /*modifiers=*/0,
+                              blink::WebMouseEvent::Button::kLeft);
+  navigation_observer.Wait();
+
+  EXPECT_EQ(1, model->count());
+  EXPECT_EQ(source, model->GetActiveWebContents());
+  EXPECT_EQ(target_url, source->GetLastCommittedURL());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       ControlClickCreatesBackgroundTab) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL source_url = embedded_test_server()->GetURL("/empty.html");
+  const GURL target_url = embedded_test_server()->GetURL("/title1.html");
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), source_url));
+
+  TabStripModel* const model = browser()->tab_strip_model();
+  content::WebContents* const source = model->GetActiveWebContents();
+  ASSERT_EQ(1, model->count());
+  InstallFullViewportLink(source, target_url, /*target_blank=*/false);
+
+  content::TestNavigationObserver navigation_observer(target_url);
+  navigation_observer.StartWatchingNewWebContents();
+  content::SimulateMouseClick(source, NewTabModifier(),
+                              blink::WebMouseEvent::Button::kLeft);
+  navigation_observer.Wait();
+
+  ASSERT_EQ(2, model->count());
+  EXPECT_EQ(source, model->GetActiveWebContents());
+  EXPECT_EQ(source_url, source->GetLastCommittedURL());
+  EXPECT_EQ(target_url, model->GetWebContentsAt(1)->GetLastCommittedURL());
+}
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest, NTPFaviconTest) {
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));

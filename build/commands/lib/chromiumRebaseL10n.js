@@ -20,7 +20,7 @@ const resetChromeStringFiles = () => {
   })
 }
 
-// Copy post-processed Brave strings to Brave Origin strings.
+// Copy post-processed Brave strings to Socket's Origin-branded resources.
 const copyBraveStringsToOrigin = () => {
   // Copy components_brave_strings.grd to components_brave_origin_strings.grd
   // (no XTB path changes needed as they share the same XTB files).
@@ -37,7 +37,7 @@ const copyBraveStringsToOrigin = () => {
     'components_brave_origin_strings.grd',
   )
   console.log(
-    'Copying Brave Origin strings: '
+    'Copying Socket strings: '
       + path.relative(srcDir, componentsDest)
       + ' <- '
       + path.relative(srcDir, componentsSrc),
@@ -53,7 +53,7 @@ const copyBraveStringsToOrigin = () => {
     'brave_origin_strings.grd',
   )
   console.log(
-    'Copying Brave Origin strings: '
+    'Copying Socket strings: '
       + path.relative(srcDir, braveStringsDest)
       + ' <- '
       + path.relative(srcDir, braveStringsSrc),
@@ -84,7 +84,7 @@ const copyBraveStringsToOrigin = () => {
     )
     const destXtb = path.join(resourcesDir, destFile)
     console.log(
-      'Copying Brave Origin XTB: '
+      'Copying Socket XTB: '
         + path.relative(srcDir, destXtb)
         + ' <- '
         + path.relative(srcDir, sourceXtb),
@@ -92,7 +92,7 @@ const copyBraveStringsToOrigin = () => {
     fs.copyFileSync(sourceXtb, destXtb)
   }
 
-  // Apply "Brave Origin" branding to the copied origin strings.
+  // Apply Socket branding to the copied Origin resource set.
   const cmdOptions = config.defaultOptions
   cmdOptions.cwd = config.braveCoreDir
   util.run(

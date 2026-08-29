@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/app_controller_mac.mm b/chrome/browser/app_controller_mac.mm
-index a096792799d62121394b3a05b93f63228aeadab0..0a4a91ddf856a711863badc0db31215a570e1dbf 100644
+index a096792799d62121394b3a05b93f63228aeadab0..03232cbb2ed444841d47395f3d037a847890932a 100644
 --- a/chrome/browser/app_controller_mac.mm
 +++ b/chrome/browser/app_controller_mac.mm
 @@ -789,7 +789,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
@@ -20,3 +20,21 @@ index a096792799d62121394b3a05b93f63228aeadab0..0a4a91ddf856a711863badc0db31215a
        (!base::FeatureList::IsEnabled(features::kDestroyProfileOnBrowserClose) ||
         (it->second->GetProfile() && !isOffTheRecord))) {
      // Clean up the dangling Profile* in |_profileBookmarkMenuBridgeMap|.
+@@ -2072,7 +2072,7 @@ - (void)application:(NSApplication*)sender openURLs:(NSArray<NSURL*>*)urls {
+                                /*is_untrusted_launch=*/false);
+     }
+   }
+-
++  BRAVE_MARK_ORIGIN_EXTERNAL_STARTUP_TABS(startupTabs);
+   if (!startupTabs.empty()) {
+     [self openStartupTabsReplacingNTP:std::move(startupTabs)];
+   }
+@@ -2438,7 +2438,7 @@ - (BOOL)application:(NSApplication*)application
+   GURL gurl(base::SysNSStringToUTF8([url absoluteString]));
+   StartupTabs tabs;
+   tabs.emplace_back(gurl, /*is_untrusted_launch=*/true);
+-
++  BRAVE_MARK_ORIGIN_EXTERNAL_STARTUP_TABS(tabs);
+   [self openStartupTabsReplacingNTP:std::move(tabs)];
+   return YES;
+ }

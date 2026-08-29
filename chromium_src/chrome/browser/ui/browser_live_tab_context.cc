@@ -7,6 +7,7 @@
 #include <string>
 
 #include "base/feature_list.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_session_manager.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -21,6 +22,11 @@ void MaybePopulateTreeTabExtraData(
     BrowserWindowInterface& browser,
     int index,
     std::map<std::string, std::string>& extra_data) {
+  if (auto* origin_space_controller =
+          browser.GetFeatures().origin_space_controller()) {
+    origin_space_controller->MaybePopulateTabExtraData(index, &extra_data);
+  }
+
   if (!base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
     return;
   }
@@ -33,6 +39,28 @@ void MaybePopulateTreeTabExtraData(
   }
 
   tree_tab_session_manager->MaybePopulateTreeTabExtraData(index, &extra_data);
+}
+
+void MaybePopulateOriginSpaceWindowExtraData(
+    BrowserWindowInterface& browser,
+    std::map<std::string, std::string>& extra_data) {
+  if (auto* controller = browser.GetFeatures().origin_space_controller()) {
+    controller->MaybePopulateWindowExtraData(&extra_data);
+  }
+}
+
+void BraveBeginOriginSpaceWindowRestore(
+    BrowserWindowInterface& browser,
+    const std::map<std::string, std::string>& extra_data) {
+  if (auto* controller = browser.GetFeatures().origin_space_controller()) {
+    controller->BeginWindowRestore(extra_data);
+  }
+}
+
+void BraveFinishOriginSpaceWindowRestore(BrowserWindowInterface& browser) {
+  if (auto* controller = browser.GetFeatures().origin_space_controller()) {
+    controller->FinishWindowRestore();
+  }
 }
 
 }  // namespace

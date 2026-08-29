@@ -6,6 +6,7 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 
 #include "base/test/scoped_feature_list.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "components/prefs/testing_pref_service.h"
 #include "testing/gtest/include/gtest/gtest.h"
@@ -51,4 +52,42 @@ TEST(BraveTabPrefsTest, AlwaysUseMiniAccentIconDefaultsToFalse) {
   brave_tabs::RegisterBraveProfilePrefs(prefs.registry());
 
   EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kAlwaysUseMiniAccentIcon));
+}
+
+TEST(BraveTabPrefsTest, OriginUsesNativeTreeTabWorkspaceDefaults) {
+  TestingPrefServiceSimple prefs;
+  brave_tabs::RegisterBraveProfilePrefs(prefs.registry());
+
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            prefs.GetBoolean(brave_tabs::kVerticalTabsEnabled));
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            prefs.GetBoolean(brave_tabs::kVerticalTabsFloatingEnabled));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsShowToggleButton));
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  EXPECT_EQ(306, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
+#else
+  EXPECT_EQ(220, prefs.GetInteger(brave_tabs::kVerticalTabsExpandedWidth));
+#endif
+}
+
+TEST(BraveTabPrefsTest, OriginMigratesWorkspaceAndPreservesCollapsedState) {
+  TestingPrefServiceSimple prefs;
+  brave_tabs::RegisterBraveProfilePrefs(prefs.registry());
+  prefs.SetBoolean(brave_tabs::kVerticalTabsEnabled, false);
+  prefs.SetBoolean(brave_tabs::kTreeTabsEnabled, false);
+  prefs.SetBoolean(brave_tabs::kVerticalTabsCollapsed, true);
+
+  brave_tabs::MigrateBraveProfilePrefs(&prefs);
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsEnabled));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsCollapsed));
+#else
+  EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kVerticalTabsEnabled));
+  EXPECT_FALSE(prefs.GetBoolean(brave_tabs::kTreeTabsEnabled));
+  EXPECT_TRUE(prefs.GetBoolean(brave_tabs::kVerticalTabsCollapsed));
+#endif
 }

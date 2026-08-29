@@ -6,13 +6,29 @@
 #include "brave/browser/workspaces/workspace_service_factory.h"
 
 #include <memory>
+#include <string>
 
 #include "brave/browser/workspaces/features.h"
 #include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_service.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/profiles/profile_selections.h"
 #include "components/pref_registry/pref_registry_syncable.h"
+
+namespace {
+
+ProfileSelections GetWorkspaceProfileSelections() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Private Origin windows share Space definitions with their regular
+  // profile. Tab membership and active Space state remain window-local.
+  return ProfileSelections::BuildRedirectedInIncognito();
+#else
+  return ProfileSelections::BuildForRegularProfile();
+#endif
+}
+
+}  // namespace
 
 // static
 WorkspaceServiceFactory* WorkspaceServiceFactory::GetInstance() {
@@ -28,16 +44,18 @@ WorkspaceService* WorkspaceServiceFactory::GetForProfile(Profile* profile) {
 
 WorkspaceServiceFactory::WorkspaceServiceFactory()
     : ProfileKeyedServiceFactory("WorkspaceService",
-                                 ProfileSelections::BuildForRegularProfile()) {}
+                                 GetWorkspaceProfileSelections()) {}
 
 WorkspaceServiceFactory::~WorkspaceServiceFactory() = default;
 
 std::unique_ptr<KeyedService>
 WorkspaceServiceFactory::BuildServiceInstanceForBrowserContext(
     content::BrowserContext* context) const {
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!base::FeatureList::IsEnabled(features::kWorkspaces)) {
     return nullptr;
   }
+#endif
 
   Profile* profile = Profile::FromBrowserContext(context);
   return std::make_unique<WorkspaceService>(*profile);
@@ -46,6 +64,12 @@ WorkspaceServiceFactory::BuildServiceInstanceForBrowserContext(
 void WorkspaceServiceFactory::RegisterProfilePrefs(
     user_prefs::PrefRegistrySyncable* registry) {
   registry->RegisterDictionaryPref(kWorkspacesMetadataPref);
+  registry->RegisterListPref(kOriginSpacesPref);
+  registry->RegisterDictionaryPref(kOriginDomainSpaceRulesPref);
+  registry->RegisterStringPref(kOriginLastTemporaryLinkSpacePref,
+                               std::string());
+  registry->RegisterDictionaryPref(kOriginTabSessionSpacesPref);
+  registry->RegisterDictionaryPref(kOriginWindowSessionSpacesPref);
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

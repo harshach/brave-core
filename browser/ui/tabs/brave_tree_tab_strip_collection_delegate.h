@@ -46,6 +46,8 @@ class BraveTreeTabStripCollectionDelegate
       std::optional<tab_groups::TabGroupId> new_group_id,
       bool new_pinned_state,
       const tabs::TabCollection::TypeEnumSet retain_collection_types) override;
+  bool ReparentTreeTabNode(tabs::TabInterface* child,
+                           tabs::TabInterface* parent) override;
 
   void InsertTabCollectionAt(
       std::unique_ptr<tabs::TabCollection> collection,

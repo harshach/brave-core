@@ -54,6 +54,12 @@ class BraveMultiContentsView : public MultiContentsView {
   // on the specified corner radii for the multi-contents view as a whole.
   void UpdateContentsCornerRadii(const gfx::RoundedCornersF& corner_radii);
 
+  // Returns the union of the browser tab content containers in this view's
+  // coordinate space. The independent sidebar web panel is deliberately not
+  // included. Origin uses this to conceal the inactive renderer when the
+  // selected space has no pages without covering either browser sidebar.
+  gfx::Rect GetMainContentsBounds() const;
+
   // MultiContentsView:
   // Give web panel's ContentsContainerView/ContentsWebView if
   // |is_web_panel_active_| is true.

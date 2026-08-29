@@ -32,6 +32,7 @@
 #include "brave/browser/brave_shields/ad_block_browser_test_helper.h"
 #include "brave/browser/net/brave_ad_block_tp_network_delegate_helper.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_shields/content/browser/ad_block_custom_filters_provider.h"
 #include "brave/components/brave_shields/content/browser/ad_block_engine.h"
 #include "brave/components/brave_shields/content/browser/ad_block_engine_wrapper.h"
@@ -2397,6 +2398,84 @@ IN_PROC_BROWSER_TEST_F(AdBlockServiceTest, CosmeticFilteringDynamicCustom) {
   ASSERT_TRUE(result_second.is_ok());
   EXPECT_EQ(base::Value(true), result_second);
 }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest,
+                       OriginCosmeticFilteringCollapsesAdWrappers) {
+  const GURL tab_url = embedded_test_server()->GetURL(
+      "gearpatrol.com", "/cosmetic_filtering.html");
+  NavigateToURL(tab_url);
+
+  auto result = EvalJs(web_contents(), R"(
+    const layout = document.createElement('main');
+    layout.style.display = 'grid';
+    layout.style.gridTemplateColumns = '1fr';
+    const content = document.createElement('article');
+    content.style.height = '90px';
+
+    const sidebar = document.createElement('aside');
+    sidebar.className = 'wp-block-gearpatrol-sidebar';
+    sidebar.style.minHeight = '600px';
+    const adSlot = document.createElement('div');
+    adSlot.className = 'wp-block-gearpatrol-ad-slot';
+    sidebar.appendChild(adSlot);
+
+    const partners = document.createElement('section');
+    partners.className = 'wp-block-gearpatrol-from-our-partners';
+    partners.style.minHeight = '80px';
+
+    const followingContent = document.createElement('div');
+    followingContent.style.height = '20px';
+    layout.append(content, sidebar);
+    document.body.append(layout, followingContent, partners);
+
+    Promise.all([
+      waitCSSSelector('.wp-block-gearpatrol-sidebar', 'display', 'none'),
+      waitCSSSelector(
+          '.wp-block-gearpatrol-from-our-partners', 'display', 'none'),
+    ]).then((values) => {
+      const layoutRect = layout.getBoundingClientRect();
+      const contentRect = content.getBoundingClientRect();
+      return values.every(Boolean) &&
+          sidebar.getBoundingClientRect().height === 0 &&
+          partners.getBoundingClientRect().height === 0 &&
+          Math.abs(layoutRect.height - contentRect.height) < 0.5 &&
+          Math.abs(followingContent.getBoundingClientRect().top -
+              layoutRect.bottom) < 0.5;
+    });
+  )");
+  ASSERT_TRUE(result.is_ok());
+  EXPECT_EQ(base::Value(true), result);
+}
+
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest,
+                       OriginYouTubeExtraWideTheaterPlayerFitsViewport) {
+  // YouTube is HSTS-preloaded, so use the HTTPS fixture to keep this
+  // navigation on the embedded test server.
+  const GURL tab_url =
+      https_server_.GetURL("youtube.com", "/cosmetic_filtering.html");
+  NavigateToURL(tab_url);
+
+  auto result = EvalJs(web_contents(), R"(
+    const flexy = document.createElement('ytd-watch-flexy');
+    for (const attribute of [
+             'theater', 'full-bleed-player', 'is-extra-wide-video_',
+             'is-two-columns_', 'flexy-small-window_']) {
+      flexy.setAttribute(attribute, '');
+    }
+
+    const primary = document.createElement('main');
+    primary.id = 'primary';
+    primary.style.minWidth = '925px';
+    flexy.appendChild(primary);
+    document.body.appendChild(flexy);
+
+    waitCSSSelector('#primary', 'min-width', '0px');
+  )");
+  ASSERT_TRUE(result.is_ok());
+  EXPECT_EQ(base::Value(true), result);
+}
+#endif
 
 // Test cosmetic filtering ignores generic cosmetic rules in the presence of a
 // `generichide` exception rule, both for elements added dynamically and

@@ -13,6 +13,7 @@
 #include "base/functional/callback_forward.h"
 #include "base/logging.h"
 #include "brave/browser/ui/color/brave_color_id.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/ui/color/brave_ref_color_mixer.h"
 #include "brave/ui/color/nala/nala_color_id.h"
 #include "chrome/browser/themes/theme_properties.h"
@@ -85,8 +86,8 @@ SkColor GetHoveredTabBackgroundColor(const ui::ColorProviderKey& key,
             color_utils::HSL{
                 .h = -1,
                 .s = 0.55,
-                .l = 0.52}}},  // Dark-mode: A little more saturation
-                               // and a little bit darker
+                .l = 0.52}}},  // Dark-mode: A little more
+                               // saturation and a little bit darker
       });
 
   const color_utils::HSL& shift =
@@ -205,6 +206,62 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
   postprocessing_mixer[kColorTabForegroundInactiveFrameInactive] =
       ui::ColorTransform(apply_opacity_for_inactive_tab_foreground);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin uses one shell surface across the frame, workspace sidebar, and
+  // toolbar. The rounded address field and web canvas supply the page layer.
+  const bool dark = key.color_mode == ui::ColorProviderKey::ColorMode::kDark;
+  const SkColor kWorkspaceSurface =
+      dark ? SkColorSetRGB(0x17, 0x19, 0x1E) : SK_ColorWHITE;
+  // The frame, toolbar, and sidebar are one shell. Page-derived colour belongs
+  // only to the rounded location bar and the web canvas layered above it.
+  const SkColor kPageChromeSurface = kWorkspaceSurface;
+  const SkColor kWorkspaceSelection =
+      dark ? SkColorSetRGB(0x3C, 0x22, 0x20) : SkColorSetRGB(0xFE, 0xF0, 0xEB);
+  const SkColor kWorkspaceHover =
+      dark ? SkColorSetRGB(0x25, 0x27, 0x2C) : SkColorSetRGB(0xF5, 0xF5, 0xF5);
+  const SkColor kWorkspaceText =
+      dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6) : SkColorSetRGB(0x18, 0x1D, 0x27);
+  const SkColor kWorkspaceMutedText =
+      dark ? SkColorSetRGB(0x94, 0x96, 0x9C) : SkColorSetRGB(0x53, 0x58, 0x62);
+  const SkColor kLocationBarSurface = kPageChromeSurface;
+  const SkColor kShellOutline = dark ? SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF)
+                                     : SkColorSetRGB(0xE9, 0xEA, 0xEB);
+  mixer[kColorBraveVerticalTabActiveBackground] = {kWorkspaceSelection};
+  mixer[kColorBraveVerticalTabHoveredBackground] = {kWorkspaceHover};
+  mixer[kColorBraveVerticalTabInactiveBackground] = {kWorkspaceSurface};
+  mixer[kColorBraveVerticalTabSeparator] = {kWorkspaceSurface};
+  mixer[kColorBraveVerticalTabNTBIconColor] = {kWorkspaceMutedText};
+  mixer[kColorBraveVerticalTabNTBTextColor] = {kWorkspaceMutedText};
+  mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorTabForegroundActiveFrameActive] = {kWorkspaceText};
+  postprocessing_mixer[kColorTabForegroundActiveFrameInactive] = {
+      kWorkspaceText};
+  postprocessing_mixer[kColorTabForegroundInactiveFrameActive] = {
+      kWorkspaceMutedText};
+  postprocessing_mixer[kColorTabForegroundInactiveFrameInactive] = {
+      kWorkspaceMutedText};
+  postprocessing_mixer[ui::kColorFrameActive] = {kWorkspaceSurface};
+  postprocessing_mixer[ui::kColorFrameInactive] = {kWorkspaceSurface};
+  postprocessing_mixer[kColorToolbar] = {kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarContentAreaSeparator] = {kShellOutline};
+  postprocessing_mixer[kColorToolbarTopSeparatorFrameActive] = {
+      kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarTopSeparatorFrameInactive] = {
+      kPageChromeSurface};
+  postprocessing_mixer[kColorToolbarSeparator] = {kShellOutline};
+  postprocessing_mixer[kColorLocationBarBackground] = {kLocationBarSurface};
+  postprocessing_mixer[kColorLocationBarBackgroundHovered] = {
+      kLocationBarSurface};
+  postprocessing_mixer[kColorLocationBarBorder] = {kShellOutline};
+  postprocessing_mixer[kColorToolbarButtonIcon] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorToolbarButtonIconDefault] = {kWorkspaceMutedText};
+  postprocessing_mixer[kColorToolbarButtonIconHovered] = {kWorkspaceText};
+  postprocessing_mixer[kColorToolbarButtonIconPressed] = {kWorkspaceText};
+  postprocessing_mixer[kColorToolbarText] = {kWorkspaceText};
+  postprocessing_mixer[kColorBraveContentsOutline] = {kShellOutline};
+  return;
+#else
+
 #if defined(TOOLKIT_VIEWS)
   if (!base::FeatureList::IsEnabled(
           darker_theme::features::kBraveDarkerTheme) ||
@@ -289,6 +346,7 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
   postprocessing_mixer[kColorBraveVerticalTabNTBShortcutTextColor] = {
       toolbar_icon};
 #endif  // defined(TOOLKIT_VIEWS)
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 }
 
 void AddBraveTabPrivateThemeColorMixer(ui::ColorProvider* provider,

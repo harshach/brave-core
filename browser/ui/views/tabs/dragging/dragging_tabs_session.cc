@@ -5,14 +5,24 @@
 
 #include "brave/browser/ui/views/tabs/dragging/dragging_tabs_session.h"
 
+#include <algorithm>
 #include <optional>
+#include <vector>
 
 #include "base/check.h"
+#include "base/containers/flat_set.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+#include "brave/components/tabs/public/tree_tab_node_tab_collection.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/tabs/dragging/drag_session_data.h"
 #include "chrome/browser/ui/views/tabs/dragging/tab_drag_context.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point.h"
+#include "ui/gfx/geometry/rect.h"
+#include "ui/views/view_utils.h"
 
 DraggingTabsSession::DraggingTabsSession(
     DragSessionData drag_data,
@@ -26,7 +36,9 @@ DraggingTabsSession::DraggingTabsSession(
                                   initial_move,
                                   point_in_screen) {}
 
-DraggingTabsSession::~DraggingTabsSession() {}
+DraggingTabsSession::~DraggingTabsSession() {
+  ClearOriginHierarchyDropTarget();
+}
 
 gfx::Point DraggingTabsSession::GetAttachedDragPoint(
     gfx::Point point_in_screen) {
@@ -37,9 +49,20 @@ gfx::Point DraggingTabsSession::GetAttachedDragPoint(
   gfx::Point tab_loc(point_in_screen);
   views::View::ConvertPointFromScreen(base::to_address(attached_context_),
                                       &tab_loc);
-  const int x = drag_data_.tab_drag_data_.front().pinned
-                    ? tab_loc.x() - mouse_offset_
-                    : 0;
+  int x = tab_loc.x() - mouse_offset_;
+  if (!drag_data_.tab_drag_data_.front().pinned) {
+    // Vertical tree tabs used to force x to zero, making an outdent gesture
+    // impossible. Keep the normal position at zero, but expose a bounded
+    // negative delta while the pointer is dragged left through the tab's tree
+    // indentation. TabStrip uses that delta to select root-only insertion
+    // boundaries, and the dragged page visibly follows the pointer into the
+    // root lane.
+    const std::vector<gfx::Rect> bounds =
+        drag_position_delegate_->CalculateBoundsForDraggedViews(
+            drag_data_.attached_views());
+    const int nesting_offset = bounds.empty() ? 0 : bounds.front().x();
+    x = std::clamp(x - nesting_offset, -nesting_offset, 0);
+  }
   const int y = tab_loc.y() - mouse_y_offset_;
   return {x, y};
 }
@@ -50,11 +73,117 @@ void DraggingTabsSession::MoveAttached(gfx::Point point_in_screen) {
     return;
   }
 
+  UpdateOriginHierarchyDropTarget(point_in_screen);
+
   // Unlike upstream, We always update coordinate, as we use y coordinate. Since
   // we don't have threshold there's no any harm for this.
   views::View::ConvertPointFromScreen(base::to_address(attached_context_),
                                       &point_in_screen);
   last_move_attached_context_loc_ = point_in_screen.y();
+}
+
+void DraggingTabsSession::UpdateOriginHierarchyDropTarget(
+    const gfx::Point& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* model =
+      static_cast<BraveTabStripModel*>(attached_context_->GetTabStripModel());
+  if (!model || !model->tree_model() ||
+      drag_data_.group_header_drag_data_.has_value()) {
+    ClearOriginHierarchyDropTarget();
+    return;
+  }
+
+  content::WebContents* source_contents =
+      drag_data_.source_view_drag_data()->contents;
+  const int source_index = model->GetIndexOfWebContents(source_contents);
+  if (!model->ContainsIndex(source_index) || model->IsTabPinned(source_index)) {
+    ClearOriginHierarchyDropTarget();
+    return;
+  }
+
+  tabs::TabInterface* source_tab = model->GetTabAtIndex(source_index);
+  auto* source_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(
+          source_tab);
+  if (!source_node) {
+    ClearOriginHierarchyDropTarget();
+    return;
+  }
+
+  base::flat_set<content::WebContents*> dragged_contents;
+  for (const TabDragData& drag_data : drag_data_.tab_drag_data_) {
+    if (drag_data.contents) {
+      dragged_contents.insert(drag_data.contents);
+    }
+  }
+
+  BraveTab* candidate_view = nullptr;
+  content::WebContents* candidate_contents = nullptr;
+  for (int index = 0; index < model->count(); ++index) {
+    content::WebContents* contents = model->GetWebContentsAt(index);
+    if (model->IsTabPinned(index) || dragged_contents.contains(contents)) {
+      continue;
+    }
+
+    auto* tab_view =
+        views::AsViewClass<BraveTab>(drag_position_delegate_->GetTabAt(index));
+    if (!tab_view || !tab_view->GetVisible() || tab_view->closing()) {
+      continue;
+    }
+
+    gfx::Rect nest_zone = tab_view->GetBoundsInScreen();
+    nest_zone.Inset(gfx::Insets::VH(std::max(4, nest_zone.height() / 4), 0));
+    nest_zone.set_x(nest_zone.x() +
+                    std::min(24, std::max(8, nest_zone.width() / 6)));
+    if (!nest_zone.Contains(point_in_screen)) {
+      continue;
+    }
+
+    auto* target_node =
+        tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(
+            model->GetTabAtIndex(index));
+    if (!target_node || target_node == source_node ||
+        source_node->GetParentCollection() == target_node) {
+      continue;
+    }
+    bool creates_cycle = false;
+    for (tabs::TabCollection* ancestor = target_node; ancestor;
+         ancestor = ancestor->GetParentCollection()) {
+      if (ancestor == source_node) {
+        creates_cycle = true;
+        break;
+      }
+    }
+    if (creates_cycle) {
+      continue;
+    }
+
+    candidate_view = tab_view;
+    candidate_contents = contents;
+    break;
+  }
+
+  if (candidate_view == origin_hierarchy_drop_target_view_) {
+    origin_hierarchy_drop_target_contents_ = candidate_contents;
+    return;
+  }
+  ClearOriginHierarchyDropTarget();
+  origin_hierarchy_drop_target_view_ = candidate_view;
+  origin_hierarchy_drop_target_contents_ = candidate_contents;
+  if (origin_hierarchy_drop_target_view_) {
+    origin_hierarchy_drop_target_view_->SetOriginHierarchyDropTarget(true);
+  }
+#else
+  ClearOriginHierarchyDropTarget();
+#endif
+}
+
+void DraggingTabsSession::ClearOriginHierarchyDropTarget() {
+  if (origin_hierarchy_drop_target_view_) {
+    origin_hierarchy_drop_target_view_->SetOriginHierarchyDropTarget(false);
+  }
+  origin_hierarchy_drop_target_view_ = nullptr;
+  origin_hierarchy_drop_target_contents_ = nullptr;
 }
 
 std::optional<tab_groups::TabGroupId>

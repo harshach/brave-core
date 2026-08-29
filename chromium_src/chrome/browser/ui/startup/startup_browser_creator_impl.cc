@@ -6,6 +6,8 @@
 #include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
 
 #include "brave/browser/ui/startup/brave_startup_tab_provider_impl.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -27,6 +29,11 @@ void BraveModifyStartupTabNavigationParams(const StartupTab& tab,
     params.storage_partition_config =
         containers::GetStoragePartitionConfigForContainerSpecifier(
             browser->GetProfile(), tab.container);
+  }
+#endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (tab.is_origin_external_link) {
+    origin_external_link::ConfigureNavigation(tab.url, browser, &params);
   }
 #endif
 }

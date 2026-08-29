@@ -17,6 +17,7 @@
 #include "brave/browser/ui/tabs/brave_tab_menu_model.h"
 #include "brave/browser/ui/tabs/brave_tab_menu_model_factory.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -28,7 +29,10 @@
 #include "brave/browser/ui/views/tabs/brave_tab_strip.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "build/build_config.h"
 #include "chrome/browser/profiles/profile.h"
@@ -45,6 +49,7 @@
 #include "chrome/browser/ui/views/frame/browser_frame_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
+#include "chrome/browser/ui/views/frame/multi_contents_view.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
 #include "chrome/browser/ui/views/tabs/new_tab_button.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_context_menu_controller.h"
@@ -53,14 +58,19 @@
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/interactive_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
+#include "components/tabs/public/split_tab_data.h"
+#include "content/public/browser/render_widget_host_view.h"
 #include "content/public/test/browser_test.h"
 #include "third_party/skia/include/core/SkPath.h"
+#include "ui/base/cursor/cursor.h"
+#include "ui/base/cursor/mojom/cursor_type.mojom-shared.h"
 #include "ui/base/test/ui_controls.h"
 #include "ui/display/screen.h"
 #include "ui/display/test/test_screen.h"
 #include "ui/events/event.h"
 #include "ui/gfx/animation/animation_test_api.h"
 #include "ui/gfx/geometry/skia_conversions.h"
+#include "ui/views/controls/button/label_button.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/test/views_test_utils.h"
@@ -279,6 +289,250 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   assert_tab_insets();
 }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSplitTabSidebarSection) {
+  ToggleVerticalTabStrip();
+  AppendTab(browser());
+
+  auto* model = browser()->tab_strip_model();
+  ASSERT_EQ(model->count(), 2);
+  chrome::NewSplitTab(browser(), split_tabs::SplitTabLayout::kSideBySide,
+                      split_tabs::SplitTabCreatedSource::kToolbarButton);
+  ASSERT_EQ(model->count(), 3);
+
+  const std::optional<split_tabs::SplitTabId> split_id =
+      model->GetSplitForTab(model->active_index());
+  ASSERT_TRUE(split_id);
+  const std::vector<tabs::TabInterface*> split_tabs =
+      model->GetSplitData(*split_id)->ListTabs();
+  ASSERT_EQ(split_tabs.size(), 2u);
+  const int main_index = model->GetIndexOfTab(split_tabs.front());
+  const int side_index = model->GetIndexOfTab(split_tabs.back());
+  ASSERT_GE(main_index, 0);
+  ASSERT_GE(side_index, 0);
+
+  model->ActivateTabAt(main_index);
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+  model->ActivateTabAt(side_index);
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://settings/")));
+
+  browser_view()->horizontal_tab_strip_for_testing()->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  auto* tab_container = views::AsViewClass<BraveTabContainer>(
+      views::AsViewClass<BraveTabStrip>(
+          browser_view()->horizontal_tab_strip_for_testing())
+          ->GetTabContainerForTesting());
+  ASSERT_TRUE(tab_container);
+  ASSERT_TRUE(tab_container->origin_split_section_header_);
+  EXPECT_TRUE(tab_container->origin_split_section_header_->GetVisible());
+
+  const gfx::Rect main_bounds = tab_container->GetIdealBounds(main_index);
+  const gfx::Rect side_bounds = tab_container->GetIdealBounds(side_index);
+  const gfx::Rect header_bounds =
+      tab_container->origin_split_section_header_->bounds();
+  EXPECT_LE(main_bounds.bottom(), header_bounds.y());
+  EXPECT_LE(header_bounds.bottom(), side_bounds.y());
+
+  model->RemoveSplit(*split_id);
+  browser_view()->horizontal_tab_strip_for_testing()->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+  EXPECT_FALSE(tab_container->origin_split_section_header_->GetVisible());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSpaceRowsReturnAfterSwitchingBack) {
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+
+  auto* model = browser()->tab_strip_model();
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+
+  const std::string home_id = controller->active_space_id();
+  const std::string work_id =
+      workspace_service->CreateOriginSpace("Work", kOriginSpaceIconWork);
+  chrome::AddTabAt(browser(), GURL("brave://settings/"), -1, true);
+  ASSERT_EQ(2, model->count());
+  controller->MoveTabToSpace(model->GetWebContentsAt(1), work_id);
+
+  ASSERT_TRUE(controller->SelectSpace(work_id));
+  ASSERT_TRUE(controller->SelectSpace(home_id));
+  base::RunLoop().RunUntilIdle();
+
+  auto* tab_strip = browser_view()->horizontal_tab_strip_for_testing();
+  tab_strip->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  EXPECT_TRUE(tab_strip->tab_at(0)->GetVisible());
+  EXPECT_GT(tab_strip->tab_at(0)->height(), 0);
+  EXPECT_FALSE(tab_strip->tab_at(1)->GetVisible());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginResizeHandleIsInteractive) {
+  ToggleVerticalTabStrip();
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  ASSERT_TRUE(region->resize_area_);
+  EXPECT_EQ(12, region->resize_area_->width());
+  EXPECT_GT(region->resize_area_->height(), 0);
+  EXPECT_TRUE(region->resize_area_->GetEnabled());
+  const ui::MouseEvent mouse_event(
+      ui::EventType::kMouseMoved, gfx::PointF(), gfx::PointF(),
+      base::TimeTicks::Now(), 0, 0);
+  EXPECT_EQ(ui::mojom::CursorType::kEastWestResize,
+            region->resize_area_->GetCursor(mouse_event).type());
+
+  region->SetState(BraveVerticalTabStripRegionView::State::kCollapsed);
+  EXPECT_FALSE(region->resize_area_->GetEnabled());
+  region->SetState(BraveVerticalTabStripRegionView::State::kFloating);
+  EXPECT_TRUE(region->resize_area_->GetEnabled());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSpaceRailIsNativeTabDropTarget) {
+  ToggleVerticalTabStrip();
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  ASSERT_GE(region->origin_workspace_buttons_.size(), 2u);
+  views::LabelButton* destination = region->origin_workspace_buttons_[1];
+  ASSERT_TRUE(destination);
+  const gfx::Point destination_center =
+      destination->GetBoundsInScreen().CenterPoint();
+
+  EXPECT_EQ(region, region->GetOriginTabDragTarget(destination_center));
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarResizeFinalizesRendererViewport) {
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  ToggleVerticalTabStrip();
+
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(BraveVerticalTabStripRegionView::State::kExpanded,
+            region->state());
+
+  ContentsWebView* contents_view =
+      browser_view()->multi_contents_view()->GetActiveContentsView();
+  ASSERT_TRUE(contents_view);
+  content::RenderWidgetHostView* render_view =
+      contents_view->web_contents()->GetRenderWidgetHostView();
+  ASSERT_TRUE(render_view);
+
+  browser_view()->DeprecatedLayoutImmediately();
+  const int expanded_contents_width = contents_view->width();
+  ASSERT_GT(expanded_contents_width, 0);
+
+  // Model the dirty native holder left by a sequence of intermediate sidebar
+  // widths, then finish the transition. The completion path must synchronously
+  // lay out the final native child view instead of waiting for a later paint.
+  contents_view->InvalidateLayout();
+  region->ToggleState();
+
+  EXPECT_EQ(BraveVerticalTabStripRegionView::State::kCollapsed,
+            region->state());
+  EXPECT_GT(contents_view->width(), expanded_contents_width);
+  EXPECT_FALSE(contents_view->needs_layout());
+  EXPECT_TRUE(base::test::RunUntil([&] {
+    return render_view->GetVisibleViewportSize() == contents_view->size();
+  }));
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginNewPageFollowsPageRows) {
+  ToggleVerticalTabStrip();
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+  chrome::AddTabAt(browser(), GURL("brave://settings/"), -1, true);
+  chrome::AddTabAt(browser(), GURL("brave://history/"), -1, true);
+
+  auto* tab_strip = views::AsViewClass<BraveTabStrip>(
+      browser_view()->horizontal_tab_strip_for_testing());
+  ASSERT_TRUE(tab_strip);
+  tab_strip->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+  auto* container = views::AsViewClass<BraveTabContainer>(
+      tab_strip->GetTabContainerForTesting());
+  ASSERT_TRUE(container);
+  ASSERT_TRUE(container->origin_new_page_button_);
+
+  int last_page_bottom = 0;
+  for (int index = 0; index < browser()->tab_strip_model()->count(); ++index) {
+    const gfx::Rect bounds = container->GetIdealBounds(index);
+    if (bounds.height() > 0) {
+      last_page_bottom = std::max(last_page_bottom, bounds.bottom());
+    }
+  }
+  EXPECT_EQ(last_page_bottom + 4, container->origin_new_page_button_->y());
+  EXPECT_EQ(32, container->origin_new_page_button_->height());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginPagesHeaderClipsScrollingRows) {
+  ToggleVerticalTabStrip();
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+
+  auto* tab_strip = views::AsViewClass<BraveTabStrip>(
+      browser_view()->horizontal_tab_strip_for_testing());
+  ASSERT_TRUE(tab_strip);
+  auto* container = views::AsViewClass<BraveTabContainer>(
+      tab_strip->GetTabContainerForTesting());
+  ASSERT_TRUE(container);
+
+  while (container->GetMaxScrollOffset() <= 5 * tabs::kVerticalTabHeight) {
+    chrome::AddTabAt(browser(), GURL("brave://version/"), -1, true);
+    tab_strip->StopAnimating();
+    InvalidateAndRunLayoutForVerticalTabStrip();
+  }
+
+  ASSERT_TRUE(container->origin_pages_section_header_);
+  ASSERT_TRUE(container->origin_pages_section_header_->GetVisible());
+  const int viewport_top =
+      container->origin_pages_section_header_->bounds().bottom();
+  ASSERT_GT(viewport_top, 0);
+  EXPECT_EQ(viewport_top, container->GetPinnedTabsAreaBoundary());
+  EXPECT_EQ(container->height() - viewport_top,
+            container->GetUnpinnedTabsViewportHeight());
+
+  container->SetScrollOffset(container->GetMaxScrollOffset());
+  tab_strip->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  Tab* first_page = GetTabAt(browser(), 0);
+  ASSERT_TRUE(first_page);
+  ASSERT_FALSE(first_page->clip_path().isEmpty());
+  const gfx::Rect expected_clip_bounds_in_container(
+      0, viewport_top, container->width(), container->height() - viewport_top);
+  const gfx::Rect expected_clip_bounds_in_tab =
+      views::View::ConvertRectToTarget(container, first_page,
+                                       expected_clip_bounds_in_container);
+  const gfx::Rect clip_bounds_in_tab = gfx::ToEnclosingRect(
+      gfx::SkRectToRectF(first_page->clip_path().computeTightBounds()));
+  EXPECT_EQ(expected_clip_bounds_in_tab, clip_bounds_in_tab);
+}
+#endif
+
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, WindowTitle) {
   ToggleVerticalTabStrip();
 
@@ -466,11 +720,19 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, LayoutSanity) {
   // https://github.com/brave/brave-browser/issues/28084
   const auto region_view_bounds =
       GetBoundsInScreen(region_view, region_view->GetLocalBounds());
+  const auto page_column_bounds =
+      GetBoundsInScreen(region_view->region_view_container_,
+                        region_view->region_view_container_->GetLocalBounds());
+  EXPECT_EQ(region_view->GetAvailableWidthForTabContainer(),
+            page_column_bounds.width());
   for (int i = 0; i < model->count(); i++) {
     auto* tab = GetTabAt(browser(), i);
     const auto tab_bounds = GetBoundsInScreen(tab, tab->GetLocalBounds());
     EXPECT_TRUE(region_view_bounds.Contains(tab_bounds))
         << "Region view bounds: " << region_view_bounds.ToString()
+        << " vs. Tab bounds: " << tab_bounds.ToString();
+    EXPECT_TRUE(page_column_bounds.Contains(tab_bounds))
+        << "Page column bounds: " << page_column_bounds.ToString()
         << " vs. Tab bounds: " << tab_bounds.ToString();
   }
 
@@ -1023,6 +1285,13 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ExpandedState) {
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ExpandedWidth) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  constexpr int kFirstWidth = 280;
+  constexpr int kSecondWidth = 360;
+#else
+  constexpr int kFirstWidth = 100;
+  constexpr int kSecondWidth = 200;
+#endif
   // Given that kVerticalTabsExpandedStatePerWindow is false,
   auto* prefs = browser()->GetProfile()->GetPrefs();
   ASSERT_FALSE(
@@ -1036,9 +1305,10 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ExpandedWidth) {
   ASSERT_TRUE(region_view_1);
   ASSERT_EQ(State::kExpanded, region_view_1->state());
 
-  region_view_1->SetExpandedWidth(100);
-  EXPECT_EQ(100, region_view_1->expanded_width_);
-  EXPECT_EQ(100, prefs->GetValue(brave_tabs::kVerticalTabsExpandedWidth));
+  region_view_1->SetExpandedWidth(kFirstWidth);
+  EXPECT_EQ(kFirstWidth, region_view_1->expanded_width_);
+  EXPECT_EQ(kFirstWidth,
+            prefs->GetValue(brave_tabs::kVerticalTabsExpandedWidth));
 
   // it affects all browsers.
   auto* region_view_2 =
@@ -1046,18 +1316,19 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ExpandedWidth) {
           Browser::Create(Browser::CreateParams(browser()->GetProfile(), true)))
           ->vertical_tab_strip_container_view_
           ->vertical_tab_strip_region_view();
-  EXPECT_EQ(100, region_view_2->expanded_width_);
+  EXPECT_EQ(kFirstWidth, region_view_2->expanded_width_);
 
   // Given that kVerticalTabsExpandedStatePerWindow is true,
   prefs->SetBoolean(brave_tabs::kVerticalTabsExpandedStatePerWindow, true);
 
   // When clicking the toggle button,
-  region_view_1->SetExpandedWidth(200);
+  region_view_1->SetExpandedWidth(kSecondWidth);
 
   // it affects only the browser
-  EXPECT_EQ(200, region_view_1->expanded_width_);
-  EXPECT_EQ(200, prefs->GetValue(brave_tabs::kVerticalTabsExpandedWidth));
-  EXPECT_EQ(100, region_view_2->expanded_width_);
+  EXPECT_EQ(kSecondWidth, region_view_1->expanded_width_);
+  EXPECT_EQ(kSecondWidth,
+            prefs->GetValue(brave_tabs::kVerticalTabsExpandedWidth));
+  EXPECT_EQ(kFirstWidth, region_view_2->expanded_width_);
 
   // And new browser should follow the preference.
   prefs->SetBoolean(brave_tabs::kVerticalTabsCollapsed, true);
@@ -1066,7 +1337,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ExpandedWidth) {
           Browser::Create(Browser::CreateParams(browser()->GetProfile(), true)))
           ->vertical_tab_strip_container_view_
           ->vertical_tab_strip_region_view();
-  EXPECT_EQ(200, region_view_3->expanded_width_);
+  EXPECT_EQ(kSecondWidth, region_view_3->expanded_width_);
 }
 
 class VerticalTabStripStringBrowserTest : public VerticalTabStripBrowserTest {
@@ -1617,7 +1888,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   // Add enough tabs to make the tab strip scrollable
   while (brave_tab_container->GetMaxScrollOffset() <=
          5 * tabs::kVerticalTabHeight) {
-    AppendTab(browser());
+    chrome::AddTabAt(browser(), GURL("brave://version/"), -1, true);
     browser_view()->horizontal_tab_strip_for_testing()->StopAnimating();
 
     InvalidateAndRunLayoutForVerticalTabStrip();
@@ -1625,10 +1896,10 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   const int container_height = brave_tab_container->height();
   ASSERT_GT(container_height, 40);
 
-  const int pinned_tabs_area_bottom =
-      brave_tab_container->GetPinnedTabsAreaBottom();
+  const int unpinned_tabs_area_boundary =
+      brave_tab_container->GetPinnedTabsAreaBoundary();
 
-  ASSERT_GT(pinned_tabs_area_bottom, 0);
+  ASSERT_GT(unpinned_tabs_area_boundary, 0);
   ASSERT_NE(brave_tab_container->scroll_offset_, 0);
 
   // Set scroll offset to 0 (top)
@@ -1639,8 +1910,8 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   // All unpinned tabs should have clip path set when pinned tabs exist
   // The clip path should match the visible area bounds
   gfx::Rect expected_clip_bounds_in_container(
-      0, pinned_tabs_area_bottom, brave_tab_container->width(),
-      container_height - pinned_tabs_area_bottom);
+      0, unpinned_tabs_area_boundary, brave_tab_container->width(),
+      container_height - unpinned_tabs_area_boundary);
 
   for (int i = 0; i < model->count(); ++i) {
     Tab* tab = GetTabAt(browser(), i);
@@ -2058,11 +2329,23 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   // there is no other way to expand/collapse it, and should force floating
   // mode on regardless of kVerticalTabsFloatingEnabled.
   prefs->SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, false);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's panel control is structural and cannot be hidden by the legacy
+  // Brave preference.
+  EXPECT_EQ(BraveVerticalTabStripRegionView::State::kExpanded,
+            region_view->state());
+  EXPECT_FALSE(prefs->GetBoolean(brave_tabs::kVerticalTabsCollapsed));
+  EXPECT_TRUE(VerticalTabController::FromBrowser(browser())
+                  ->ShouldShowVerticalTabToggleButton());
+  EXPECT_FALSE(VerticalTabController::FromBrowser(browser())
+                   ->IsFloatingVerticalTabsEnabled());
+#else
   EXPECT_EQ(BraveVerticalTabStripRegionView::State::kCollapsed,
             region_view->state());
   EXPECT_TRUE(prefs->GetBoolean(brave_tabs::kVerticalTabsCollapsed));
   EXPECT_TRUE(VerticalTabController::FromBrowser(browser())
                   ->IsFloatingVerticalTabsEnabled());
+#endif
 
   // Re-showing the toggle button should restore normal floating behavior.
   prefs->SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, true);
@@ -2249,3 +2532,35 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripFocusModeTest, RestoresCollapsedState) {
   EXPECT_EQ(State::kCollapsed, region_view->state());
   EXPECT_TRUE(region_view->GetVisible());
 }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(VerticalTabStripFocusModeTest,
+                       RevealedOriginSidebarReservesViewportWidth) {
+  auto scoped_mode = gfx::AnimationTestApi::SetRichAnimationRenderMode(
+      gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  using State = BraveVerticalTabStripRegionView::State;
+
+  ASSERT_TRUE(focus_mode_controller());
+  auto* region_view = GetRegionView();
+  ASSERT_TRUE(region_view);
+  ASSERT_EQ(State::kExpanded, region_view->state());
+  const int expanded_width = region_view->GetMinimumSize().width();
+  ASSERT_GT(expanded_width, 0);
+
+  focus_mode_controller()->SetEnabled(true);
+  ASSERT_EQ(State::kCollapsed, region_view->state());
+  ASSERT_FALSE(region_view->GetVisible());
+  EXPECT_EQ(0, region_view->GetMinimumSize().width());
+
+  gfx::Point mouse_position =
+      browser_view()->GetBoundingBoxInScreenForMouseOverHandling().origin();
+  mouse_position.Offset(2, 2);
+  region_view->HandleMouseEvent(gfx::PointF(mouse_position));
+
+  EXPECT_EQ(State::kFloating, region_view->state());
+  EXPECT_TRUE(region_view->GetVisible());
+  EXPECT_EQ(expanded_width, region_view->GetMinimumSize().width());
+
+  focus_mode_controller()->SetEnabled(false);
+}
+#endif

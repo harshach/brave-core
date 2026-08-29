@@ -112,7 +112,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="2170098639895543546">Zgjidh çdo gjë në faqe</translation>
 <translation id="142389341645668510">Personalizo Brave</translation>
 <translation id="2174917724755363426">Instalimi nuk përfundoi. E konfirmon që dëshiron ta anulosh?</translation>
-<translation id="8841019650931243995">Brave Origin - identifikimi në rrjet - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - identifikimi në rrjet - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Gabim në kontrollin e përditësimeve: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Hiqe llogarinë nga Brave</translation>
 <translation id="4022045673362955204">Përdor aplikacionin e Brave për të marrë veglat më të mira të blerjeve kur je në lëvizje</translation>
@@ -147,7 +147,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="2542968102051442371">Zgjidh tekstin nga "Kërkimi nëpërmjet imazheve"</translation>
 <translation id="70183448213529602">Brave po përpiqet të zëvendësojë fjalëkalimet ekzistuese. Shkruaj fjalëkalimin tënd të Windows për ta lejuar këtë.</translation>
 <translation id="7798069806040634998">Brave ka nevojë për qasje te hapësira ruajtëse për të shkarkuar skedarë</translation>
-<translation id="2351700486811407088">Ndihmuesi i Brave Origin</translation>
+<translation id="9082785458664620820">Ndihmuesi i Socket</translation>
 <translation id="2575822587468774919">Zgjidh çdo gjë për të kërkuar me "Kërkimin nëpërmjet imazheve"</translation>
 <translation id="3830890663494219270">Për të marrë fjalëkalimet etj. në të gjitha pajisjet e tua, identifikohu në Brave</translation>
 <translation id="6908148552215338695">Skano kodin QR me telefonin tënd për të shkarkuar Brave dhe identifikohu në "Llogarinë tënde të Brave".</translation>
@@ -177,7 +177,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="777113543093865885">Hiqe nga Brave...</translation>
 <translation id="5265419033369521352">Të mban të sigurt në Brave dhe mund të përdoret për të përmirësuar sigurinë tënde në aplikacionet e tjera të Brave kur je i identifikuar</translation>
 <translation id="2885378588091291677">Menaxheri i detyrave</translation>
-<translation id="2176825726964012531">Rreth &amp;Brave</translation>
+<translation id="3984800435132982628">Rreth &amp;Socket</translation>
 <translation id="2915996080311180594">Rinise më vonë</translation>
 <translation id="2481553173340651149">Të dhënat e tua janë të enkriptuara me frazën tënde të kalimit. Fute atë për të përdorur dhe ruajtur të dhënat e Brave në "Llogarinë tënde të Brave".</translation>
 <translation id="2945997411976714835">Gabim gjatë instalimit: Nisja e procesit të instaluesit dështoi.</translation>
@@ -263,7 +263,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="3846683726093018685">**Përmblidh:** Në një fjali të vetme deri në 30 fjalë, përshkruaj subjektin kryesor dhe qëllimin e përmbajtjes në pamjen e ekranit.
 
           **Sugjero pyetje:** Gjenero një listë me pika prej 3 deri në 5 pyetje që nxisin të menduarit dhe që mund të bëhen nga një përdorues për të kuptuar më mirë pamjen e ekranit. Këto pyetje duhet të përfshijnë të paktën një pyetje që ka të bëjë në mënyrë specifike me një objekt vizual, dizajnin ose vendosjen e tij.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">Zgjedhësi i gjuhës</translation>
 <translation id="6315734375101223238">Personalizo dhe kontrollo Brave. Diçka ka nevojë për vëmendjen tënde - kliko për detaje.</translation>
 <translation id="7130675370997202556">Kliko emrin tënd për të hapur Brave dhe fillo shfletimin.</translation>
@@ -277,7 +277,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="4194619960643453552">Mëso se si të mban të sigurt Brave</translation>
 <translation id="3967822245660637423">Shkarkimi përfundoi</translation>
 <translation id="1486377520191913768">Kur shkruan në shiritin e adresave ose kutinë e kërkimit, Brave i dërgon ato që ti shkruan te veglat e kërkimit, IA-së dhe agjentit të organizatës sate për të marrë sugjerime.</translation>
-<translation id="1311808042904310985">Rreth &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">Rreth &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">Rreth ChromeOS</translation>
 <translation id="8282895427217902177">Kur ti viziton një sajt, Brave dërgon një pjesë të pakuptueshme të URL-së te <ph name="BEGIN_LINK"/>"Shfletimi i sigurt" i Brave<ph name="END_LINK"/> nëpërmjet një serveri të privatësisë që e fsheh adresën tënde IP. Nëse një sajt bën diçka të dyshimtë, dërgohen edhe URL-të e plota dhe pjesët e përmbajtjeve të faqeve.</translation>
 <translation id="4016217212818346953">Qëndro i sigurt me "Menaxherin e fjalëkalimeve"</translation>
@@ -296,7 +296,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="10925962326134232">Personalizo Brave për t'i dhënë një pamje të re shfletuesit tënd</translation>
 <translation id="6596295505984504022">Personalizo Brave</translation>
 <translation id="4148957013307229264">Po instalohet...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - identifikimi në rrjet - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - identifikimi në rrjet - Socket</translation>
 <translation id="2871190378186459992">Zbulo aplikacione, lojëra, shtesa dhe tema të mrekullueshme për Brave.</translation>
 <translation id="462105622535258178">Për të marrë këtë shtesë dhe më shumë në të gjithë kompjuterët e tu, identifikohu në Brave</translation>
 <translation id="6670140629169983459">Për të qëndruar më i sigurt online me zgjedhjet e prindit tënd, kalo te profili yt i Brave ku je i identifikuar tashmë si <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -328,7 +328,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="4493028449971051158">Gabim në nisje: ekzekuto instaluesin si administrator.</translation>
 <translation id="4501471624619070934">Instalimi nuk u krye sepse qasja është e kufizuar në këtë shtet.</translation>
 <translation id="8594994021633965927">Kjo shtesë nuk i ka publikuar praktikat e privatësisë, si p.sh. se si i mbledh dhe i përdor të dhënat. Brave rekomandon që ta heqësh atë.</translation>
-<translation id="770557926599450702">Mirë se erdhe në Brave Origin. U hap një dritare e re e shfletuesit</translation>
+<translation id="3788134970312783571">Mirë se erdhe në Socket. U hap një dritare e re e shfletuesit</translation>
 <translation id="137732229629632648">Brave ka nevojë për leje për të krijuar një hartë të ambientit rrethues dhe për të ndjekur duart e tua</translation>
 <translation id="5036046007335188949">Je i identifikuar tashmë si <ph name="USER_EMAIL_ADDRESS"/> në një profil tjetër të Brave</translation>
 <translation id="1878185978731985193">Brave i ngarkon paraprakisht faqet, gjë që e bën më të shpejtë shfletimin dhe kërkimin. <ph name="BEGIN_LINK"/>Mëso më shumë për ngarkimin paraprak të faqeve<ph name="END_LINK"/></translation>
@@ -336,7 +336,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="8669339108356170796">Brave e bllokoi këtë shkarkim sepse ke çaktivizuar "Shfletimin e sigurt" dhe skedari nuk mund të verifikohet</translation>
 <translation id="7583343841997441047">Provo "Lenten e Brave" me Brave në telefonin tënd</translation>
 <translation id="4594305310729380060">Te "Menaxheri i Fjalëkalimeve" në këtë pajisje</translation>
-<translation id="7776200949522126045">Aplikacionet Brave Origin</translation>
+<translation id="1662388968719244110">Aplikacionet Socket</translation>
 <translation id="4598116752460667024">Kërko për çdo proces nga lista.</translation>
 <translation id="4970880042055371251">Versioni i ChromeOS</translation>
 <translation id="2182657378556811785">Pothuajse i përditësuar! Hape përsëri Brave për të përfunduar përditësimin.</translation>
@@ -354,8 +354,8 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="844451748565342664">Nëse Gemini në Brave është i hapur, paneli anësor qëndron i hapur kur krijohen skeda të reja</translation>
 <translation id="215320507915280336">Kjo përdor të njëjtin kontrollues drejtshkrimor që përdoret në kërkimin e Brave. Teksti që shkruan në shfletues dërgohet te Brave. Mund ta ndryshosh këtë sjellje gjithmonë te cilësimet.</translation>
 <translation id="2899369907387169108">Përdor Brave pa pasur llogari</translation>
-<translation id="1833893255023048385">Rregulli hyrës për Brave Origin për të lejuar trafikun mDNS.</translation>
-<translation id="711601904575862069">Nise përsëri për të përditësuar &amp;Brave</translation>
+<translation id="6972301482162050771">Rregulli hyrës për Socket për të lejuar trafikun mDNS.</translation>
+<translation id="2428387668457441558">Nise përsëri për të përditësuar &amp;Socket</translation>
 <translation id="4918086044614829423">Prano</translation>
 <translation id="4918844574251943176">Imazhi u kopjua</translation>
 <translation id="8797356639448065696">Brave është në modalitetin e sfondit.</translation>
@@ -395,7 +395,7 @@ Disa funksione mund të mos ofrohen dhe ndryshimet në preferenca nuk do të ruh
 <translation id="5267531627648004734">Hiq nga Brave</translation>
 <translation id="4620757336635063467">Zvogëlon performancën, por e bën Brave më rezistent ndaj sulmeve</translation>
 <translation id="239760341987199724">Caktoje Brave si shfletuesin tënd të parazgjedhur</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave rekomandon vendosjen në pauzë të skedës që ngadalëson shfletuesin}other{Brave rekomandon vendosjen në pauzë të skedave që ngadalësojnë shfletuesin}}</translation>
 <translation id="894936507076470937">Brave mund të mos funksionojë si duhet sepse nuk mbështetet më në këtë version të Linux</translation>
 <translation id="2596557398669145729">Brave e bllokoi këtë shkarkim sepse skedari mund të dëmtojë llogaritë e tua personale dhe të rrjeteve sociale</translation>
@@ -428,7 +428,7 @@ Nëse kjo faqe nuk funksionon siç pritet, provo të lejosh optimizimin.</transl
 <translation id="95980832839683236">Shpejton sajtet me motorin V8 të Brave, por e bën Brave disi më pak rezistent ndaj sulmeve. Ky cilësim është joaktiv.</translation>
 <translation id="1224606669200461217">Për të përdorur dhe ruajtur të dhënat e Brave te "Llogaria jote e Brave", përditëso Brave</translation>
 <translation id="5824893331272123205">Ky panel nuk mund të ngarkohej. Provo përsëri</translation>
-<translation id="4467664627714200493">Mirë se vjen në Brave Origin</translation>
+<translation id="1125671961408630460">Mirë se vjen në Socket</translation>
 <translation id="4026807082142463673">Aktivizon veçori shtesë për të ofruar mbrojtjet më të forta të Brave</translation>
 <translation id="5871205389137001634">Kliko për të dalë nga "Kërkimi nëpërmjet imazheve"</translation>
 <translation id="8054200348483755053">Brave vuri re se këta artikuj përmbajnë softuer keqdashës:</translation>
@@ -494,7 +494,7 @@ Nëse kjo faqe nuk funksionon siç pritet, provo të lejosh optimizimin.</transl
 <translation id="6388799252195623474">më ndihmo me këtë</translation>
 <translation id="7920857181125123335">Për të vazhduar, identifikohu në Brave si <ph name="EMAIL"/>. Kjo siguron që të kesh politikat e organizatës sate.</translation>
 <translation id="3256100650978957522">Logoja e Brave brenda një ekrani kompjuteri.</translation>
-<translation id="5880764554173582719">Brave Origin është një shfletues uebi që ekzekuton faqe uebi dhe aplikacione me një shpejtësi jashtëzakonisht të lartë. Është i shpejtë, i qëndrueshëm dhe i lehtë në përdorim. Shfleto në ueb në mënyrë më të sigurt, me mbrojtje të integruar në Brave Origin kundër mashtrimeve dhe softuerëve keqdashës.</translation>
+<translation id="7527968786016866645">Socket është një shfletues uebi që ekzekuton faqe uebi dhe aplikacione me një shpejtësi jashtëzakonisht të lartë. Është i shpejtë, i qëndrueshëm dhe i lehtë në përdorim. Shfleto në ueb në mënyrë më të sigurt, me mbrojtje të integruar në Socket kundër mashtrimeve dhe softuerëve keqdashës.</translation>
 <translation id="4091049150278654573">Për t'u siguruar që mund t'i përdorësh dhe t'i ruash gjithmonë të dhënat e Brave në "Llogarinë tënde të Brave", verifiko që je ti</translation>
 <translation id="2532326772258858491">Brave funksionon më shpejt dhe veçoritë që përdorin JavaScript do të punojnë siç pritet</translation>
 <translation id="6436260184216827876">"Kërkimi nëpërmjet imazheve" nuk ofrohet. Provo përsëri më vonë.</translation>
@@ -542,7 +542,7 @@ Disa funksione mund të mos ofrohen. Specifiko një direktori tjetër profili os
 <translation id="6831043979455480757">Përkthe</translation>
 <translation id="8211837073776713955">Brave të informon nëse fjalëkalimet e tua komprometohen ndonjëherë</translation>
 <translation id="684888714667046800">Lidhja me internetin nuk mund të kryhej. Nëse përdor një mur mbrojtës, sigurohu që <ph name="PRODUCT_EXE_NAME"/> të jetë në listën e lejimeve.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Shtyp tastin Tab për të vazhduar</translation>
 <translation id="6862030660799253820">Kërkoje këtë imazh me "Kërkimin e imazheve"</translation>
 <translation id="3028928628792374067">Brave vuri re se "<ph name="EXTENSION_NAME"/>" përmban softuer keqdashës</translation>
@@ -608,7 +608,7 @@ Brave nuk është në gjendje të rikuperojë cilësimet e tua.</translation>
 <translation id="7951152294775418909">Vazhdo aty ku e ke lënë: Brave i restauron skedat e tua sa herë që e rinis. Për ta çaktivizuar këtë, shko te</translation>
 <translation id="3191314862567596053">Importo fjalëkalimet në Brave</translation>
 <translation id="284799389314308801">1. Kliko <ph name="BUTTON_LABEL"/> më poshtë Kliko <ph name="BUTTON_2"/> te cilësimet e Windows Kliko <ph name="BUTTON_3"/> në njoftimin e Windows për të gozhduar Brave te shiriti i detyrave për qasje të shpejtë</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">Teksti u kopjua</translation>
 <translation id="2034072705932785495">Brave ka nevojë për leje për t'u qasur te kamera jote për këtë sajt</translation>
 <translation id="7129342855140808694">Për të përdorur mikrofonin, jepi Brave qasje te <ph name="BEGIN_LINK"/>cilësimet e sistemit<ph name="END_LINK"/></translation>
@@ -639,7 +639,7 @@ Brave nuk është në gjendje të rikuperojë cilësimet e tua.</translation>
 <translation id="8543787950557226450">Rivendos shfletuesin e parazgjedhur të Brave</translation>
 <translation id="4976450819672499783">Cakto Brave si parazgjedhje dhe gozhdoje te shiriti i detyrave</translation>
 <translation id="1978509466033734608">Bëje Brave më të shpejtë</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">Bëj që personat që kanë qasje në trafikun tënd të internetit ta kenë më të vështirë të shikojnë sajtet që viziton ti. Brave përdor një lidhje të sigurt për të kërkuar për adresën IP të një sajt në sistemin e emrave të domeneve (DNS).</translation>
 <translation id="7810005234485217901">Mund të gozhdosh "Kërkimin nëpërmjet imazheve" për qasje të lehtë</translation>
 <translation id="1652855885539187849">Një profil i Brave me këtë llogari ekziston tashmë në këtë pajisje</translation>
@@ -666,7 +666,7 @@ Brave nuk është në gjendje të rikuperojë cilësimet e tua.</translation>
 <translation id="6175141682081019059">Çaktivizo ekzekutimin e Brave në sfond për aplikacionet</translation>
 <translation id="80790299200510644">Kërkimi nëpërmjet imazheve</translation>
 <translation id="8086881907087796310">Instalimi dështoi sepse kompjuteri yt nuk i përmbush kërkesat minimale për harduerin.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Brave ka nevojë për lejen e vendndodhjes për të këtë sajt</translation>
 <translation id="3576319845915562805">Herën tjetër që të hapësh Brave në <ph name="DEVICE_TYPE"/>, do të shikosh një kërkesë për të aktivizuar sinjalizimet për monitorimin e çmimeve.</translation>
 <translation id="3728025339793417202">Merr sinjalizime për rënie çmimi për artikujt që të interesojnë me aplikacionin e Brave në telefonin tënd</translation>
@@ -777,8 +777,8 @@ Brave nuk është në gjendje të rikuperojë cilësimet e tua.</translation>
 <translation id="9148058034647219655">Dil</translation>
 <translation id="2792073155252170448">Vazhdo aty ku e ke lënë: Brave mund t'i restaurojë skedat e tua sa herë që e rinis. Për ta aktivizuar këtë, shko te</translation>
 <translation id="2444257125841652328">Administratori i sistemit ka konfiguruar Brave që të hapë një shfletues alternativ për të pasur qasje te <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Nise përsëri për të përditësuar &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Nise përsëri për të përditësuar &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Personalizoje Brave</translation>
 <translation id="7977787072794666032">Brave mund të mos funksionojë si duhet sepse nuk mbështetet më në Windows XP ose Windows Vista</translation>
 <translation id="8462937515915443472">Merr veçoritë më të mira të sigurisë të Brave kur je në lëvizje me Brave.</translation>

@@ -110,7 +110,7 @@
 <translation id="2170098639895543546">Wybierz dowolny element na stronie</translation>
 <translation id="142389341645668510">Dostosuj Brave</translation>
 <translation id="2174917724755363426">Instalacja nie została ukończona. Czy na pewno chcesz ją anulować?</translation>
-<translation id="8841019650931243995">Brave Origin – logowanie do sieci – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – logowanie do sieci – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Błąd sprawdzania aktualizacji: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Usuń konto z Brave</translation>
 <translation id="4022045673362955204">Pobierz aplikację Brave, aby mieć najlepsze narzędzia do zakupów zawsze przy sobie</translation>
@@ -145,7 +145,7 @@
 <translation id="2542968102051442371">Wybierz tekst za pomocą wyszukiwania obrazów</translation>
 <translation id="70183448213529602">Brave próbuje zastąpić obecne hasła. Aby na to zezwolić, podaj hasło do systemu Windows.</translation>
 <translation id="7798069806040634998">Brave musi mieć dostęp do pamięci, by pobierać pliki</translation>
-<translation id="2351700486811407088">Pomoc Brave Origin</translation>
+<translation id="9082785458664620820">Pomoc Socket</translation>
 <translation id="2575822587468774919">Wybierz, co chcesz wyszukać za pomocą wyszukiwania obrazów</translation>
 <translation id="3830890663494219270">Aby mieć dostęp do haseł oraz innych ustawień i danych na wszystkich swoich urządzeniach, zaloguj się w Brave</translation>
 <translation id="6908148552215338695">Zeskanuj kod QR telefonem, aby pobrać Brave i zalogować się na konto Brave.</translation>
@@ -175,7 +175,7 @@
 <translation id="777113543093865885">Usuń z Brave...</translation>
 <translation id="5265419033369521352">Dba o Twoje bezpieczeństwo w Brave i może też je poprawiać w innych aplikacjach Brave, gdy się w nich zalogujesz</translation>
 <translation id="2885378588091291677">Menedżer zadań</translation>
-<translation id="2176825726964012531">&amp;Brave – informacje</translation>
+<translation id="3984800435132982628">&amp;Socket – informacje</translation>
 <translation id="2915996080311180594">Uruchom ponownie później</translation>
 <translation id="2481553173340651149">Dane zostały zaszyfrowane Twoim hasłem. Podaj hasło, aby korzystać z danych Brave i zapisywać je na swoim koncie Brave.</translation>
 <translation id="2945997411976714835">Błąd instalacji: nie udało się uruchomić procesu instalatora.</translation>
@@ -259,7 +259,7 @@
 <translation id="3846683726093018685">**Podsumuj:** w jednym zdaniu zawierającym mniej niż 30 słów opisz główny temat i cel treści na zrzucie ekranu.
 
           **Zasugeruj pytania:** wygeneruj listę 3–5 pytań pobudzających do myślenia, które użytkownik może zadać, aby lepiej zrozumieć zrzut ekranu. Te pytania powinny zawierać co najmniej 1 pytanie dotyczące konkretnego obiektu wizualnego, jego wyglądu lub umiejscowienia.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> – Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> – Socket</translation>
 <translation id="3885770153807205175">Selektor języka</translation>
 <translation id="6315734375101223238">Dostosuj i kontroluj Brave. Pewna kwestia wymaga Twojej uwagi – kliknij, by przejść do szczegółów.</translation>
 <translation id="7130675370997202556">Otwórz Brave, klikając swoją nazwę i rozpocznij przeglądanie.</translation>
@@ -273,7 +273,7 @@
 <translation id="4194619960643453552">Jak Brave dba o Twoje bezpieczeństwo</translation>
 <translation id="3967822245660637423">Pobieranie zakończone</translation>
 <translation id="1486377520191913768">Gdy piszesz na pasku adresu lub w polu wyszukiwania, Brave wysyła wpisany tekst do narzędzi wyszukiwania, AI i agentów Twojej organizacji, aby uzyskać sugestie.</translation>
-<translation id="1311808042904310985">&amp;Brave for Testing – informacje</translation>
+<translation id="3813099290530551762">&amp;Socket for Testing – informacje</translation>
 <translation id="1152920704813762236">System operacyjny Brave – informacje</translation>
 <translation id="8282895427217902177">Gdy wchodzisz na stronę, Brave wysyła zaciemniony fragment adresu URL do <ph name="BEGIN_LINK"/>Bezpiecznego przeglądania Brave<ph name="END_LINK"/> przez serwer prywatności, który ukrywa Twój adres IP. Jeśli strona robi coś podejrzanego, wysyłane są też pełne adresy URL i fragmenty zawartości strony.</translation>
 <translation id="4016217212818346953">Dbaj o bezpieczeństwo, korzystając z Menedżera haseł</translation>
@@ -292,7 +292,7 @@
 <translation id="10925962326134232">Spersonalizuj Brave, aby zmienić wygląd przeglądarki</translation>
 <translation id="6596295505984504022">Spersonaliz&amp;uj Brave</translation>
 <translation id="4148957013307229264">Trwa instalowanie...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – logowanie do sieci – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – logowanie do sieci – Socket</translation>
 <translation id="2871190378186459992">Odkryj znakomite aplikacje, gry, rozszerzenia i motywy do Brave.</translation>
 <translation id="462105622535258178">Aby móc korzystać z tego rozszerzenia i innych funkcji na wszystkich swoich komputerach, zaloguj się w Brave</translation>
 <translation id="6670140629169983459">Aby zapewnić sobie większe bezpieczeństwo online dzięki ustawieniom wybranym przez Twojego rodzica, przełącz się na swój profil Brave, na który jesteś już zalogowany(-a) jako <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -324,7 +324,7 @@
 <translation id="4493028449971051158">Błąd uruchamiania: uruchom instalator z uprawnieniami administratora.</translation>
 <translation id="4501471624619070934">Ze względu na ograniczenie dostępu w tym kraju instalacja się nie udała.</translation>
 <translation id="8594994021633965927">Dla tego rozszerzenia nie opublikowano procedur ochrony prywatności, na przykład informacji o tym, jak zbiera i wykorzystuje ono dane. Brave zaleca jego usunięcie.</translation>
-<translation id="770557926599450702">Witamy w Brave Origin. Zostało otwarte nowe okno przeglądarki.</translation>
+<translation id="3788134970312783571">Witamy w Socket. Zostało otwarte nowe okno przeglądarki.</translation>
 <translation id="137732229629632648">Brave potrzebuje uprawnień do tworzenia mapy otoczenia i śledzenia rąk</translation>
 <translation id="5036046007335188949">Jesteś już zalogowany(-a) jako <ph name="USER_EMAIL_ADDRESS"/> w innym profilu Brave</translation>
 <translation id="1878185978731985193">Brave wstępnie wczytuje strony, co przyspiesza przeglądanie i wyszukiwanie. <ph name="BEGIN_LINK"/>Więcej informacji o wstępnym wczytywaniu stron<ph name="END_LINK"/></translation>
@@ -332,7 +332,7 @@
 <translation id="8669339108356170796">Pobieranie zostało zablokowane przez Brave, ponieważ masz wyłączone Bezpieczne przeglądanie i nie można zweryfikować pliku</translation>
 <translation id="7583343841997441047">Wypróbuj Obiektyw Brave w Brave na telefonie</translation>
 <translation id="4594305310729380060">W Menedżerze haseł na tym urządzeniu</translation>
-<translation id="7776200949522126045">Aplikacje Brave Origin</translation>
+<translation id="1662388968719244110">Aplikacje Socket</translation>
 <translation id="4598116752460667024">Wyszukaj dowolny proces na liście.</translation>
 <translation id="4970880042055371251">Wersja systemu operacyjnego Brave</translation>
 <translation id="2182657378556811785">Już prawie gotowe. Uruchom ponownie Brave, by zakończyć aktualizację.</translation>
@@ -350,8 +350,8 @@
 <translation id="844451748565342664">Jeśli Gemini w Brave jest otwarty, panel boczny pozostaje otwarty podczas tworzenia nowych kart</translation>
 <translation id="215320507915280336">Będzie stosowany ten sam mechanizm sprawdzania pisowni, który jest używany w wyszukiwarce Brave. Tekst wpisywany w przeglądarce jest wysyłany do Brave. Zawsze możesz to zmienić w ustawieniach.</translation>
 <translation id="2899369907387169108">Używaj Brave bez konta</translation>
-<translation id="1833893255023048385">Reguła dla ruchu przychodzącego w Brave Origin zezwalająca na ruch mDNS.</translation>
-<translation id="711601904575862069">Uruchom ponownie, aby zaktualizować &amp;Brave</translation>
+<translation id="6972301482162050771">Reguła dla ruchu przychodzącego w Socket zezwalająca na ruch mDNS.</translation>
+<translation id="2428387668457441558">Uruchom ponownie, aby zaktualizować &amp;Socket</translation>
 <translation id="4918086044614829423">Akceptuj</translation>
 <translation id="4918844574251943176">Zdjęcie zostało skopiowane</translation>
 <translation id="8797356639448065696">Brave jest w trybie działania w tle</translation>
@@ -391,7 +391,7 @@
 <translation id="5267531627648004734">Usuń z Brave</translation>
 <translation id="4620757336635063467">Zmniejsza wydajność, ale sprawia, że przeglądarka Brave jest bardziej odporna na ataki</translation>
 <translation id="239760341987199724">Ustaw Brave jako domyślną przeglądarkę</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave zaleca wstrzymanie karty, która spowalnia przeglądarkę}few{Brave zaleca wstrzymanie kart, które spowalniają przeglądarkę}many{Brave zaleca wstrzymanie kart, które spowalniają przeglądarkę}other{Brave zaleca wstrzymanie kart, które spowalniają przeglądarkę}}</translation>
 <translation id="894936507076470937">Przeglądarka Brave może działać nieprawidłowo, bo nie jest już obsługiwana w tej dystrybucji Linuksa</translation>
 <translation id="2596557398669145729">Pobieranie zostało zablokowane przez Brave, ponieważ plik może wyrządzić szkody na Twoich kontach osobistych i tych w sieciach społecznościowych</translation>
@@ -424,7 +424,7 @@ Jeśli ta strona nie działa zgodnie z oczekiwaniami, spróbuj zezwolić na opt
 <translation id="95980832839683236">Witryny będą działać szybciej dzięki mechanizmowi V8 w przeglądarce Brave, ale będzie ona trochę mniej odporna na ataki. To ustawienie jest wyłączone.</translation>
 <translation id="1224606669200461217">Zaktualizuj Brave, aby móc zapisywać dane z niego na koncie Brave i ich używać</translation>
 <translation id="5824893331272123205">Nie udało się załadować tego panelu. Spróbuj ponownie</translation>
-<translation id="4467664627714200493">Brave Origin – witamy!</translation>
+<translation id="1125671961408630460">Socket – witamy!</translation>
 <translation id="4026807082142463673">Włącza dodatkowe funkcje, aby zapewnić najsilniejszą ochronę w Brave</translation>
 <translation id="5871205389137001634">Kliknij, aby zamknąć wyszukiwanie obrazów</translation>
 <translation id="8054200348483755053">Przeglądarka Brave wykryła w tych elementach złośliwe oprogramowanie:</translation>
@@ -490,7 +490,7 @@ Jeśli ta strona nie działa zgodnie z oczekiwaniami, spróbuj zezwolić na opt
 <translation id="6388799252195623474">pomóż mi w tym</translation>
 <translation id="7920857181125123335">Aby przejść dalej, zaloguj się w Brave jako <ph name="EMAIL"/>. Dzięki temu zachowasz zgodność z zasadami organizacji.</translation>
 <translation id="3256100650978957522">Logo Brave na ekranie komputera.</translation>
-<translation id="5880764554173582719">Brave Origin to przeglądarka obsługująca strony i aplikacje z szybkością błyskawicy. Jest szybka, stabilna i łatwa w użyciu. Bezpiecznie przeglądaj internet dzięki wbudowanej w Brave Origin ochronie przed złośliwym oprogramowaniem i phishingiem.</translation>
+<translation id="7527968786016866645">Socket to przeglądarka obsługująca strony i aplikacje z szybkością błyskawicy. Jest szybka, stabilna i łatwa w użyciu. Bezpiecznie przeglądaj internet dzięki wbudowanej w Socket ochronie przed złośliwym oprogramowaniem i phishingiem.</translation>
 <translation id="4091049150278654573">Potwierdź swoją tożsamość, aby móc zawsze używać danych Brave na koncie Brave i je zapisywać</translation>
 <translation id="2532326772258858491">Brave działa szybciej, a funkcje używające JavaScriptu powinny działać zgodnie z założeniami</translation>
 <translation id="6436260184216827876">Wyszukiwanie obrazów jest niedostępne. Spróbuj ponownie później.</translation>
@@ -538,7 +538,7 @@ Niektóre funkcje mogą być niedostępne. Podaj inny katalog z profilem lub uż
 <translation id="6831043979455480757">Tłumacz</translation>
 <translation id="8211837073776713955">Brave poinformuje Cię, jeśli Twoje hasła dostaną się w niepowołane ręce</translation>
 <translation id="684888714667046800">Nie można połączyć się z internetem. Jeśli używasz zapory sieciowej, sprawdź, czy adres <ph name="PRODUCT_EXE_NAME"/> znajduje się na liście dozwolonych.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Kliknij, aby kontynuować</translation>
 <translation id="6862030660799253820">Wyszukaj na tym obrazie za pomocą wyszukiwania obrazów</translation>
 <translation id="3028928628792374067">Przeglądarka Brave wykryła, że rozszerzenie „<ph name="EXTENSION_NAME"/>” zawiera złośliwe oprogramowanie</translation>
@@ -606,7 +606,7 @@ Brave nie może odzyskać ustawień.</translation>
 <translation id="284799389314308801">1. Kliknij <ph name="BUTTON_LABEL"/> poniżej
 2. Kliknij <ph name="BUTTON_2"/> w ustawieniach systemu Windows
 3. Kliknij <ph name="BUTTON_3"/> w powiadomieniu systemu Windows, aby przypiąć przeglądarkę Brave do paska zadań i mieć do niej szybki dostęp</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Socket Dev</translation>
 <translation id="7450541714075000668">Tekst został skopiowany</translation>
 <translation id="2034072705932785495">Brave potrzebuje uprawnień dostępu do aparatu na tej stronie</translation>
 <translation id="7129342855140808694">Aby używać mikrofonu, przyznaj Brave dostęp w <ph name="BEGIN_LINK"/>ustawieniach systemu<ph name="END_LINK"/></translation>
@@ -637,7 +637,7 @@ Brave nie może odzyskać ustawień.</translation>
 <translation id="8543787950557226450">Przywróć domyślny motyw Brave</translation>
 <translation id="4976450819672499783">Ustaw Brave jako przeglądarkę domyślną i przypnij ją do paska zadań</translation>
 <translation id="1978509466033734608">Przyspiesz działanie Brave</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Utrudnij osobom mającym dostęp do Twojego ruchu internetowego sprawdzanie, jakie strony odwiedzasz. Do wyszukiwania adresu IP witryny w Systemie nazw domenowych (DNS) Brave używa bezpiecznego połączenia.</translation>
 <translation id="7810005234485217901">Możesz przypiąć wyszukiwanie obrazów, aby mieć do niego łatwy dostęp</translation>
 <translation id="1652855885539187849">Na tym urządzeniu istnieje już profil Brave z tym kontem</translation>
@@ -664,7 +664,7 @@ Brave nie może odzyskać ustawień.</translation>
 <translation id="6175141682081019059">Wyłącz działanie Brave w tle w przypadku aplikacji</translation>
 <translation id="80790299200510644">Wyszukiwanie obrazów</translation>
 <translation id="8086881907087796310">Instalacja się nie udała, ponieważ komputer nie spełnia minimalnych wymagań sprzętowych.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for Testing</translation>
 <translation id="2061155704815580583">Ta strona musi mieć w Brave dostęp do lokalizacji</translation>
 <translation id="3576319845915562805">Gdy następnym razem otworzysz Brave na urządzeniu <ph name="DEVICE_TYPE"/>, pojawi się komunikat przypominający o włączeniu alertów funkcji śledzenia cen.</translation>
 <translation id="3728025339793417202">Otrzymuj alerty o obniżkach cen produktów, które Cię interesują, w aplikacji Brave na telefonie</translation>
@@ -775,8 +775,8 @@ Brave nie może odzyskać ustawień.</translation>
 <translation id="9148058034647219655">Zakończ</translation>
 <translation id="2792073155252170448">Wznawianie przeglądania od tego samego miejsca: Brave może po każdym ponownym uruchomieniu przywracać karty. Aby włączyć tę funkcję, otwórz</translation>
 <translation id="2444257125841652328">Administrator systemu skonfigurował Brave w taki sposób, by strona <ph name="TARGET_URL_HOSTNAME"/> otwierała się w alternatywnej przeglądarce.</translation>
-<translation id="7902365066753170041">Uruchom ponownie, aby zaktualizować &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Uruchom ponownie, aby zaktualizować &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Dostosuj Brave do swoich potrzeb</translation>
 <translation id="7977787072794666032">Brave może działać nieprawidłowo, bo nie jest już zgodny z Windows XP ani Windows Vista</translation>
 <translation id="8462937515915443472">Korzystaj z najlepszych funkcji bezpieczeństwa Brave w dowolnym miejscu dzięki Brave.</translation>

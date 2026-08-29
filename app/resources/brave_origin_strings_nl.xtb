@@ -112,7 +112,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="2170098639895543546">Iets op de pagina selecteren</translation>
 <translation id="142389341645668510">Brave aanpassen</translation>
 <translation id="2174917724755363426">Installatie niet afgerond. Weet je zeker dat je wilt annuleren?</translation>
-<translation id="8841019650931243995">Brave Origin - Inloggen bij netwerk - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - Inloggen bij netwerk - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Fout bij updaten: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Account verwijderen uit Brave</translation>
 <translation id="4022045673362955204">Gebruik de Brave-app om de beste shoppingtools onderweg te gebruiken</translation>
@@ -147,7 +147,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="2542968102051442371">Tekst selecteren met Zoeken met afbeelding</translation>
 <translation id="70183448213529602">Brave probeert bestaande wachtwoorden te vervangen. Typ je Windows-wachtwoord om dit toe te staan.</translation>
 <translation id="7798069806040634998">Brave heeft toegang tot de opslag nodig om bestanden te downloaden</translation>
-<translation id="2351700486811407088">Brave Origin Helper</translation>
+<translation id="9082785458664620820">Socket Helper</translation>
 <translation id="2575822587468774919">Selecteer iets om te zoeken met Zoeken met afbeelding</translation>
 <translation id="3830890663494219270">Log in bij Brave om onder andere je wachtwoorden te gebruiken op al je apparaten</translation>
 <translation id="6908148552215338695">Scan de QR-code met je telefoon om Brave te downloaden en log in op je Brave-account.</translation>
@@ -177,7 +177,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="777113543093865885">Verwijderen uit Brave…</translation>
 <translation id="5265419033369521352">Beschermt je op Brave en kan worden gebruikt om de beveiliging in andere Brave-apps te verbeteren als je bent ingelogd.</translation>
 <translation id="2885378588091291677">Taakbeheer</translation>
-<translation id="2176825726964012531">Over &amp;Brave</translation>
+<translation id="3984800435132982628">Over &amp;Socket</translation>
 <translation id="2915996080311180594">Later opnieuw opstarten</translation>
 <translation id="2481553173340651149">Je gegevens zijn versleuteld met je wachtwoordzin. Voer deze in om Brave-gegevens te gebruiken en op te slaan in je Brave-account.</translation>
 <translation id="2945997411976714835">Installatiefout: Het installatieproces kan niet worden gestart.</translation>
@@ -263,7 +263,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="3846683726093018685">**Samenvatten:** Beschrijf in één zin van maximaal 30 woorden het belangrijkste onderwerp en doel van de content in het screenshot.
 
           **Vragen voorstellen:** Genereer een lijst met 3 tot 5 prikkelende vragen die een gebruiker kan stellen om het screenshot beter te begrijpen. Deze vragen moeten minstens één vraag bevatten die specifiek over een visueel object, het ontwerp of de plaatsing ervan gaat.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">Taalkiezer</translation>
 <translation id="6315734375101223238">Pas Brave aan en beheer de instellingen. Je aandacht is vereist. Klik voor meer informatie.</translation>
 <translation id="7130675370997202556">Klik op je naam om Brave te openen en begin met surfen.</translation>
@@ -277,7 +277,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="4194619960643453552">Meer informatie over hoe Brave je beschermt</translation>
 <translation id="3967822245660637423">Downloaden voltooid</translation>
 <translation id="1486377520191913768">Als je in de adresbalk of het zoekvak typt, stuurt Brave wat je typt naar de zoek-, AI- en agenttools van je organisatie om suggesties te krijgen.</translation>
-<translation id="1311808042904310985">Over &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">Over &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">Over Brave OS</translation>
 <translation id="8282895427217902177">Als je een site bezoekt, stuurt Brave een geobfusceerd gedeelte van de URL naar <ph name="BEGIN_LINK"/>Google Safe Browsing<ph name="END_LINK"/> via een privacyserver die je IP-adres verbergt. Doet een site iets verdachts, dan worden ook volledige URL's en delen van de paginacontent verstuurd.</translation>
 <translation id="4016217212818346953">Blijf beschermd met Wachtwoordmanager</translation>
@@ -296,7 +296,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="10925962326134232">Pas Brave aan om je browser een nieuwe look te geven</translation>
 <translation id="6596295505984504022">Brave &amp;personaliseren</translation>
 <translation id="4148957013307229264">Installeren...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - Inloggen bij netwerk - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - Inloggen bij netwerk - Socket</translation>
 <translation id="2871190378186459992">Ontdek fantastische apps, games, extensies en thema's voor Brave.</translation>
 <translation id="462105622535258178">Log in bij Brave om onder andere deze extensie te gebruiken op al je computers</translation>
 <translation id="6670140629169983459">Als je online veiliger wilt blijven met de keuzes van je ouder, wissel je naar het Brave-profiel waarop je al bent ingelogd als <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -328,7 +328,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="4493028449971051158">Opstartfout: voer het installatieprogramma uit als beheerder.</translation>
 <translation id="4501471624619070934">De installatie is mislukt omdat de toegang is beperkt in dit land.</translation>
 <translation id="8594994021633965927">Deze extensie heeft geen privacyprocedures gepubliceerd, zoals de manier waarop gegevens worden verzameld en gebruikt. Brave raadt je aan deze te verwijderen.</translation>
-<translation id="770557926599450702">Welkom bij Brave Origin, nieuw browservenster geopend</translation>
+<translation id="3788134970312783571">Welkom bij Socket, nieuw browservenster geopend</translation>
 <translation id="137732229629632648">Brave heeft rechten nodig om je omgeving in kaart te brengen en je handen te volgen</translation>
 <translation id="5036046007335188949">Je bent al ingelogd als <ph name="USER_EMAIL_ADDRESS"/> bij een ander Brave-profiel</translation>
 <translation id="1878185978731985193">Brave laadt pagina's vooraf, zodat je sneller kunt browsen en zoeken. <ph name="BEGIN_LINK"/>Meer informatie over hoe je pagina's vooraf laadt<ph name="END_LINK"/></translation>
@@ -336,7 +336,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="8669339108356170796">Brave heeft deze download geblokkeerd, omdat je Safe Browsing hebt uitgezet en het bestand niet kan worden geverifieerd</translation>
 <translation id="7583343841997441047">Probeer Google Lens met Brave op je telefoon</translation>
 <translation id="4594305310729380060">Naar Wachtwoordmanager op dit apparaat</translation>
-<translation id="7776200949522126045">Brave Origin-apps</translation>
+<translation id="1662388968719244110">Socket-apps</translation>
 <translation id="4598116752460667024">Zoek naar een proces in de lijst.</translation>
 <translation id="4970880042055371251">Brave OS-versie</translation>
 <translation id="2182657378556811785">Updaten bijna voltooid. Start Brave opnieuw op om de update te voltooien.</translation>
@@ -354,8 +354,8 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="844451748565342664">Als Gemini in Brave open is, blijft het zijvenster open als je nieuwe tabbladen maakt</translation>
 <translation id="215320507915280336">Hiervoor wordt dezelfde spellingcontrole gebruikt als voor Brave Zoeken. Tekst die je in de browser typt, wordt naar Brave gestuurd. Je kunt dit altijd wijzigen in de instellingen.</translation>
 <translation id="2899369907387169108">Brave gebruiken zonder account</translation>
-<translation id="1833893255023048385">Inkomende regel zodat Brave Origin mDNS-verkeer toestaat.</translation>
-<translation id="711601904575862069">Opnieuw starten om &amp;Brave te updaten</translation>
+<translation id="6972301482162050771">Inkomende regel zodat Socket mDNS-verkeer toestaat.</translation>
+<translation id="2428387668457441558">Opnieuw starten om &amp;Socket te updaten</translation>
 <translation id="4918086044614829423">Accepteren</translation>
 <translation id="4918844574251943176">Afbeelding gekopieerd</translation>
 <translation id="8797356639448065696">Brave bevindt zich in de achtergrondmodus.</translation>
@@ -395,7 +395,7 @@ Sommige functies zijn wellicht niet beschikbaar en wijzigingen in voorkeuren wor
 <translation id="5267531627648004734">Verwijderen uit Brave</translation>
 <translation id="4620757336635063467">Vermindert de prestaties maar maakt Brave beter bestand tegen aanvallen</translation>
 <translation id="239760341987199724">Brave instellen als je standaardbrowser</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin bèta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket bèta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave raadt aan het tabblad dat je browser vertraagt te onderbreken}other{Brave raadt aan de tabbladen die je browser vertragen te onderbreken}}</translation>
 <translation id="894936507076470937">Brave werkt misschien niet goed omdat dit niet meer wordt ondersteund in deze Linux-distributie</translation>
 <translation id="2596557398669145729">Brave heeft deze download geblokkeerd, omdat het bestand schadelijk kan zijn voor je persoonlijke en socialmedia-accounts</translation>
@@ -428,7 +428,7 @@ Als deze pagina niet werkt zoals verwacht, kun je optimalisatie toestaan.</trans
 <translation id="95980832839683236">Versnelt sites met de V8-engine van Brave, maar maakt Brave iets minder goed bestand tegen aanvallen. Deze instelling staat uit.</translation>
 <translation id="1224606669200461217">Update Brave om Brave-gegevens te gebruiken en op te slaan in je Brave-account</translation>
 <translation id="5824893331272123205">Kan dit deelvenster niet laden. Probeer het opnieuw.</translation>
-<translation id="4467664627714200493">Welkom bij Brave Origin</translation>
+<translation id="1125671961408630460">Welkom bij Socket</translation>
 <translation id="4026807082142463673">Zet extra functies aan om de beste beveiliging van Brave te bieden</translation>
 <translation id="5871205389137001634">Klik om Zoeken met afbeelding te sluiten</translation>
 <translation id="8054200348483755053">Brave heeft vastgesteld dat deze items malware bevatten:</translation>
@@ -494,7 +494,7 @@ Als deze pagina niet werkt zoals verwacht, kun je optimalisatie toestaan.</trans
 <translation id="6388799252195623474">help me hiermee</translation>
 <translation id="7920857181125123335">Als je wilt doorgaan, log je in bij Brave als <ph name="EMAIL"/>. Zo weet je zeker dat het beleid van je organisatie wordt toegepast.</translation>
 <translation id="3256100650978957522">Brave-logo in een computerscherm.</translation>
-<translation id="5880764554173582719">Brave Origin is een webbrowser die webpagina's en applicaties bliksemsnel uitvoert. Brave Origin is snel, stabiel en eenvoudig in gebruik. Surf veiliger op internet met de in Brave Origin ingebouwde beveiliging tegen malware en phishing.</translation>
+<translation id="7527968786016866645">Socket is een webbrowser die webpagina's en applicaties bliksemsnel uitvoert. Socket is snel, stabiel en eenvoudig in gebruik. Surf veiliger op internet met de in Socket ingebouwde beveiliging tegen malware en phishing.</translation>
 <translation id="4091049150278654573">Laat verifiëren dat jij het bent om Brave-gegevens altijd te kunnen gebruiken en opslaan in je Brave-account</translation>
 <translation id="2532326772258858491">Brave werkt sneller en functies die JavaScript gebruiken, zouden naar behoren moeten werken</translation>
 <translation id="6436260184216827876">Zoeken met afbeelding is niet beschikbaar. Probeer het later opnieuw.</translation>
@@ -542,7 +542,7 @@ Sommige functies zijn mogelijk niet beschikbaar. Geef een andere profieldirector
 <translation id="6831043979455480757">Vertalen</translation>
 <translation id="8211837073776713955">Brave laat het je weten als je wachtwoorden mogelijk niet veilig meer zijn</translation>
 <translation id="684888714667046800">Kan geen verbinding maken met internet. Als je een firewall gebruikt, zorg je dat <ph name="PRODUCT_EXE_NAME"/> op de toelatingslijst staat.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Druk op Tab om door te gaan</translation>
 <translation id="6862030660799253820">Deze afbeelding doorzoeken met Zoeken met afbeelding</translation>
 <translation id="3028928628792374067">Brave heeft vastgesteld dat <ph name="EXTENSION_NAME"/> malware bevat</translation>
@@ -610,7 +610,7 @@ Brave kan je instellingen niet herstellen.</translation>
 <translation id="284799389314308801">1. Klik op <ph name="BUTTON_LABEL"/> hieronder
 2. Klik op <ph name="BUTTON_2"/> in je Windows-instellingen
 3. Klik op <ph name="BUTTON_3"/> in de Windows-melding om Brave vast te zetten op je taakbalk voor snelle toegang</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin voor ontwikkelaars</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket voor ontwikkelaars</translation>
 <translation id="7450541714075000668">Tekst gekopieerd</translation>
 <translation id="2034072705932785495">Brave heeft toegangsrechten voor je camera nodig voor deze site</translation>
 <translation id="7129342855140808694">Geef Brave toegang via de <ph name="BEGIN_LINK"/>systeeminstellingen<ph name="END_LINK"/> om je microfoon te gebruiken</translation>
@@ -641,7 +641,7 @@ Brave kan je instellingen niet herstellen.</translation>
 <translation id="8543787950557226450">Resetten naar standaard Brave</translation>
 <translation id="4976450819672499783">Brave instellen als standaardbrowser en vastzetten op de taakbalk</translation>
 <translation id="1978509466033734608">Maak Brave sneller</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">Maak het moeilijker voor mensen met toegang tot je internetverkeer om te zien welke sites je bezoekt. Brave gebruikt een beveiligde verbinding om het IP-adres van een site op te zoeken in het DNS (Domain Name System).</translation>
 <translation id="7810005234485217901">Je kunt Zoeken met afbeelding vastzetten voor snelle toegang</translation>
 <translation id="1652855885539187849">Er bestaat op dit apparaat al een Brave-profiel met dit account</translation>
@@ -668,7 +668,7 @@ Brave kan je instellingen niet herstellen.</translation>
 <translation id="6175141682081019059">Brave niet uitvoeren op de achtergrond voor apps</translation>
 <translation id="80790299200510644">Zoeken met afbeelding</translation>
 <translation id="8086881907087796310">De installatie is mislukt omdat je computer niet voldoet aan de minimale hardwarevereisten.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Brave heeft locatierechten nodig voor deze site</translation>
 <translation id="3576319845915562805">De volgende keer dat je Brave op je <ph name="DEVICE_TYPE"/> opent, zie je een prompt om meldingen voor prijzen volgen aan te zetten.</translation>
 <translation id="3728025339793417202">Krijg meldingen over prijsdalingen voor items waarin je geïnteresseerd bent met de Brave-app op je telefoon</translation>
@@ -779,8 +779,8 @@ Brave kan je instellingen niet herstellen.</translation>
 <translation id="9148058034647219655">Sluiten</translation>
 <translation id="2792073155252170448">Ga verder waar je gebleven was: Brave kan je tabbladen herstellen elke keer dat je opnieuw opstart. Als je dit wilt aanzetten, ga je naar</translation>
 <translation id="2444257125841652328">Je systeembeheerder heeft geconfigureerd dat Brave een alternatieve browser opent voor toegang tot <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Opnieuw starten om &amp;Brave te updaten</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Opnieuw starten om &amp;Socket te updaten</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Personaliseer Brave</translation>
 <translation id="7977787072794666032">Brave werkt mogelijk niet naar behoren omdat dit niet langer wordt ondersteund op Windows XP en Windows Vista</translation>
 <translation id="8462937515915443472">Profiteer onderweg van de beste beveiligingsfuncties van Brave met Brave.</translation>

@@ -18,6 +18,8 @@
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
@@ -960,6 +962,51 @@ IN_PROC_BROWSER_TEST_F(
             opener_tab->GetParentCollection());
   EXPECT_EQ(added_tab->GetParentCollection()->GetParentCollection(),
             &unpinned_collection());
+}
+
+// Browser commands and typed URLs receive the active WebContents as source
+// context inside Navigate(), but that must not make them children of the page
+// that happened to be active. Only genuine page-created link opens form a
+// parent/child relationship.
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       NavigateTypedNewTabCreatesTopLevelPage) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const original_tab = tab_strip_model().GetTabAtIndex(0);
+  ASSERT_EQ(original_tab->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+
+  NavigateParams params(browser(), GURL("about:blank#manual-new-page"),
+                        ui::PAGE_TRANSITION_TYPED);
+  params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
+  Navigate(&params);
+
+  ASSERT_EQ(2, tab_strip_model().count());
+  tabs::TabInterface* const new_tab = tab_strip_model().GetTabAtIndex(1);
+  EXPECT_EQ(new_tab->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+  EXPECT_NE(new_tab->GetParentCollection(),
+            original_tab->GetParentCollection());
+}
+
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       NavigateControlClickNewTabRemainsChildOfSourcePage) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const source_tab = tab_strip_model().GetTabAtIndex(0);
+  NavigateParams params(browser(), GURL("about:blank#linked-page"),
+                        ui::PAGE_TRANSITION_LINK);
+  // Ctrl/Command-click requests a background tab. Because this is a genuine
+  // page-created link navigation, the new page belongs beneath its source.
+  params.disposition = WindowOpenDisposition::NEW_BACKGROUND_TAB;
+  params.source_contents = source_tab->GetContents();
+  params.user_gesture = true;
+  Navigate(&params);
+
+  ASSERT_EQ(2, tab_strip_model().count());
+  tabs::TabInterface* const linked_tab = tab_strip_model().GetTabAtIndex(1);
+  EXPECT_EQ(linked_tab->GetParentCollection()->GetParentCollection(),
+            source_tab->GetParentCollection());
 }
 
 // Regression: opening into the tabbed browser from a popup or app (PWA-like)
@@ -3824,4 +3871,53 @@ IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
             tabs::TabCollection::Type::TREE_NODE);
 
   CloseBrowserSynchronously(new_browser);
+}
+
+IN_PROC_BROWSER_TEST_F(TreeTabsBrowserTest,
+                       OriginDropOnPageNestsSubtreeAndDragToRootPromotesIt) {
+  SetTreeTabsEnabled(true);
+
+  tabs::TabInterface* const parent = tab_strip_model().GetTabAtIndex(0);
+
+  auto child_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  tab_strip_model().AddTab(std::move(child_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const child = tab_strip_model().GetTabAtIndex(1);
+
+  auto grandchild_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  grandchild_model->set_opener(child);
+  tab_strip_model().AddTab(std::move(grandchild_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const grandchild = tab_strip_model().GetTabAtIndex(2);
+
+  auto sibling_model =
+      std::make_unique<tabs::TabModel>(CreateWebContents(), &tab_strip_model());
+  tab_strip_model().AddTab(std::move(sibling_model), -1,
+                           ui::PAGE_TRANSITION_AUTO_BOOKMARK, ADD_NONE);
+  tabs::TabInterface* const sibling = tab_strip_model().GetTabAtIndex(3);
+
+  ASSERT_TRUE(tab_strip_model().NestTabUnder(child->GetContents(),
+                                             parent->GetContents()));
+  ASSERT_EQ(child->GetParentCollection()->GetParentCollection(),
+            parent->GetParentCollection());
+  EXPECT_EQ(grandchild->GetParentCollection()->GetParentCollection(),
+            child->GetParentCollection());
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(0), parent);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(1), child);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(2), grandchild);
+  EXPECT_EQ(tab_strip_model().GetTabAtIndex(3), sibling);
+
+  // Dropping a parent into its own descendant would create a cycle.
+  EXPECT_FALSE(tab_strip_model().NestTabUnder(parent->GetContents(),
+                                              grandchild->GetContents()));
+
+  ASSERT_TRUE(tab_strip_model().PromoteSelectedTreeTabsToRoot());
+  EXPECT_EQ(child->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
+  EXPECT_EQ(grandchild->GetParentCollection()->GetParentCollection(),
+            child->GetParentCollection());
+  EXPECT_EQ(parent->GetParentCollection()->GetParentCollection(),
+            &unpinned_collection());
 }

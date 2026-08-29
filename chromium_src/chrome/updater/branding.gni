@@ -39,10 +39,15 @@ brave_updater_branding = {
   privileged_helper_bundle_name = "BraveUpdaterPrivilegedHelper"
   updater_app_icon_path = "//brave/app/theme/brave/mac/app.icns"
 
-  # Brave Origin uses a separate browser bundle identifier for side-by-side
-  # installation with Brave Browser.
+  # Match the updater helper to the browser bundle identifier selected by the
+  # active BRANDING file. Socket and each of its channels use their own bundle
+  # identifiers for side-by-side installation with Brave Browser.
   if (is_brave_origin_branded) {
-    mac_browser_bundle_identifier = "com.brave.Browser.origin"
+    if (is_mac) {
+      mac_browser_bundle_identifier = chrome_mac_bundle_id
+    } else {
+      mac_browser_bundle_identifier = "com.harshach.socket"
+    }
   } else {
     mac_browser_bundle_identifier = "com.brave.Browser"
   }

@@ -11,11 +11,13 @@
 #include <memory>
 #include <vector>
 
+#include "base/containers/flat_set.h"
 #include "base/containers/span.h"
 #include "brave/browser/ui/brave_browser_window.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tree_tab_strip_collection_delegate.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/tabs/public/brave_tab_strip_collection.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
@@ -29,6 +31,7 @@
 #include "components/tabs/public/tab_strip_collection.h"
 #include "components/tabs/public/unpinned_tab_collection.h"
 #include "content/public/browser/web_contents.h"
+#include "ui/base/models/list_selection_model.h"
 
 BraveTabStripModel::BraveTabStripModel(
     TabStripModelDelegate* delegate,
@@ -116,6 +119,131 @@ std::vector<int> BraveTabStripModel::GetTreeTabDescendantIndices(int index) {
   return descendant_indices;
 }
 
+bool BraveTabStripModel::NestTabUnder(content::WebContents* child_contents,
+                                      content::WebContents* parent_contents) {
+  if (!tree_tab_model_ || !child_contents || !parent_contents ||
+      child_contents == parent_contents) {
+    return false;
+  }
+
+  const int child_index = GetIndexOfWebContents(child_contents);
+  const int parent_index = GetIndexOfWebContents(parent_contents);
+  if (!ContainsIndex(child_index) || !ContainsIndex(parent_index) ||
+      IsTabPinned(child_index) || IsTabPinned(parent_index)) {
+    return false;
+  }
+
+  tabs::TabInterface* child = GetTabAtIndex(child_index);
+  tabs::TabInterface* parent = GetTabAtIndex(parent_index);
+  auto* child_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(child);
+  auto* parent_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(parent);
+  if (!child_node || !parent_node || child_node == parent_node ||
+      child_node->GetParentCollection() == parent_node) {
+    return false;
+  }
+
+  for (tabs::TabCollection* ancestor = parent_node; ancestor;
+       ancestor = ancestor->GetParentCollection()) {
+    if (ancestor == child_node) {
+      return false;
+    }
+  }
+
+  const std::vector<tabs::TabInterface*> child_tabs =
+      child_node->GetTabsRecursive();
+  const std::vector<tabs::TabInterface*> parent_tabs =
+      parent_node->GetTabsRecursive();
+  base::flat_set<tabs::TabInterface*> child_tab_set(child_tabs.begin(),
+                                                    child_tabs.end());
+  base::flat_set<tabs::TabInterface*> parent_tab_set(parent_tabs.begin(),
+                                                     parent_tabs.end());
+
+  ui::ListSelectionModel child_selection;
+  for (tabs::TabInterface* tab : child_tabs) {
+    const int index = GetIndexOfTab(tab);
+    if (!ContainsIndex(index)) {
+      return false;
+    }
+    child_selection.AddIndexToSelection(index);
+  }
+  child_selection.set_active(child_index);
+  child_selection.set_anchor(child_index);
+
+  // MoveSelectedTabsTo's destination is expressed as if the selected tabs had
+  // already been removed. Count the surviving tabs through the end of the
+  // target subtree to place the dragged block immediately after it.
+  int destination_after_parent = 0;
+  bool saw_parent = false;
+  for (int index = 0; index < count(); ++index) {
+    tabs::TabInterface* tab = GetTabAtIndex(index);
+    if (child_tab_set.contains(tab)) {
+      continue;
+    }
+    if (parent_tab_set.contains(tab)) {
+      saw_parent = true;
+      ++destination_after_parent;
+      continue;
+    }
+    if (saw_parent) {
+      break;
+    }
+    ++destination_after_parent;
+  }
+
+  SetSelectionFromModel(child_selection);
+  MoveSelectedTabsTo(destination_after_parent, std::nullopt);
+
+  const int moved_child_index = GetIndexOfWebContents(child_contents);
+  const int moved_parent_index = GetIndexOfWebContents(parent_contents);
+  if (!ContainsIndex(moved_child_index) || !ContainsIndex(moved_parent_index)) {
+    return false;
+  }
+  child = GetTabAtIndex(moved_child_index);
+  parent = GetTabAtIndex(moved_parent_index);
+  if (!contents_data()->ReparentTreeTabNode(child, parent)) {
+    return false;
+  }
+
+  parent_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(parent);
+  if (parent_node && parent_node->node().collapsed()) {
+    SetTreeTabNodeCollapsed(parent_node->node().id(), false);
+  }
+  return true;
+}
+
+bool BraveTabStripModel::PromoteSelectedTreeTabsToRoot() {
+  if (!tree_tab_model_) {
+    return false;
+  }
+
+  bool has_nested_selection = false;
+  for (size_t selected_index :
+       selection_model().GetListSelectionModel().selected_indices()) {
+    if (!ContainsIndex(static_cast<int>(selected_index)) ||
+        IsTabPinned(static_cast<int>(selected_index))) {
+      continue;
+    }
+    auto* node =
+        tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(
+            GetTabAtIndex(static_cast<int>(selected_index)));
+    if (node && node->GetParentCollection() &&
+        node->GetParentCollection()->type() ==
+            tabs::TabCollection::Type::TREE_NODE) {
+      has_nested_selection = true;
+      break;
+    }
+  }
+  if (!has_nested_selection) {
+    return false;
+  }
+
+  MoveSelectedTabsTo(IndexOfFirstNonPinnedTab(), std::nullopt);
+  return true;
+}
+
 void BraveTabStripModel::SelectMRUTab(TabRelativeDirection direction,
                                       TabStripUserGestureDetails detail) {
   if (mru_cycle_list_.empty()) {
@@ -178,7 +306,16 @@ void BraveTabStripModel::CloseTabs(base::span<int> indices,
 }
 
 void BraveTabStripModel::OnTreeTabRelatedPrefChanged() {
-  if (*tree_tabs_enabled_ && *vertical_tabs_enabled_) {
+  const bool should_use_tree_tabs =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      true;
+#else
+      *tree_tabs_enabled_ && *vertical_tabs_enabled_;
+#endif
+  if (should_use_tree_tabs) {
+    if (tree_tab_model_) {
+      return;
+    }
     BuildTreeTabs();
   } else {
     FlattenTreeTabs();
