@@ -9,7 +9,7 @@
 # that are necessary for Brave. It collaborates with the similar hook
 # `internal_config.py` in this directory.
 
-from os.path import basename
+from os.path import basename, join
 from signing import standard_invoker, commands, pipeline
 
 
@@ -25,11 +25,30 @@ class Invoker(standard_invoker.Invoker):
 
     def __init__(self, args, config):
         super().__init__(args, config)
+        strip_release_app_extended_attributes()
         add_preinstall_to_dmg()
         if args.skip_signing:
             stub_out_signing_in_upstream()
         # The config can use this to access the args:
         self.args = args
+
+
+def strip_release_app_extended_attributes():
+    """Remove metadata that invalidates nested code signatures in packages."""
+    customize_and_sign_chrome_orig = pipeline._customize_and_sign_chrome
+
+    async def customize_and_sign_chrome(paths, dist_config, dest_dir,
+                                        signed_frameworks):
+        await customize_and_sign_chrome_orig(paths, dist_config, dest_dir,
+                                             signed_frameworks)
+        app_path = join(dest_dir, dist_config.app_dir)
+        commands.run_command(['xattr', '-cr', app_path])
+        commands.run_command([
+            'codesign', '--verify', '--deep', '--strict', '--verbose=4',
+            app_path
+        ])
+
+    pipeline._customize_and_sign_chrome = customize_and_sign_chrome
 
 
 # Add dmg_preinstall.sh to the DMG as .preinstall
