@@ -34,6 +34,7 @@
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_utils.h"
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
@@ -45,6 +46,7 @@
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
+#include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/tab_strip_placement_coordinator.h"
@@ -113,12 +115,12 @@
 #include "components/permissions/permission_request_manager.h"
 #include "components/split_tabs/split_tab_visual_data.h"
 #include "components/tabs/public/tab_interface.h"
+#include "components/viz/common/frame_sinks/copy_output_result.h"
 #include "components/web_modal/web_contents_modal_dialog_manager.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/render_widget_host.h"
 #include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
-#include "components/viz/common/frame_sinks/copy_output_result.h"
 #include "extensions/buildflags/buildflags.h"
 #include "third_party/blink/public/common/input/web_mouse_event.h"
 #include "ui/base/accelerators/accelerator.h"
@@ -236,8 +238,7 @@ OriginPageChromePalette ResolveOriginPageChromePalette(
       // of the canvas itself (for example Hacker News' warm paper colour).
       // Preserve it even when it is low-saturation instead of replacing it
       // with a much louder favicon accent.
-      page_color = background &&
-                           SkColorGetA(*background) != SK_AlphaTRANSPARENT
+      page_color = background && SkColorGetA(*background) != SK_AlphaTRANSPARENT
                        ? background
                        : GetOriginFaviconAccent(contents);
       if (!page_color) {
@@ -266,8 +267,7 @@ OriginPageChromePalette ResolveOriginPageChromePalette(
   };
 }
 
-std::optional<SkColor> GetDominantOriginHeaderColor(
-    const SkBitmap& bitmap) {
+std::optional<SkColor> GetDominantOriginHeaderColor(const SkBitmap& bitmap) {
   if (bitmap.drawsNothing() || !bitmap.getPixels()) {
     return std::nullopt;
   }
@@ -519,6 +519,11 @@ BraveBrowserView* BraveBrowserView::GetBrowserViewForBrowser(
 
 bool BraveBrowserView::ShouldUseBraveWebViewRoundedCornersForContents(
     const BrowserWindowInterface* browser) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_external_link::IsTemporaryLinkBrowser(browser)) {
+    return true;
+  }
+#endif
   if (browser->GetType() != BrowserWindowInterface::TYPE_NORMAL) {
     return false;
   }
@@ -568,23 +573,29 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
       AddChildViewAt(std::make_unique<ContentsBackground>(), 0);
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  origin_empty_space_view_ = AddChildView(std::make_unique<views::View>());
-  origin_empty_space_view_->SetBackground(
-      views::CreateSolidBackground(kColorToolbar));
-  origin_empty_space_view_->SetPaintToLayer();
-  origin_empty_space_view_->layer()->SetFillsBoundsOpaquely(false);
-  origin_empty_space_view_->layer()->SetRoundedCornerRadius(
-      gfx::RoundedCornersF(10));
-  origin_empty_space_view_->SetVisible(false);
+  if (origin_external_link::IsTemporaryLinkBrowser(browser_)) {
+    origin_temporary_link_view_ =
+        AddChildView(std::make_unique<OriginTemporaryLinkView>(browser_));
+  } else {
+    origin_empty_space_view_ = AddChildView(std::make_unique<views::View>());
+    origin_empty_space_view_->SetBackground(
+        views::CreateSolidBackground(kColorToolbar));
+    origin_empty_space_view_->SetPaintToLayer();
+    origin_empty_space_view_->layer()->SetFillsBoundsOpaquely(false);
+    origin_empty_space_view_->layer()->SetRoundedCornerRadius(
+        gfx::RoundedCornersF(10));
+    origin_empty_space_view_->SetVisible(false);
 
-  origin_quick_open_view_ = AddChildView(std::make_unique<OriginQuickOpenView>(
-      browser_,
-      base::BindRepeating(&BraveBrowserView::SubmitOriginQuickOpen,
-                          base::Unretained(this)),
-      base::BindRepeating(&BraveBrowserView::ShowOriginCommander,
-                          base::Unretained(this)),
-      base::BindRepeating(&BraveBrowserView::HideOriginQuickOpen,
-                          base::Unretained(this))));
+    origin_quick_open_view_ =
+        AddChildView(std::make_unique<OriginQuickOpenView>(
+            browser_,
+            base::BindRepeating(&BraveBrowserView::SubmitOriginQuickOpen,
+                                base::Unretained(this)),
+            base::BindRepeating(&BraveBrowserView::ShowOriginCommander,
+                                base::Unretained(this)),
+            base::BindRepeating(&BraveBrowserView::HideOriginQuickOpen,
+                                base::Unretained(this))));
+  }
 #endif
 
   compact_horizontal_tabs_.Init(
@@ -671,6 +682,18 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
 void BraveBrowserView::Layout(PassKey) {
   LayoutSuperclass<BrowserView>(this);
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_temporary_link_view_) {
+    origin_temporary_link_view_->SetBounds(0, 0, width(),
+                                           OriginTemporaryLinkView::kBarHeight);
+    const gfx::Rect contents_bounds = contents_container()->bounds();
+    contents_background_view_->SetBoundsRect(contents_bounds);
+    if (auto* multi_contents = GetBraveMultiContentsView()) {
+      multi_contents->SetBoundsRect(contents_container()->GetLocalBounds());
+    }
+    ReorderChildView(origin_temporary_link_view_, -1);
+    EnsureFindBarHostViewIsLastChild();
+    return;
+  }
   if (origin_empty_space_view_) {
     auto* multi_contents = GetBraveMultiContentsView();
     gfx::Rect empty_space_bounds = multi_contents->GetMainContentsBounds();
@@ -1358,6 +1381,11 @@ void BraveBrowserView::OnTabStripModelChanged(
       focus_mode_title_bar_view_->SetTab(
           browser()->tab_strip_model()->GetActiveTab());
     }
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    if (origin_temporary_link_view_) {
+      origin_temporary_link_view_->Update();
+    }
+#endif
   }
 }
 
@@ -1684,6 +1712,9 @@ void BraveBrowserView::OnActiveTabChanged(content::WebContents* old_contents,
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   UpdateOriginPageChromeColor(new_contents);
+  if (origin_temporary_link_view_) {
+    origin_temporary_link_view_->Update();
+  }
 #endif
 
   ObserveBookmarkTabHelper(new_contents);
@@ -1766,6 +1797,9 @@ void BraveBrowserView::UpdateToolbar(content::WebContents* contents) {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   UpdateOriginPageChromeColor(contents ? contents : GetActiveWebContents());
+  if (origin_temporary_link_view_) {
+    origin_temporary_link_view_->Update();
+  }
 #endif
 
   // Re-evaluate focus mode on every active-tab toolbar refresh. Same-tab
@@ -1802,12 +1836,10 @@ void BraveBrowserView::UpdateOriginPageChromeColor(
   ScheduleOriginPageHeaderColorSample(contents);
   const GURL visible_url = contents ? contents->GetVisibleURL() : GURL();
   const std::optional<SkColor> rendered_header_color =
-      visible_url == origin_page_header_sampled_url_
-          ? origin_page_header_color_
-          : std::nullopt;
-  const OriginPageChromePalette palette =
-      ResolveOriginPageChromePalette(contents, colors->GetColor(kColorToolbar),
-                                     rendered_header_color);
+      visible_url == origin_page_header_sampled_url_ ? origin_page_header_color_
+                                                     : std::nullopt;
+  const OriginPageChromePalette palette = ResolveOriginPageChromePalette(
+      contents, colors->GetColor(kColorToolbar), rendered_header_color);
   if (origin_page_chrome_surface_ == palette.surface &&
       origin_page_chrome_location_bar_ == palette.location_bar &&
       origin_page_chrome_location_bar_ring_ == palette.location_bar_ring &&
@@ -1842,8 +1874,7 @@ void BraveBrowserView::ScheduleOriginPageHeaderColorSample(
     return;
   }
   const GURL url = contents->GetVisibleURL();
-  if (!url.SchemeIsHTTPOrHTTPS() ||
-      url == origin_page_header_sampled_url_ ||
+  if (!url.SchemeIsHTTPOrHTTPS() || url == origin_page_header_sampled_url_ ||
       url == origin_page_header_sample_pending_url_) {
     return;
   }
@@ -1907,9 +1938,8 @@ void BraveBrowserView::SampleOriginPageHeaderColor(
         }
         browser_view->origin_page_header_sampled_url_ = sampled_url;
         browser_view->origin_page_header_color_ =
-            result.has_value()
-                ? GetDominantOriginHeaderColor(result->bitmap)
-                : std::nullopt;
+            result.has_value() ? GetDominantOriginHeaderColor(result->bitmap)
+                               : std::nullopt;
         browser_view->UpdateOriginPageChromeColor(sampled_contents);
       },
       weak_ptr_.GetWeakPtr(), contents, url));
@@ -1940,6 +1970,21 @@ void BraveBrowserView::DidStopLoading() {
 #endif
 }
 
+bool BraveBrowserView::IsPointInOriginTemporaryLinkHeader(
+    const gfx::Point& point_in_widget) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_temporary_link_view_ &&
+      origin_temporary_link_view_->GetVisible() && GetWidget() &&
+      origin_temporary_link_view_->GetWidget() == GetWidget()) {
+    gfx::Point point_in_header(point_in_widget);
+    views::View::ConvertPointFromWidget(origin_temporary_link_view_,
+                                        &point_in_header);
+    return origin_temporary_link_view_->HitTestPoint(point_in_header);
+  }
+#endif
+  return false;
+}
+
 content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
     const input::NativeWebKeyboardEvent& event) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -1948,6 +1993,39 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         ui::GetAcceleratorFromNativeWebKeyboardEvent(event);
     const bool has_modifiers = accelerator.modifiers() != ui::EF_NONE;
     auto* contents = GetActiveWebContents();
+
+    if (origin_temporary_link_view_) {
+      if (contents && !contents->IsFocusedElementEditable()) {
+        if (accelerator.modifiers() == ui::EF_NONE &&
+            accelerator.key_code() >= ui::VKEY_1 &&
+            accelerator.key_code() <= ui::VKEY_5 &&
+            origin_temporary_link_view_->KeepInSpaceAtIndex(
+                static_cast<size_t>(accelerator.key_code() - ui::VKEY_1))) {
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_RETURN) {
+          origin_temporary_link_view_->KeepSuggested();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_ESCAPE) {
+          origin_temporary_link_view_->Discard();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_D) {
+          origin_temporary_link_view_->Discard();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_S) {
+          origin_temporary_link_view_->KeepInSplit();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        if (!has_modifiers && accelerator.key_code() == ui::VKEY_R) {
+          origin_temporary_link_view_->ReplaceCurrentPage();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+      }
+      return BrowserView::PreHandleKeyboardEvent(event);
+    }
 
     // Sigma's panel shortcut is Command+Left. Use the platform accelerator so
     // Linux and Windows receive Ctrl+Left, and keep it inactive while the user
@@ -2042,6 +2120,7 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           std::vector<int> indices =
               model->GetTreeTabDescendantIndices(model->active_index());
           indices.push_back(model->active_index());
+          controller->SelectReplacementTabForClose(indices);
           model->CloseTabs(indices);
           return content::KeyboardEventProcessingResult::HANDLED;
         }
@@ -2096,6 +2175,12 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
   const bool has_command =
       FindCommandIdForAccelerator(accelerator, &command_id);
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (accelerator.modifiers() == ui::EF_NONE &&
+      accelerator.key_code() == ui::VKEY_ESCAPE &&
+      origin_temporary_link_view_) {
+    origin_temporary_link_view_->Discard();
+    return true;
+  }
   // BrowserView registers Escape as a window-level accelerator so exclusive
   // access modes can see both press and release events. Handle Quick Open
   // before forwarding to BrowserView; otherwise the focused text field may
@@ -2107,7 +2192,8 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
     return true;
   }
 
-  if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR) {
+  if (!origin_temporary_link_view_ &&
+      accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR) {
     if (accelerator.key_code() == ui::VKEY_T && origin_quick_open_view_) {
       ShowOriginQuickOpen();
       return true;

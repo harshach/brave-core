@@ -2447,6 +2447,34 @@ IN_PROC_BROWSER_TEST_F(AdBlockServiceTest,
   ASSERT_TRUE(result.is_ok());
   EXPECT_EQ(base::Value(true), result);
 }
+
+IN_PROC_BROWSER_TEST_F(AdBlockServiceTest,
+                       OriginYouTubeExtraWideTheaterPlayerFitsViewport) {
+  // YouTube is HSTS-preloaded, so use the HTTPS fixture to keep this
+  // navigation on the embedded test server.
+  const GURL tab_url =
+      https_server_.GetURL("youtube.com", "/cosmetic_filtering.html");
+  NavigateToURL(tab_url);
+
+  auto result = EvalJs(web_contents(), R"(
+    const flexy = document.createElement('ytd-watch-flexy');
+    for (const attribute of [
+             'theater', 'full-bleed-player', 'is-extra-wide-video_',
+             'is-two-columns_', 'flexy-small-window_']) {
+      flexy.setAttribute(attribute, '');
+    }
+
+    const primary = document.createElement('main');
+    primary.id = 'primary';
+    primary.style.minWidth = '925px';
+    flexy.appendChild(primary);
+    document.body.appendChild(flexy);
+
+    waitCSSSelector('#primary', 'min-width', '0px');
+  )");
+  ASSERT_TRUE(result.is_ok());
+  EXPECT_EQ(base::Value(true), result);
+}
 #endif
 
 // Test cosmetic filtering ignores generic cosmetic rules in the presence of a

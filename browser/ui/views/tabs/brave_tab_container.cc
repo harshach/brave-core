@@ -449,12 +449,12 @@ bool BraveTabContainer::ShouldTabBeVisible(const Tab* tab) const {
       return true;
     }
 
-    // Handle unpinned tabs in vertical tabs mode.
-    // Only show tab if it is not hidden under the pinned tab area.
+    // Handle unpinned tabs in vertical tabs mode. Only show a tab if it is not
+    // fully hidden behind fixed sidebar UI.
     if (auto tab_index = tabs_view_model_.GetIndexOfView(tab)) {
       const auto tab_bottom =
           tabs_view_model_.ideal_bounds(*tab_index).bottom();
-      return tab_bottom > GetPinnedTabsAreaBottom();
+      return tab_bottom > GetPinnedTabsAreaBoundary();
     }
   } else if (scroll_direction == views::LayoutOrientation::kHorizontal) {
     if (tab->data().pinned || tab->dragging()) {
@@ -704,10 +704,10 @@ void BraveTabContainer::PaintBoundingBoxForSplitTab(
   if (is_vertical_tab && !tab1->data().pinned) {
     // We assume paired split tabs are both unpinned or both pinned.
     CHECK(!tab2->data().pinned);
-    // clip canvas to avoid painting split tab bounding box in pinned tabs area
-    const auto pinned_tabs_area_bottom = GetPinnedTabsAreaBottom();
-    canvas.ClipRect(gfx::Rect(0, pinned_tabs_area_bottom, size().width(),
-                              size().height() - pinned_tabs_area_bottom));
+    // Clip the bounding box to the scrollable pages viewport.
+    const int viewport_top = GetPinnedTabsAreaBoundary();
+    canvas.ClipRect(gfx::Rect(0, viewport_top, size().width(),
+                              std::max(0, size().height() - viewport_top)));
   }
 
   for (auto tab : {tab1, tab2}) {
@@ -858,6 +858,11 @@ void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
   if (!ShouldShowVerticalTabs()) {
     return;
   }
+
+  gfx::ScopedCanvas scoped_canvas(&canvas);
+  const int viewport_top = GetPinnedTabsAreaBoundary();
+  canvas.ClipRect(gfx::Rect(0, viewport_top, width(),
+                            std::max(0, height() - viewport_top)));
 
   std::vector<BraveTab*> visible_tabs;
   for (Tab* tab : layout_helper_->GetTabs()) {
@@ -1920,7 +1925,16 @@ int BraveTabContainer::GetPinnedTabsAreaBoundary() const {
     return GetPinnedTabsAreaBottom();
   }
   if (scroll_direction == views::LayoutOrientation::kVertical) {
-    return GetPinnedTabsAreaBottom();
+    int boundary = GetPinnedTabsAreaBottom();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // The Pages heading remains fixed while page rows scroll beneath it.
+    if (origin_pages_section_header_ &&
+        origin_pages_section_header_->GetVisible()) {
+      boundary =
+          std::max(boundary, origin_pages_section_header_->bounds().bottom());
+    }
+#endif
+    return boundary;
   }
 
   // For horizontal tabs, calculate the right boundary
@@ -2056,8 +2070,7 @@ int BraveTabContainer::GetUnpinnedTabsTotalHeight() const {
       last_bottom = std::max(last_bottom, bounds.bottom());
     }
 
-    for (views::View* section_header :
-         {origin_pages_section_header_, origin_split_section_header_}) {
+    for (views::View* section_header : {origin_split_section_header_}) {
       if (!section_header || !section_header->GetVisible()) {
         continue;
       }
@@ -2112,7 +2125,7 @@ int BraveTabContainer::GetUnpinnedTabsTotalHeight() const {
 }
 
 int BraveTabContainer::GetUnpinnedTabsViewportHeight() const {
-  return height() - GetPinnedTabsAreaBottom();
+  return std::max(0, height() - GetPinnedTabsAreaBoundary());
 }
 
 int BraveTabContainer::GetUnpinnedTabsTotalSize() const {
@@ -2195,8 +2208,10 @@ void BraveTabContainer::UpdateClipPathForSlotViews() {
   }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  for (views::View* section_header :
-       {origin_pages_section_header_, origin_split_section_header_}) {
+  if (origin_pages_section_header_) {
+    origin_pages_section_header_->SetClipPath({});
+  }
+  for (views::View* section_header : {origin_split_section_header_}) {
     if (section_header) {
       UpdateClipPathForChildren(section_header, pinned_tabs_area_boundary);
     }

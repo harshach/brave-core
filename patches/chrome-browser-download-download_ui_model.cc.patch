@@ -1,8 +1,16 @@
 diff --git a/chrome/browser/download/download_ui_model.cc b/chrome/browser/download/download_ui_model.cc
-index 4bc7f513e085db5da77082bc0ed91046f2c443b6..44d2955442e23ee1697ad4a8608ea7dad7fec6c4 100644
+index 4bc7f513e085db5da77082bc0ed91046f2c443b6..2f05c8d0df9f047c093dead773dafb61ca05d398 100644
 --- a/chrome/browser/download/download_ui_model.cc
 +++ b/chrome/browser/download/download_ui_model.cc
-@@ -615,6 +615,9 @@ bool DownloadUIModel::IsCommandEnabled(
+@@ -28,6 +28,7 @@
+ #include "chrome/common/url_constants.h"
+ #include "chrome/grit/branded_strings.h"
+ #include "chrome/grit/generated_resources.h"
++#include "brave/grit/brave_generated_resources.h"
+ #include "components/download/public/common/download_danger_type.h"
+ #include "components/enterprise/common/proto/connectors.pb.h"
+ #include "components/google/core/common/google_util.h"
+@@ -615,6 +616,9 @@ bool DownloadUIModel::IsCommandEnabled(
      case DownloadCommands::ALWAYS_OPEN_TYPE:
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -12,7 +20,7 @@ index 4bc7f513e085db5da77082bc0ed91046f2c443b6..44d2955442e23ee1697ad4a8608ea7da
        NOTREACHED();
      case DownloadCommands::CANCEL:
        return !IsDone();
-@@ -679,6 +682,9 @@ bool DownloadUIModel::IsCommandChecked(
+@@ -679,6 +683,9 @@ bool DownloadUIModel::IsCommandChecked(
      case DownloadCommands::CANCEL_DEEP_SCAN:
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -22,7 +30,7 @@ index 4bc7f513e085db5da77082bc0ed91046f2c443b6..44d2955442e23ee1697ad4a8608ea7da
        return false;
    }
    return false;
-@@ -754,6 +760,9 @@ void DownloadUIModel::ExecuteCommand(DownloadCommands* download_commands,
+@@ -754,6 +761,9 @@ void DownloadUIModel::ExecuteCommand(DownloadCommands* download_commands,
        break;
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -32,7 +40,18 @@ index 4bc7f513e085db5da77082bc0ed91046f2c443b6..44d2955442e23ee1697ad4a8608ea7da
  #if BUILDFLAG(IS_CHROMEOS)
        OpenUsingMediaApp();
        break;
-@@ -1099,7 +1108,7 @@ std::u16string
+@@ -1090,8 +1100,8 @@ DownloadUIModel::BubbleStatusTextBuilder::GetInProgressStatusText() const {
+           l10n_util::GetStringUTF16(
+               IDS_DOWNLOAD_BUBBLE_STATUS_ASYNC_CHECKING_SAFETY));
+     }
+-    // "120 MB • Done"
+-    return StatusTextBuilderUtils::GetCompletedTotalSizeString(total_bytes);
++    // "120 MB • Finishing…"
++    return get_total_string(l10n_util::GetStringUTF16(IDS_BRAVE_DOWNLOAD_BUBBLE_STATUS_FINISHING));
+   }
+ }
+ 
+@@ -1099,7 +1109,7 @@ std::u16string
  DownloadUIModel::StatusTextBuilderBase::GetCompletedRemovedOrSavedStatusText()
      const {
    if (model_->GetFileExternallyRemoved()) {

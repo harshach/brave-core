@@ -7,6 +7,8 @@
 
 #include "base/check_deref.h"
 #include "base/check_op.h"
+#include "brave/browser/ui/views/frame/brave_browser_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "ui/base/hit_test.h"
 #include "ui/views/window/hit_test_utils.h"
@@ -20,6 +22,15 @@ int BraveNonClientHitTestHelper::NonClientHitTest(
   if (!browser_view) {
     return HTNOWHERE;
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (auto* brave_browser_view = BraveBrowserView::From(browser_view);
+      brave_browser_view &&
+      brave_browser_view->IsPointInOriginTemporaryLinkHeader(
+          point_in_widget)) {
+    return HTCLIENT;
+  }
+#endif
 
   auto get_hit_test_component = [&](const raw_ptr<views::View>& view) {
     if (!CHECK_DEREF(view).GetVisible()) {

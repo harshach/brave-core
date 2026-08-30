@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">Odaberite bilo što na stranici</translation>
 <translation id="142389341645668510">Prilagodi Brave</translation>
 <translation id="2174917724755363426">Instaliranje nije dovršeno. Jeste li sigurni da ga želite otkazati?</translation>
-<translation id="8841019650931243995">Brave Origin – Prijava na mrežu – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – Prijava na mrežu – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Pogreška provjere ažuriranja: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Uklanjanje računa iz Bravea</translation>
 <translation id="4022045673362955204">Preuzmite aplikaciju Brave da biste uvijek pri ruci imali najbolje alate za kupnju</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">Odaberite tekst pomoću pretraživanja slika</translation>
 <translation id="70183448213529602">Brave pokušava zamijeniti postojeće zaporke. Upišite svoju zaporku za Windows da biste to dopustili.</translation>
 <translation id="7798069806040634998">Brave treba pristup pohrani radi preuzimanja datoteka</translation>
-<translation id="2351700486811407088">Brave Origin Helper</translation>
+<translation id="9082785458664620820">Socket Helper</translation>
 <translation id="2575822587468774919">Odaberite bilo što za pretraživanje pomoću pretraživanja slika</translation>
 <translation id="3830890663494219270">Da biste mogli pristupati svojim zaporkama i drugim podacima na svim svojim uređajima, prijavite se na Brave</translation>
 <translation id="6908148552215338695">Skenirajte QR kôd telefonom da biste preuzeli Brave i prijavili se na svoj Brave račun.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">Ukloni iz Bravea...</translation>
 <translation id="5265419033369521352">Štiti vas na Braveu i može se upotrebljavati za poboljšanje sigurnosti u drugim Braveovim aplikacijama kad ste prijavljeni.</translation>
 <translation id="2885378588091291677">Upravitelj zadataka</translation>
-<translation id="2176825726964012531">O pregledniku &amp;Brave</translation>
+<translation id="3984800435132982628">O pregledniku &amp;Socket</translation>
 <translation id="2915996080311180594">Ponovo pokreni kasnije</translation>
 <translation id="2481553173340651149">Vaši se podaci šifriraju vašom šifrom. Unesite je da biste upotrebljavali i spremali podatke Bravea na svojem Brave računu.</translation>
 <translation id="2945997411976714835">Pogreška instalacije: nije uspjelo pokretanje programa za instalaciju.</translation>
@@ -262,7 +262,7 @@
 <translation id="3846683726093018685">**Izradite sažetak:** u jednoj rečenici od najviše 30 riječi opišite glavnu temu i svrhu sadržaja na snimci zaslona.
 
           **Predložite pitanja:** generirajte popis od tri do pet pitanja koja potiču na razmišljanje, a koja bi korisnik mogao postaviti kako bi bolje razumio snimku zaslona. Ta pitanja trebaju uključivati barem jedno koje se posebno odnosi na vizualni objekt, njegov dizajn ili položaj.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> – Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> – Socket</translation>
 <translation id="3885770153807205175">Alat za odabir jezika</translation>
 <translation id="6315734375101223238">Prilagodite Brave i upravljajte njime. Trebate obratiti pozornost na nešto – kliknite za pojedinosti.</translation>
 <translation id="7130675370997202556">Kliknite svoje ime da biste otvorili Brave i počeli s pregledavanjem.</translation>
@@ -276,7 +276,7 @@
 <translation id="4194619960643453552">Saznajte kako vas Brave štiti</translation>
 <translation id="3967822245660637423">Preuzimanje dovršeno</translation>
 <translation id="1486377520191913768">Kad upisujete u adresnu traku ili okvir za pretraživanje, ono što upišete Brave šalje alatima za pretraživanje, AI alatima i alatima za agente vaše organizacije kako bi vam pružio prijedloge.</translation>
-<translation id="1311808042904310985">O verziji &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">O verziji &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">O Chrome OS-u</translation>
 <translation id="8282895427217902177">Kad posjetite neku web-lokaciju, Brave <ph name="BEGIN_LINK"/>Brave sigurnom pregledavanju<ph name="END_LINK"/> šalje maskirani dio URL-a putem poslužitelja za zaštitu privatnosti koji skriva vašu IP adresu. Ako web-lokacija učini nešto sumnjivo, šalju se i potpuni URL-ovi i dijelovi sadržaja stranice.</translation>
 <translation id="4016217212818346953">Ostanite sigurni uz Upravitelj zaporki</translation>
@@ -295,7 +295,7 @@
 <translation id="10925962326134232">Prilagodite Brave da biste svojem pregledniku dali novi izgled</translation>
 <translation id="6596295505984504022">P&amp;rilagodite Brave</translation>
 <translation id="4148957013307229264">Instaliranje...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – Prijava na mrežu – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – Prijava na mrežu – Socket</translation>
 <translation id="2871190378186459992">Otkrijte sjajne aplikacije, igre, proširenja i teme za Brave.</translation>
 <translation id="462105622535258178">Da biste imali ovo proširenje i druge mogućnosti na svim svojim računalima, prijavite se u Brave</translation>
 <translation id="6670140629169983459">Za više sigurnosti online uz postavke koje su odabrali tvoji roditelji, prebaci se na profil u Braveu na koji si već prijavljen/prijavljena kao <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -327,7 +327,7 @@
 <translation id="4493028449971051158">Pogreška pri pokretanju: pokrenite program za instalaciju kao administrator.</translation>
 <translation id="4501471624619070934">Instalacija nije uspjela jer je pristup ograničen za ovu zemlju.</translation>
 <translation id="8594994021633965927">Ovo proširenje nije objavilo prakse u vezi s privatnošću, na primjer način na koji prikuplja i upotrebljava podatke. Brave preporučuje da ga uklonite.</translation>
-<translation id="770557926599450702">Dobro došli u Brave Origin; otvorio se novi prozor preglednika</translation>
+<translation id="3788134970312783571">Dobro došli u Socket; otvorio se novi prozor preglednika</translation>
 <translation id="137732229629632648">Brave treba dopuštenje za mapiranje vaše okoline i praćenje vaših ruku</translation>
 <translation id="5036046007335188949">Već ste prijavljeni kao <ph name="USER_EMAIL_ADDRESS"/> na drugom profilu u Braveu</translation>
 <translation id="1878185978731985193">Brave predučitava stranice, što ubrzava pregledavanje i pretraživanje. <ph name="BEGIN_LINK"/>Saznajte više o predučitavanju stranica<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@
 <translation id="8669339108356170796">Brave je blokirao ovo preuzimanje jer ste isključili sigurno pregledavanje i datoteka se ne može potvrditi</translation>
 <translation id="7583343841997441047">Isprobajte Brave objektiv uz Brave na telefonu</translation>
 <translation id="4594305310729380060">U Upravitelj zaporki na ovom uređaju</translation>
-<translation id="7776200949522126045">Aplikacije sustava Brave Origin</translation>
+<translation id="1662388968719244110">Aplikacije sustava Socket</translation>
 <translation id="4598116752460667024">Potražite bilo koji proces s popisa.</translation>
 <translation id="4970880042055371251">Verzija Chrome OS-a</translation>
 <translation id="2182657378556811785">Ažuriranje će uskoro biti gotovo. Za dovršetak ponovo pokrenite Brave.</translation>
@@ -353,8 +353,8 @@
 <translation id="844451748565342664">Ako je Gemini u Braveu otvoren, bočna ploča ostaje otvorena prilikom izrade novih kartica</translation>
 <translation id="215320507915280336">Upotrebljava istu provjeru pravopisa koja se upotrebljava na Brave pretraživanju. Tekst koji unesete u preglednik šalje se Braveu. To ponašanje možete promijeniti u postavkama kad god želite.</translation>
 <translation id="2899369907387169108">Koristi Brave bez računa</translation>
-<translation id="1833893255023048385">Ulazno pravilo kako bi Brave Origin dopustio mDNS promet.</translation>
-<translation id="711601904575862069">Ponovno pokretanje radi ažuriranja &amp;Bravea</translation>
+<translation id="6972301482162050771">Ulazno pravilo kako bi Socket dopustio mDNS promet.</translation>
+<translation id="2428387668457441558">Ponovno pokretanje radi ažuriranja &amp;Socketa</translation>
 <translation id="4918086044614829423">Prihvati</translation>
 <translation id="4918844574251943176">Slika je kopirana</translation>
 <translation id="8797356639448065696">Brave radi u pozadini.</translation>
@@ -394,7 +394,7 @@
 <translation id="5267531627648004734">Uklanjanje iz Bravea</translation>
 <translation id="4620757336635063467">Slabi izvedbu, ali Brave čini otpornijim na napade</translation>
 <translation id="239760341987199724">Postavite Brave kao zadani preglednik</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – Brave Origin Beta</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – Socket Beta</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave preporučuje pauziranje kartice koja usporava preglednik}one{Brave preporučuje pauziranje kartica koje usporavaju preglednik}few{Brave preporučuje pauziranje kartica koje usporavaju preglednik}other{Brave preporučuje pauziranje kartica koje usporavaju preglednik}}</translation>
 <translation id="894936507076470937">Brave možda neće ispravno raditi jer više nije podržan na toj distribuciji Linuxa</translation>
 <translation id="2596557398669145729">Brave je blokirao ovo preuzimanje jer ta datoteka može naštetiti vašim osobnim računima i računima na društvenim mrežama</translation>
@@ -427,7 +427,7 @@ Ako ova stranica ne funkcionira ispravno, dopustite optimizaciju.</translation>
 <translation id="95980832839683236">Ubrzava web-lokacije s Braveovom tražilicom V8, ali Brave čini malo manje otpornim na napade. Postavka je isključena.</translation>
 <translation id="1224606669200461217">Da biste upotrebljavali i spremali Braveove podatke spremljene na vašem Brave računu, ažurirajte Brave</translation>
 <translation id="5824893331272123205">Učitavanje ploče nije uspjelo, pokušajte ponovo</translation>
-<translation id="4467664627714200493">Dobro došli u Brave Origin</translation>
+<translation id="1125671961408630460">Dobro došli u Socket</translation>
 <translation id="4026807082142463673">Uključuje dodatne značajke radi pružanja najsnažnije zaštite koju nudi Brave</translation>
 <translation id="5871205389137001634">Kliknite da biste zatvorili pretraživanje slika</translation>
 <translation id="8054200348483755053">Brave je otkrio da ove stavke sadrže zlonamjerni softver:</translation>
@@ -493,7 +493,7 @@ Ako ova stranica ne funkcionira ispravno, dopustite optimizaciju.</translation>
 <translation id="6388799252195623474">trebam pomoć</translation>
 <translation id="7920857181125123335">Da biste nastavili, prijavite se u Brave kao <ph name="EMAIL"/>. Time se omogućuje primjena pravila vaše organizacije.</translation>
 <translation id="3256100650978957522">Logotip Bravea na zaslonu računala.</translation>
-<translation id="5880764554173582719">Brave Origin je web-preglednik koji munjevitom brzinom prikazuje web-stranice i aplikacije. Brz je, stabilan i jednostavan za upotrebu. Pregledavajte web sigurnije jer je zaštita od zlonamjernog softvera i krađe identiteta ugrađena u Brave Origin.</translation>
+<translation id="7527968786016866645">Socket je web-preglednik koji munjevitom brzinom prikazuje web-stranice i aplikacije. Brz je, stabilan i jednostavan za upotrebu. Pregledavajte web sigurnije jer je zaštita od zlonamjernog softvera i krađe identiteta ugrađena u Socket.</translation>
 <translation id="4091049150278654573">Da biste uvijek mogli upotrebljavati i spremati podatke iz Bravea na svojem Brave računu, potvrdite svoj identitet</translation>
 <translation id="2532326772258858491">Brave se pokreće brže, a značajke koje upotrebljavaju JavaScript trebale bi funkcionirati kako je predviđeno</translation>
 <translation id="6436260184216827876">Pretraživanje slika nije dostupno. Pokušajte ponovo kasnije.</translation>
@@ -541,7 +541,7 @@ Neke su značajke možda nedostupne. Navedite neki drugi direktorij profila ili 
 <translation id="6831043979455480757">Prevedi</translation>
 <translation id="8211837073776713955">Brave će vas obavijestiti ako vaše zaporke budu ugrožene</translation>
 <translation id="684888714667046800">Povezivanje s internetom nije moguće. Ako upotrebljavate vatrozid, provjerite je li <ph name="PRODUCT_EXE_NAME"/> na popisu dopuštenih.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Pritisnite Tab za nastavak</translation>
 <translation id="6862030660799253820">Pretražite tu sliku pomoću pretraživanja slika</translation>
 <translation id="3028928628792374067">Brave je otkrio da <ph name="EXTENSION_NAME"/> sadrži zlonamjerni softver</translation>
@@ -609,7 +609,7 @@ Brave ne može oporaviti vaše postavke.</translation>
 <translation id="284799389314308801">1. Kliknite <ph name="BUTTON_LABEL"/> u nastavku
 2. Kliknite <ph name="BUTTON_2"/> u postavkama Windowsa
 3. Kliknite <ph name="BUTTON_3"/> u obavijesti Windowsa da biste prikvačili Brave na traku sa zadacima radi brzog pristupa</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Socket Dev</translation>
 <translation id="7450541714075000668">Tekst kopiran</translation>
 <translation id="2034072705932785495">Brave treba dopuštenje za pristup kameri za ovu web-lokaciju</translation>
 <translation id="7129342855140808694">Da biste upotrebljavali mikrofon, odobrite Braveu pristup u <ph name="BEGIN_LINK"/>sistemskim postavkama<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave ne može oporaviti vaše postavke.</translation>
 <translation id="8543787950557226450">Vrati na zadanu temu Bravea</translation>
 <translation id="4976450819672499783">Postavite Brave kao zadani preglednik i prikvačite ga na traku sa zadacima</translation>
 <translation id="1978509466033734608">Ubrzajte Brave</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Otežajte korisnicima s pristupom vašem internetskom prometu da vide koje web-lokacije posjećujete. Brave upotrebljava sigurnu vezu za traženje IP adrese web-lokacije u DNS-u (Domain Name System).</translation>
 <translation id="7810005234485217901">Možete prikvačiti pretraživanje slika radi lakšeg pristupa</translation>
 <translation id="1652855885539187849">Profil u Braveu s tim računom već postoji na ovom uređaju</translation>
@@ -667,7 +667,7 @@ Brave ne može oporaviti vaše postavke.</translation>
 <translation id="6175141682081019059">Onemogući rad Bravea u pozadini za aplikacije</translation>
 <translation id="80790299200510644">Pretraživanje slika</translation>
 <translation id="8086881907087796310">Instalacija nije uspjela jer vaše računalo ne zadovoljava minimalne zahtjeve za hardver.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for Testing</translation>
 <translation id="2061155704815580583">Brave treba dopuštenje za lokaciju za ovu web-lokaciju</translation>
 <translation id="3576319845915562805">Sljedeći put kad otvorite Brave na uređaju <ph name="DEVICE_TYPE"/>, prikazat će vam se upit za omogućivanje upozorenja o praćenju cijena.</translation>
 <translation id="3728025339793417202">Primajte obavijesti o padu cijena za artikle koji vas zanimaju uz aplikaciju Brave na telefonu</translation>
@@ -778,8 +778,8 @@ Brave ne može oporaviti vaše postavke.</translation>
 <translation id="9148058034647219655">Izlaz</translation>
 <translation id="2792073155252170448">Nastavite tamo gdje ste stali: Brave može vratiti vaše kartice svaki put kada ponovno pokrenete sesiju. Da biste to uključili, otvorite</translation>
 <translation id="2444257125841652328">Vaš administrator sustava konfigurirao je Brave tako da otvara zamjenski preglednik radi pristupa URL-u<ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Ponovo pokrenite da biste ažurirali &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Ponovo pokrenite da biste ažurirali &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Prilagodite Brave sebi</translation>
 <translation id="7977787072794666032">Brave možda neće ispravno raditi jer više nije podržan na sustavima Windows XP i Windows Vista</translation>
 <translation id="8462937515915443472">Iskoristite najbolje Braveove sigurnosne značajke u pokretu uz Brave.</translation>

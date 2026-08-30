@@ -1,4 +1,4 @@
-name: Origin Linux binary
+name: Socket Linux binary
 
 on:
   workflow_call:
@@ -8,7 +8,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: origin-linux-${{ github.ref }}
+  group: socket-linux-${{ github.ref }}
   cancel-in-progress: false
 
 env:
@@ -18,7 +18,7 @@ env:
 
 jobs:
   build:
-    name: Linux x64
+    name: Socket Linux x64
     runs-on: [self-hosted, origin-build, Linux, X64]
     timeout-minutes: 720
 
@@ -40,7 +40,7 @@ jobs:
           version: 11.22.0
           run_install: false
 
-      - name: Configure optimized Origin release
+      - name: Configure optimized Socket release
         working-directory: workspace/src/brave
         run: |
           printf '%s\n' \
@@ -66,7 +66,7 @@ jobs:
           --no-syms
           --no-arm
 
-      - name: Build unsigned Origin packages
+      - name: Build unsigned Socket packages
         working-directory: workspace/src/brave
         run: >-
           pnpm run create_dist Release
@@ -78,7 +78,7 @@ jobs:
       - name: Upload Linux packages
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: origin-linux-x64-${{ github.sha }}
+          name: socket-linux-x64-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |

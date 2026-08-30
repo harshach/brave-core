@@ -22,6 +22,7 @@
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
+#include "chrome/browser/ui/views/tabs/dragging/tab_drag_target.h"
 #include "components/prefs/pref_member.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/slide_animation.h"
@@ -58,7 +59,8 @@ class BraveVerticalTabStripRegionView : public views::View,
                                         public FocusModeController::Observer,
                                         public WorkspaceService::Observer,
                                         public OriginSpaceController::Observer,
-                                        public views::TextfieldController {
+                                        public views::TextfieldController,
+                                        public TabDragTarget {
   METADATA_HEADER(BraveVerticalTabStripRegionView, views::View)
  public:
   using views::TextfieldController::HandleMouseEvent;
@@ -128,6 +130,10 @@ class BraveVerticalTabStripRegionView : public views::View,
   // position on every subsequent move.
   void HandleMouseEvent(const gfx::PointF& point_in_screen);
 
+  // Returns this region as a native tab-drop target while the pointer is over
+  // a Space rail item. Dropping there moves the dragged page and its subtree.
+  TabDragTarget* GetOriginTabDragTarget(const gfx::Point& point_in_screen);
+
   // views::View:
   gfx::Size CalculatePreferredSize(
       const views::SizeBounds& available_size) const override;
@@ -169,6 +175,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, LayoutSanity);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginResizeHandleIsInteractive);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSpaceRailIsNativeTabDropTarget);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -214,6 +222,23 @@ class BraveVerticalTabStripRegionView : public views::View,
   // views::TextfieldController:
   bool HandleKeyEvent(views::Textfield* sender,
                       const ui::KeyEvent& key_event) override;
+
+  // TabDragTarget:
+  void OnTabDragEntered() override;
+  TabDragContext* OnTabDragUpdated(TabDragTarget::DragController& controller,
+                                   const gfx::Point& point_in_screen) override;
+  void OnTabDragExited(const gfx::Point& point_in_screen) override;
+  void OnTabDragEnded() override;
+  bool CanDropTab() override;
+  void HandleTabDrop(TabDragTarget::DragController& controller) override;
+  base::CallbackListSubscription RegisterWillDestroyCallback(
+      base::OnceClosure callback) override;
+
+  std::string GetOriginWorkspaceDropSpaceId(
+      const gfx::Point& point_in_screen) const;
+  void SetOriginWorkspaceDropTarget(const std::string& space_id);
+  void ClearOriginWorkspaceDropTarget();
+  void CompleteOriginWorkspaceDrop();
 
   void OnCollapsedPrefChanged();
   void OnFloatingModePrefChanged();
@@ -293,6 +318,11 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::View> origin_shortcut_button_ = nullptr;
   raw_ptr<views::View> origin_settings_button_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
+  raw_ptr<views::LabelButton> origin_workspace_drop_target_button_ = nullptr;
+  std::string origin_drag_destination_space_id_;
+  std::string origin_pending_drop_space_id_;
+  std::vector<raw_ptr<content::WebContents>> origin_pending_drop_contents_;
+  base::OnceClosureList origin_drag_target_destroy_callbacks_;
   base::WeakPtr<views::Widget> origin_workspace_icon_picker_widget_;
   base::WeakPtr<views::Widget> origin_shortcut_help_widget_;
   base::WeakPtr<views::Widget> origin_settings_widget_;

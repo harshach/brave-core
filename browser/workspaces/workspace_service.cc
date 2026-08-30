@@ -31,7 +31,9 @@
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/sessions/core/session_id.h"
+#include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 #include "third_party/abseil-cpp/absl/strings/str_format.h"
+#include "url/gurl.h"
 
 namespace {
 
@@ -170,8 +172,89 @@ bool WorkspaceService::DeleteOriginSpace(const std::string& id) {
     return false;
   }
   origin_spaces_.erase(it);
+  {
+    ScopedDictPrefUpdate rules(*pref_service_, kOriginDomainSpaceRulesPref);
+    std::vector<std::string> stale_domains;
+    for (const auto [domain, value] : *rules) {
+      if (value.is_string() && value.GetString() == id) {
+        stale_domains.emplace_back(domain);
+      }
+    }
+    for (const auto& domain : stale_domains) {
+      rules->Remove(domain);
+    }
+  }
+  if (pref_service_->GetString(kOriginLastTemporaryLinkSpacePref) == id) {
+    pref_service_->ClearPref(kOriginLastTemporaryLinkSpacePref);
+  }
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
+  return true;
+}
+
+// static
+std::string WorkspaceService::GetOriginDomainKey(const GURL& url) {
+  if (!url.is_valid() || !url.has_host()) {
+    return {};
+  }
+  std::string domain = net::registry_controlled_domains::GetDomainAndRegistry(
+      url, net::registry_controlled_domains::INCLUDE_PRIVATE_REGISTRIES);
+  if (domain.empty()) {
+    domain = url.host();
+  }
+  return base::ToLowerASCII(domain);
+}
+
+std::optional<std::string> WorkspaceService::GetOriginSpaceForDomain(
+    const GURL& url) const {
+  const std::string domain = GetOriginDomainKey(url);
+  if (domain.empty()) {
+    return std::nullopt;
+  }
+  const std::string* space_id =
+      pref_service_->GetDict(kOriginDomainSpaceRulesPref).FindString(domain);
+  if (!space_id || !GetOriginSpace(*space_id)) {
+    return std::nullopt;
+  }
+  return *space_id;
+}
+
+bool WorkspaceService::SetOriginSpaceForDomain(const GURL& url,
+                                               const std::string& space_id) {
+  const std::string domain = GetOriginDomainKey(url);
+  if (domain.empty() || !GetOriginSpace(space_id)) {
+    return false;
+  }
+  ScopedDictPrefUpdate rules(*pref_service_, kOriginDomainSpaceRulesPref);
+  rules->Set(domain, space_id);
+  return true;
+}
+
+bool WorkspaceService::ClearOriginSpaceForDomain(const GURL& url) {
+  const std::string domain = GetOriginDomainKey(url);
+  if (domain.empty()) {
+    return false;
+  }
+  ScopedDictPrefUpdate rules(*pref_service_, kOriginDomainSpaceRulesPref);
+  return rules->Remove(domain);
+}
+
+std::optional<std::string> WorkspaceService::GetLastOriginTemporaryLinkSpace()
+    const {
+  const std::string& space_id =
+      pref_service_->GetString(kOriginLastTemporaryLinkSpacePref);
+  if (space_id.empty() || !GetOriginSpace(space_id)) {
+    return std::nullopt;
+  }
+  return space_id;
+}
+
+bool WorkspaceService::SetLastOriginTemporaryLinkSpace(
+    const std::string& space_id) {
+  if (!GetOriginSpace(space_id)) {
+    return false;
+  }
+  pref_service_->SetString(kOriginLastTemporaryLinkSpacePref, space_id);
   return true;
 }
 

@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">Velg hva som helst på siden</translation>
 <translation id="142389341645668510">Tilpass Brave</translation>
 <translation id="2174917724755363426">Installasjonen er ikke fullført. Er du sikker på at du vil avbryte?</translation>
-<translation id="8841019650931243995">Brave Origin – nettverkspålogging – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – nettverkspålogging – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Feil ved oppdateringssjekk: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Fjern kontoen fra Brave</translation>
 <translation id="4022045673362955204">Bruk Brave-appen for å ta med deg de beste shoppingverktøyene uansett hvor du er</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">Marker tekst med bildesøk</translation>
 <translation id="70183448213529602">Brave prøver å erstatte eksisterende passord. Skriv inn Windows-passordet ditt for å tillate dette.</translation>
 <translation id="7798069806040634998">Brave må ha lagringstilgang for å laste ned filer</translation>
-<translation id="2351700486811407088">Brave Origin-hjelper</translation>
+<translation id="9082785458664620820">Socket-hjelper</translation>
 <translation id="2575822587468774919">Velg hva som helst for å søke med bildesøk</translation>
 <translation id="3830890663494219270">For å få passordene dine med mer på alle enhetene dine, logg på Brave</translation>
 <translation id="6908148552215338695">Skann QR-koden med telefonen for å laste ned Brave og logge på Brave-kontoen.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">Fjern fra Brave</translation>
 <translation id="5265419033369521352">Holder deg trygg i Brave og kan brukes til å øke sikkerheten din i andre Brave-apper når du er pålogget</translation>
 <translation id="2885378588091291677">Oppgavebehandling</translation>
-<translation id="2176825726964012531">Om &amp;Brave</translation>
+<translation id="3984800435132982628">Om &amp;Socket</translation>
 <translation id="2915996080311180594">Start på nytt senere</translation>
 <translation id="2481553173340651149">Dataene dine er kryptert med passordfrasen din. Skriv den inn for å bruke og lagre Brave-data i Brave-kontoen din.</translation>
 <translation id="2945997411976714835">Installasjonsfeil: Installasjonsprosessen kunne ikke startes.</translation>
@@ -262,7 +262,7 @@
 <translation id="3846683726093018685">**Sammendrag:** Beskriv hovedemnet og formålet med innholdet i skjermbildet i én setning på under 30 ord.
 
           **Foreslå spørsmål:** Generer en punktliste med tre til fem tankevekkende spørsmål en bruker kan stille for å forstå skjermbildet bedre. Disse spørsmålene må inneholde minst ett som handler spesifikt om et visuelt objekt, utformingen av det eller plasseringen av det.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> – Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> – Socket</translation>
 <translation id="3885770153807205175">Språkvelger</translation>
 <translation id="6315734375101223238">Tilpass og kontroller Brave. Det er noe du må se på – klikk for mer informasjon.</translation>
 <translation id="7130675370997202556">Klikk på navnet ditt for å åpne Brave og starte surfingen.</translation>
@@ -276,7 +276,7 @@
 <translation id="4194619960643453552">Finn ut hvordan Brave holder deg trygg</translation>
 <translation id="3967822245660637423">Nedlasting fullført</translation>
 <translation id="1486377520191913768">Når du skriver i adressefeltet eller søkefeltet, sender Brave det du skriver, til organisasjonens søke-, AI- og agentverktøy for å få forslag.</translation>
-<translation id="1311808042904310985">Om &amp;Brave for testing</translation>
+<translation id="3813099290530551762">Om &amp;Socket for testing</translation>
 <translation id="1152920704813762236">Om ChromeOS</translation>
 <translation id="8282895427217902177">Når du besøker nettsteder, sender Brave en obfuskert del av nettadressen til <ph name="BEGIN_LINK"/>Google Safe Browsing<ph name="END_LINK"/> via en personverntjener som skjuler IP-adressen din. Hvis nettsteder gjør noe mistenkelig, sendes også fullstendige nettadresser og deler av sideinnholdet.</translation>
 <translation id="4016217212818346953">Hold deg trygg med Passordlagring</translation>
@@ -295,7 +295,7 @@
 <translation id="10925962326134232">Tilpass Brave for å gi nettleseren et nytt utseende</translation>
 <translation id="6596295505984504022">Tilpass Brave</translation>
 <translation id="4148957013307229264">Installerer ...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – nettverkspålogging – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – nettverkspålogging – Socket</translation>
 <translation id="2871190378186459992">Oppdag flotte apper, spill, utvidelser og temaer for Brave.</translation>
 <translation id="462105622535258178">For å få denne utvidelsen med flere på alle datamaskinene dine, logg på Brave</translation>
 <translation id="6670140629169983459">For å holde deg tryggere på nettet med innstillingene som forelderen din har valgt, bytt til Brave-profilen din der du allerede er logget på som <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -327,7 +327,7 @@
 <translation id="4493028449971051158">Oppstartsfeil: Kjør installasjonsprogrammet som administrator.</translation>
 <translation id="4501471624619070934">Installasjonen mislyktes fordi tilgangen er begrenset i dette landet.</translation>
 <translation id="8594994021633965927">Denne utvidelsen har ikke publisert retningslinjer for personvern, for eksempel hvordan den samler inn og bruker data. Brave anbefaler at du fjerner den.</translation>
-<translation id="770557926599450702">Velkommen til Brave Origin – et nytt nettleservindu er åpnet</translation>
+<translation id="3788134970312783571">Velkommen til Socket – et nytt nettleservindu er åpnet</translation>
 <translation id="137732229629632648">Brave trenger tillatelse til å kartlegge omgivelsene dine og spore hendene dine</translation>
 <translation id="5036046007335188949">Du er allerede logget på som <ph name="USER_EMAIL_ADDRESS"/> i en annen Brave-profil</translation>
 <translation id="1878185978731985193">Brave forhåndslaster sider, slik at det går raskere å surfe og søke. <ph name="BEGIN_LINK"/>Finn ut mer om forhåndslasting av sider<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@
 <translation id="8669339108356170796">Brave har blokkert denne nedlastingen fordi du har slått av Safe Browsing, så filen kan ikke bekreftes</translation>
 <translation id="7583343841997441047">Prøv Google Lens med Brave på telefonen</translation>
 <translation id="4594305310729380060">I Passordlagring på denne enheten</translation>
-<translation id="7776200949522126045">Brave Origin-apper</translation>
+<translation id="1662388968719244110">Socket-apper</translation>
 <translation id="4598116752460667024">Søk etter en prosess på listen.</translation>
 <translation id="4970880042055371251">ChromeOS-versjon</translation>
 <translation id="2182657378556811785">Nå er oppdateringen snart ferdig! Start Brave på nytt for å fullføre oppdateringen.</translation>
@@ -353,8 +353,8 @@
 <translation id="844451748565342664">Hvis Gemini i Brave er åpent, forblir sidepanelet åpent når du åpner nye faner</translation>
 <translation id="215320507915280336">Denne funksjonen bruker den samme stavekontrollen som Brave Søk. Tekst du skriver inn i nettleseren, sendes til Brave. Du kan når som helst endre dette i innstillingene.</translation>
 <translation id="2899369907387169108">Bruk Brave uten noen konto</translation>
-<translation id="1833893255023048385">Regel om innkommende trafikk for Brave Origin for å tillate mDNS-trafikk.</translation>
-<translation id="711601904575862069">Start på nytt for å oppdatere &amp;Brave</translation>
+<translation id="6972301482162050771">Regel om innkommende trafikk for Socket for å tillate mDNS-trafikk.</translation>
+<translation id="2428387668457441558">Start på nytt for å oppdatere &amp;Socket</translation>
 <translation id="4918086044614829423">Godta</translation>
 <translation id="4918844574251943176">Bildet er kopiert</translation>
 <translation id="8797356639448065696">Brave er i bakgrunnsmodus.</translation>
@@ -394,7 +394,7 @@
 <translation id="5267531627648004734">Fjern fra Brave</translation>
 <translation id="4620757336635063467">Reduserer ytelsen, men gjør Brave mer motstandsdyktig mot angrep</translation>
 <translation id="239760341987199724">Bruk Brave som standardnettleser</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – betaversjon av Brave Origin</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – betaversjon av Socket</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Brave anbefaler at du setter fanen som gjør nettleseren treg, på pause}other{Brave anbefaler at du setter fanene som gjør nettleseren treg, på pause}}</translation>
 <translation id="894936507076470937">Det kan hende Brave ikke fungerer skikkelig fordi den ikke lenger støttes i denne Linux-distribusjonen</translation>
 <translation id="2596557398669145729">Brave har blokkert denne nedlastingen fordi filen kan skade de personlige kontoene dine og kontoene dine på sosiale nettverk</translation>
@@ -427,7 +427,7 @@ Hvis denne siden ikke fungerer som forventet, kan du prøve å tillate optimalis
 <translation id="95980832839683236">Gjør nettsteder raskere med V8-motoren i Brave, men gjør Brave litt mindre motstandsdyktig mot angrep. Denne innstillingen er slått av.</translation>
 <translation id="1224606669200461217">Oppdater Brave for å bruke og lagre Brave-data i Brave-kontoen din.</translation>
 <translation id="5824893331272123205">Kunne ikke laste inn dette panelet – prøv på nytt</translation>
-<translation id="4467664627714200493">Velkommen til Brave Origin</translation>
+<translation id="1125671961408630460">Velkommen til Socket</translation>
 <translation id="4026807082142463673">Slår på flere funksjoner for å gi Brave den sterkeste beskyttelsen</translation>
 <translation id="5871205389137001634">Klikk for å avslutte bildesøk</translation>
 <translation id="8054200348483755053">Brave har oppdaget at disse elementene inneholder skadelig programvare:</translation>
@@ -493,7 +493,7 @@ Hvis denne siden ikke fungerer som forventet, kan du prøve å tillate optimalis
 <translation id="6388799252195623474">hjelp meg med dette</translation>
 <translation id="7920857181125123335">For å fortsette, logg på Brave som <ph name="EMAIL"/>. Dette sikrer at du har organisasjonens regler.</translation>
 <translation id="3256100650978957522">Brave-logo på en dataskjerm.</translation>
-<translation id="5880764554173582719">Brave Origin er en nettleser som kjører nettsider og programmer i lynets hastighet. Den er rask, stabil og enkel å bruke. Surf på nettet på en tryggere måte med Brave Origin, som har innebygd beskyttelse mot skadelig programvare og nettfisking.</translation>
+<translation id="7527968786016866645">Socket er en nettleser som kjører nettsider og programmer i lynets hastighet. Den er rask, stabil og enkel å bruke. Surf på nettet på en tryggere måte med Socket, som har innebygd beskyttelse mot skadelig programvare og nettfisking.</translation>
 <translation id="4091049150278654573">For å sikre at du alltid kan bruke og lagre Brave-data i Brave-kontoen din, må du bekrefte at det er deg</translation>
 <translation id="2532326772258858491">Brave kjører raskere, og funksjoner som bruker JavaScript, skal fungere som tilsiktet</translation>
 <translation id="6436260184216827876">Bildesøk er ikke tilgjengelig. Prøv på nytt senere.</translation>
@@ -541,7 +541,7 @@ Det er mulig at enkelte funksjoner ikke er tilgjengelige. Angi en annen profilka
 <translation id="6831043979455480757">Oversett</translation>
 <translation id="8211837073776713955">Med Brave får du beskjed hvis passordene dine noensinne utsettes for sikkerhetsbrudd</translation>
 <translation id="684888714667046800">Kan ikke koble til internett. Hvis du bruker en brannmur, må du sørge for at <ph name="PRODUCT_EXE_NAME"/> står på godkjenningslisten.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Trykk på Tab for å fortsette</translation>
 <translation id="6862030660799253820">Søk etter dette bildet med Bildesøk</translation>
 <translation id="3028928628792374067">Brave har oppdaget at «<ph name="EXTENSION_NAME"/>» inneholder skadelig programvare</translation>
@@ -609,7 +609,7 @@ Brave kan ikke gjenopprette innstillingen dine.</translation>
 <translation id="284799389314308801">1. Klikk på <ph name="BUTTON_LABEL"/> nedenfor
 2. Klikk på <ph name="BUTTON_2"/> i Windows-innstillingene
 3. Klikk på <ph name="BUTTON_3"/> i Windows-varselet for å feste Brave til oppgavelinjen for rask tilgang</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Brave Origin for utviklere</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Socket for utviklere</translation>
 <translation id="7450541714075000668">Teksten er kopiert</translation>
 <translation id="2034072705932785495">Brave trenger tilgang til kameraet ditt for dette nettstedet</translation>
 <translation id="7129342855140808694">For å la Brave bruke mikrofonen må du gi tilgang i <ph name="BEGIN_LINK"/>systeminnstillingene<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave kan ikke gjenopprette innstillingen dine.</translation>
 <translation id="8543787950557226450">Tilbakestill til standardversjonen av Brave</translation>
 <translation id="4976450819672499783">Bruk Brave som standard, og fest den til oppgavelinjen</translation>
 <translation id="1978509466033734608">Gjør Brave raskere</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Gjør det vanskeligere for folk med tilgang til internettrafikken din å se hvilke nettsteder du besøker. Brave bruker en sikker tilkobling for å finne IP-adressen til nettsteder i DNS (Domain Name System).</translation>
 <translation id="7810005234485217901">Du kan feste bildesøk for enklere tilgang</translation>
 <translation id="1652855885539187849">Det finnes allerede en Brave-profil med denne kontoen på denne enheten</translation>
@@ -667,7 +667,7 @@ Brave kan ikke gjenopprette innstillingen dine.</translation>
 <translation id="6175141682081019059">Deaktiver kjøring av Brave i bakgrunnen for apper</translation>
 <translation id="80790299200510644">Bildesøk</translation>
 <translation id="8086881907087796310">Installasjonen mislyktes fordi datamaskinen ikke oppfyller minimumskravene til maskinvare.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for testing</translation>
 <translation id="2061155704815580583">Brave trenger posisjonstillatelse for dette nettstedet</translation>
 <translation id="3576319845915562805">Neste gang du åpner Brave på <ph name="DEVICE_TYPE"/>, ser du en forespørsel om å slå på varsler om prissporing.</translation>
 <translation id="3728025339793417202">Få varsler om prisavslag på varer du er interessert i, med Brave-appen på telefonen</translation>
@@ -778,8 +778,8 @@ Brave kan ikke gjenopprette innstillingen dine.</translation>
 <translation id="9148058034647219655">Avslutt</translation>
 <translation id="2792073155252170448">Fortsett der du avsluttet: Brave kan gjenopprette fanene dine hver gang du starter på nytt. For å slå på dette, gå til</translation>
 <translation id="2444257125841652328">Systemadministratoren din har konfigurert Brave til å åpne en annen nettleser når du går til <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">Start på nytt for å oppdatere &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-Inn)</translation>
+<translation id="8649131107612558845">Start på nytt for å oppdatere &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-Inn)</translation>
 <translation id="296137235951584143">Gi Brave et personlig preg</translation>
 <translation id="7977787072794666032">Brave fungerer kanskje ikke riktig fordi den ikke lenger støttes på Windows XP eller Windows Vista</translation>
 <translation id="8462937515915443472">Få Braves beste sikkerhetsfunksjoner med Brave, uansett hvor du er.</translation>

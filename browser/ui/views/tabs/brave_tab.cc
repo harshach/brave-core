@@ -34,6 +34,7 @@
 #include "chrome/browser/ui/views/tabs/hovercard/hover_card_anchor_target.h"
 #include "chrome/browser/ui/views/tabs/tab/alert_indicator_button.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_close_button.h"
+#include "chrome/browser/ui/views/tabs/tab/tab_icon.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_title.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
 #include "components/vector_icons/vector_icons.h"
@@ -66,6 +67,41 @@
 namespace {
 
 constexpr int kSmallAccentSize = 16;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+class OriginTabDragHandle : public views::View {
+  METADATA_HEADER(OriginTabDragHandle, views::View)
+
+ public:
+  OriginTabDragHandle() {
+    SetPreferredSize(gfx::Size(9, 18));
+    SetCanProcessEventsWithinSubtree(false);
+  }
+  ~OriginTabDragHandle() override = default;
+
+  void OnPaint(gfx::Canvas* canvas) override {
+    views::View::OnPaint(canvas);
+    if (!GetColorProvider()) {
+      return;
+    }
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    flags.setStyle(cc::PaintFlags::kFill_Style);
+    flags.setColor(SkColorSetA(
+        GetColorProvider()->GetColor(kColorBraveVerticalTabNTBTextColor),
+        0x8F));
+    for (int column = 0; column < 2; ++column) {
+      for (int row = 0; row < 3; ++row) {
+        canvas->DrawCircle(gfx::PointF(2.5f + column * 4.0f, 5.0f + row * 4.0f),
+                           1.0f, flags);
+      }
+    }
+  }
+};
+
+BEGIN_METADATA(OriginTabDragHandle)
+END_METADATA
+#endif
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 std::optional<containers::ContainerModel> GetContainerModelForTab(
@@ -232,6 +268,9 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
   origin_pin_button_ = AddChildView(std::move(pin_button));
   origin_pin_button_->SetVisible(false);
   UpdateOriginPinButton();
+
+  origin_drag_handle_ = AddChildView(std::make_unique<OriginTabDragHandle>());
+  origin_drag_handle_->SetVisible(false);
 #endif
   if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
     InitTreeToggleButton();
@@ -720,6 +759,44 @@ void BraveTab::Layout(PassKey) {
   LayoutTreeToggleButton();
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  int origin_trailing_x = width() - 8;
+  if (close_button_->GetVisible()) {
+    origin_trailing_x = std::min(origin_trailing_x, close_button_->x() - 2);
+  }
+  if (tree_toggle_button_ && tree_toggle_button_->GetVisible()) {
+    origin_trailing_x =
+        std::min(origin_trailing_x, tree_toggle_button_->x() - 2);
+  }
+
+  if (origin_drag_handle_) {
+    auto* vtc = VerticalTabController::FromBrowser(
+        controller()->GetBrowserWindowInterface());
+    const bool show_drag_handle = vtc && vtc->ShouldShowBraveVerticalTabs() &&
+                                  !IsAtMinWidthForVerticalTabStrip() &&
+                                  ShouldRenderAsNormalTab() &&
+                                  (mouse_hovered_ || dragging());
+    origin_drag_handle_->SetVisible(show_drag_handle);
+    if (show_drag_handle) {
+      const gfx::Size handle_size = origin_drag_handle_->GetPreferredSize();
+      int handle_x = icon_->x();
+      if (showing_icon_) {
+        handle_x += icon_->GetInsets().left() +
+                    (gfx::kFaviconSize - handle_size.width()) / 2;
+      }
+      origin_drag_handle_->SetBounds(handle_x,
+                                     (height() - handle_size.height()) / 2,
+                                     handle_size.width(), handle_size.height());
+      icon_->SetVisible(false);
+      if (!showing_icon_ && title_->GetVisible()) {
+        gfx::Rect title_bounds = title_->bounds();
+        const int title_x = origin_drag_handle_->bounds().right() + 8;
+        title_bounds.set_width(std::max(0, title_bounds.right() - title_x));
+        title_bounds.set_x(title_x);
+        title_->SetBoundsRect(title_bounds);
+      }
+    }
+  }
+
   if (origin_pin_button_) {
     auto* vtc = VerticalTabController::FromBrowser(
         controller()->GetBrowserWindowInterface());
@@ -730,23 +807,18 @@ void BraveTab::Layout(PassKey) {
     origin_pin_button_->SetVisible(show_pin);
     if (show_pin) {
       constexpr int kPinButtonSize = 20;
-      int trailing_x = width() - 8;
-      if (close_button_->GetVisible()) {
-        trailing_x = std::min(trailing_x, close_button_->x() - 2);
-      }
-      if (tree_toggle_button_ && tree_toggle_button_->GetVisible()) {
-        trailing_x = std::min(trailing_x, tree_toggle_button_->x() - 2);
-      }
-      origin_pin_button_->SetBounds(std::max(0, trailing_x - kPinButtonSize),
-                                    (height() - kPinButtonSize) / 2,
-                                    kPinButtonSize, kPinButtonSize);
-      if (title_->GetVisible()) {
-        gfx::Rect title_bounds = title_->bounds();
-        title_bounds.set_width(
-            std::max(0, origin_pin_button_->x() - 4 - title_bounds.x()));
-        title_->SetBoundsRect(title_bounds);
-      }
+      origin_pin_button_->SetBounds(
+          std::max(0, origin_trailing_x - kPinButtonSize),
+          (height() - kPinButtonSize) / 2, kPinButtonSize, kPinButtonSize);
+      origin_trailing_x = origin_pin_button_->x() - 2;
     }
+  }
+  if (title_->GetVisible() && origin_pin_button_ &&
+      origin_pin_button_->GetVisible()) {
+    gfx::Rect title_bounds = title_->bounds();
+    title_bounds.set_width(
+        std::max(0, origin_trailing_x - 2 - title_bounds.x()));
+    title_->SetBoundsRect(title_bounds);
   }
 #endif
 
@@ -906,6 +978,43 @@ void BraveTab::MaybeUpdateHoverStatus(const ui::MouseEvent& event) {
   if (tree_tab_node().has_value()) {
     LayoutTreeToggleButton();
   }
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  InvalidateLayout();
+#endif
+}
+
+void BraveTab::OnMouseExited(const ui::MouseEvent& event) {
+  Tab::OnMouseExited(event);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  InvalidateLayout();
+#endif
+}
+
+void BraveTab::OnPaint(gfx::Canvas* canvas) {
+  Tab::OnPaint(canvas);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_hierarchy_drop_target_ || !GetColorProvider()) {
+    return;
+  }
+  cc::PaintFlags flags;
+  flags.setAntiAlias(true);
+  flags.setStyle(cc::PaintFlags::kStroke_Style);
+  flags.setStrokeWidth(2.0f);
+  flags.setColor(SkColorSetRGB(0xFB, 0x54, 0x2B));
+  gfx::RectF bounds(GetLocalBounds());
+  bounds.Inset(1.0f);
+  canvas->DrawRoundRect(bounds, 7.0f, flags);
+#endif
+}
+
+void BraveTab::SetOriginHierarchyDropTarget(bool targeted) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_hierarchy_drop_target_ == targeted) {
+    return;
+  }
+  origin_hierarchy_drop_target_ = targeted;
+  SchedulePaint();
+#endif
 }
 
 bool BraveTab::IsInCollapsedTreeTabNode() const {

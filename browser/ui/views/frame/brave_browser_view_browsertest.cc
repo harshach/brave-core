@@ -13,12 +13,16 @@
 #include "base/base64.h"
 #include "base/check.h"
 #include "base/functional/callback.h"
+#include "base/memory/weak_ptr.h"
+#include "base/task/sequenced_task_runner.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
+#include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
@@ -26,6 +30,7 @@
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
+#include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
@@ -49,13 +54,17 @@
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_init_state.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_bubble_type.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/layout_constants.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
+#include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
@@ -84,6 +93,7 @@
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
+#include "ui/base/hit_test.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
@@ -95,6 +105,7 @@
 #include "ui/views/view_class_properties.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget_delegate.h"
+#include "ui/views/window/non_client_view.h"
 
 #if BUILDFLAG(IS_MAC)
 #include "base/mac/mac_util.h"
@@ -193,6 +204,25 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
   OriginQuickOpenView* origin_quick_open_view() {
     return brave_browser_view()->origin_quick_open_view_;
   }
+
+  OriginTemporaryLinkView* origin_temporary_link_view(Browser* browser) {
+    return BraveBrowserView::From(
+               BrowserView::GetBrowserViewForBrowser(browser))
+        ->origin_temporary_link_view_;
+  }
+
+  Browser* OpenOriginTemporaryLink(Browser* fallback, const GURL& url) {
+    NavigateParams params(fallback, url, ui::PAGE_TRANSITION_LINK);
+    origin_external_link::ConfigureNavigation(url, fallback, &params);
+    Browser* temporary_browser =
+        params.browser ? params.browser->GetBrowserForMigrationOnly() : nullptr;
+    Navigate(&params);
+    return temporary_browser;
+  }
+
+  Browser* OpenOriginTemporaryLink(const GURL& url) {
+    return OpenOriginTemporaryLink(browser(), url);
+  }
 #endif
 };
 
@@ -257,6 +287,158 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
   reload_observer.Wait();
   EXPECT_TRUE(reload_observer.last_navigation_succeeded());
   EXPECT_EQ(test_url, contents->GetLastCommittedURL());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginSingleKeyCloseSelectsNextPage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  const int initial_tab_count = model->count();
+  content::WebContents* first = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      first, embedded_test_server()->GetURL("/title1.html")));
+
+  chrome::AddTabAt(browser(), embedded_test_server()->GetURL("/title2.html"),
+                   -1, /*foreground=*/false);
+  ASSERT_EQ(model->count(), initial_tab_count + 1);
+  content::WebContents* second = model->GetWebContentsAt(model->count() - 1);
+  ASSERT_TRUE(content::WaitForLoadStop(second));
+
+  chrome::AddTabAt(browser(), embedded_test_server()->GetURL("/title3.html"),
+                   -1, /*foreground=*/false);
+  ASSERT_EQ(model->count(), initial_tab_count + 2);
+  content::WebContents* third = model->GetWebContentsAt(model->count() - 1);
+  ASSERT_TRUE(content::WaitForLoadStop(third));
+
+  model->ActivateTabAt(model->GetIndexOfWebContents(second));
+  ASSERT_EQ(model->GetActiveWebContents(), second);
+
+  input::NativeWebKeyboardEvent close_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  close_event.windows_key_code = ui::VKEY_D;
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(close_event));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->count() == initial_tab_count + 1; }));
+  EXPECT_EQ(model->GetActiveWebContents(), third);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginTemporaryLinkLayoutAndDiscardShortcut) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  ASSERT_TRUE(content::NavigateToURL(
+      browser()->tab_strip_model()->GetActiveWebContents(),
+      embedded_test_server()->GetURL("/title2.html")));
+
+  Browser* temporary_browser =
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  ASSERT_TRUE(origin_external_link::IsTemporaryLinkBrowser(temporary_browser));
+  ASSERT_TRUE(origin_temporary_link_view(temporary_browser));
+  content::WebContents* temporary_contents =
+      temporary_browser->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(temporary_contents);
+  ASSERT_TRUE(content::WaitForLoadStop(temporary_contents));
+
+  auto* temporary_view =
+      BrowserView::GetBrowserViewForBrowser(temporary_browser);
+  temporary_view->DeprecatedLayoutImmediately();
+  EXPECT_EQ(origin_external_link::CalculateTemporaryLinkContentBounds(
+                temporary_view->GetLocalBounds()),
+            temporary_view->contents_container()->bounds());
+
+  gfx::Point header_point(temporary_view->width() / 2,
+                          OriginTemporaryLinkView::kBarHeight / 2);
+  auto* frame_view =
+      temporary_view->GetWidget()->non_client_view()->frame_view();
+  ASSERT_TRUE(frame_view);
+  views::View::ConvertPointToTarget(temporary_view, frame_view, &header_point);
+  EXPECT_EQ(HTCLIENT, frame_view->NonClientHitTest(header_point));
+
+  ASSERT_TRUE(content::ExecJs(temporary_contents,
+                              "document.body.innerHTML = '<input id=editor>';"
+                              "document.querySelector('#editor').focus();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return temporary_contents->IsFocusedElementEditable(); }));
+
+  input::NativeWebKeyboardEvent discard_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  discard_event.windows_key_code = ui::VKEY_D;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
+            temporary_view->PreHandleKeyboardEvent(discard_event));
+  EXPECT_FALSE(temporary_browser->IsDeleteScheduled());
+
+  ASSERT_TRUE(content::ExecJs(temporary_contents,
+                              "document.querySelector('#editor').blur();"));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !temporary_contents->IsFocusedElementEditable(); }));
+  base::WeakPtr<Browser> temporary_browser_weak =
+      temporary_browser->AsWeakPtr();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            temporary_view->PreHandleKeyboardEvent(discard_event));
+  EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginTemporaryLinkPreservesSessionRestoreWindow) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+
+  Browser::CreateParams restore_params(browser()->GetProfile(),
+                                       /*user_gesture=*/false);
+  restore_params.creation_source = Browser::CreationSource::kSessionRestore;
+  restore_params.should_trigger_session_restore = false;
+  Browser* restoring_browser = Browser::Create(restore_params);
+  ASSERT_TRUE(restoring_browser);
+  ASSERT_TRUE(restoring_browser->tab_strip_model()->empty());
+  const BrowserInitState* restore_state =
+      BrowserInitState::From(restoring_browser);
+  ASSERT_TRUE(restore_state);
+  ASSERT_TRUE(restore_state->is_session_restore());
+  base::WeakPtr<Browser> restoring_browser_weak =
+      restoring_browser->AsWeakPtr();
+
+  Browser* temporary_browser = OpenOriginTemporaryLink(
+      restoring_browser, embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  ASSERT_TRUE(origin_external_link::IsTemporaryLinkBrowser(temporary_browser));
+
+  // ConfigureNavigation posts its placeholder cleanup. A sentinel on the same
+  // sequence makes the assertion deterministic without draining unrelated
+  // browser tasks.
+  base::test::TestFuture<void> cleanup_finished;
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, cleanup_finished.GetCallback());
+  ASSERT_TRUE(cleanup_finished.Wait());
+
+  ASSERT_TRUE(restoring_browser_weak);
+  EXPECT_FALSE(restoring_browser_weak->IsDeleteScheduled());
+  EXPECT_TRUE(restoring_browser_weak->tab_strip_model()->empty());
+
+  Browser::CreateParams placeholder_params(browser()->GetProfile(),
+                                           /*user_gesture=*/false);
+  placeholder_params.should_trigger_session_restore = false;
+  Browser* placeholder_browser = Browser::Create(placeholder_params);
+  ASSERT_TRUE(placeholder_browser);
+  ASSERT_TRUE(placeholder_browser->tab_strip_model()->empty());
+  base::WeakPtr<Browser> placeholder_browser_weak =
+      placeholder_browser->AsWeakPtr();
+
+  EXPECT_EQ(temporary_browser,
+            OpenOriginTemporaryLink(
+                placeholder_browser,
+                embedded_test_server()->GetURL("/title2.html")));
+  EXPECT_TRUE(
+      base::test::RunUntil([&] { return !placeholder_browser_weak; }));
+  EXPECT_TRUE(restoring_browser_weak);
+
+  CloseBrowserSynchronously(temporary_browser);
+  CloseBrowserSynchronously(restoring_browser_weak.get());
+  EXPECT_FALSE(restoring_browser_weak);
 }
 
 class OriginExtensionInputShortcutBrowserTest
@@ -360,6 +542,42 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(GURL("https://flipboard.com/"),
             flipboard_result.destination_url);
   EXPECT_FALSE(flipboard_result.icon_model.IsEmpty());
+
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"gearpa");
+  quick_open->ContentsChanged(quick_open->search_field_, u"gearpa");
+  constexpr const char* kGearPatrolHistoryPaths[] = {
+      "/cars/a", "/style/b", "/tech/c", "/food/d"};
+  for (const char* path : kGearPatrolHistoryPaths) {
+    OriginQuickOpenView::Result history_result;
+    history_result.title = u"Matching Gear Patrol history page";
+    history_result.destination_url =
+        GURL("https://gearpatrol.com").Resolve(path);
+    history_result.badge = u"History";
+    quick_open->query_history_results_.push_back(
+        OriginQuickOpenView::TimedResult{std::move(history_result),
+                                         base::Time::Now()});
+  }
+  quick_open->RebuildResults();
+
+  ASSERT_FALSE(quick_open->query_results_[1].empty());
+  const auto& typed_url_result = quick_open->query_results_[1][0];
+  EXPECT_EQ(u"gearpatrol.com", typed_url_result.title);
+  EXPECT_EQ(GURL("https://gearpatrol.com/"),
+            typed_url_result.destination_url);
+  EXPECT_EQ(u"Open URL", typed_url_result.badge);
+  EXPECT_FALSE(typed_url_result.switch_to_tab);
+  EXPECT_EQ(u"gearpatrol.com", quick_open->search_field_->GetText());
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(GURL("https://gearpatrol.com/cars/a"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][1].badge.starts_with(u"History"));
+  ASSERT_GE(quick_open->visible_results_.size(), 2u);
+  EXPECT_EQ(1u, quick_open->selected_result_);
+  const auto selected_coordinates =
+      quick_open->visible_results_[quick_open->selected_result_];
+  EXPECT_EQ(1u, selected_coordinates.first);
+  EXPECT_EQ(0u, selected_coordinates.second);
 
   const std::optional<GURL> instagram_favicon =
       GetOriginKnownSiteFaviconURL(GURL("https://instagram.com/"));
@@ -489,10 +707,14 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                                        base::Time::Now()});
   quick_open->RebuildResults();
 
-  ASSERT_FALSE(quick_open->query_results_[1].empty());
-  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+  ASSERT_GE(quick_open->query_results_[1].size(), 2u);
+  EXPECT_EQ(GURL("https://flipboard.com/"),
             quick_open->query_results_[1][0].destination_url);
-  EXPECT_TRUE(quick_open->query_results_[1][0].badge.starts_with(u"History"));
+  EXPECT_EQ(u"Open URL", quick_open->query_results_[1][0].badge);
+  EXPECT_FALSE(quick_open->query_results_[1][0].switch_to_tab);
+  EXPECT_EQ(GURL("https://flipboard.com/latest"),
+            quick_open->query_results_[1][1].destination_url);
+  EXPECT_TRUE(quick_open->query_results_[1][1].badge.starts_with(u"History"));
   quick_open->Dismiss();
 }
 

@@ -33,6 +33,7 @@
 #include "components/sessions/core/session_types.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "url/gurl.h"
 
 namespace {
 WorkspaceMetadata MakeMeta(const std::string& name,
@@ -117,12 +118,56 @@ TEST_F(WorkspaceServiceTest, OriginSpaces_CRUDAndOrdering) {
 TEST_F(WorkspaceServiceTest, OriginSpaces_NeverDeleteLastSpace) {
   const std::string home_id = service_->GetOriginSpaces()[0].id;
   while (service_->GetOriginSpaces().size() > 1u) {
-    ASSERT_TRUE(service_->DeleteOriginSpace(
-        service_->GetOriginSpaces().back().id));
+    ASSERT_TRUE(
+        service_->DeleteOriginSpace(service_->GetOriginSpaces().back().id));
   }
   EXPECT_FALSE(service_->DeleteOriginSpace(home_id));
   ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
   EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
+}
+
+TEST_F(WorkspaceServiceTest, OriginDomainRules_NormalizeAndPersist) {
+  const std::string space_id = service_->GetOriginSpaces()[1].id;
+  const GURL nested_url("https://news.example.co.uk/story");
+  EXPECT_EQ(WorkspaceService::GetOriginDomainKey(nested_url), "example.co.uk");
+  EXPECT_EQ(
+      WorkspaceService::GetOriginDomainKey(GURL("http://LOCALHOST:8080/path")),
+      "localhost");
+  EXPECT_TRUE(
+      WorkspaceService::GetOriginDomainKey(GURL("about:blank")).empty());
+  EXPECT_TRUE(service_->SetOriginSpaceForDomain(nested_url, space_id));
+  EXPECT_EQ(service_->GetOriginSpaceForDomain(
+                GURL("https://shop.example.co.uk/another")),
+            space_id);
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpaceForDomain(nested_url), space_id);
+  EXPECT_TRUE(service_->ClearOriginSpaceForDomain(nested_url));
+  EXPECT_FALSE(service_->GetOriginSpaceForDomain(nested_url));
+}
+
+TEST_F(WorkspaceServiceTest, OriginDomainRules_RemoveDeletedSpace) {
+  const std::string space_id =
+      service_->CreateOriginSpace("External", kOriginSpaceIconTravel);
+  const GURL url("https://www.example.com/page");
+  ASSERT_TRUE(service_->SetOriginSpaceForDomain(url, space_id));
+  ASSERT_TRUE(service_->GetOriginSpaceForDomain(url));
+
+  EXPECT_TRUE(service_->DeleteOriginSpace(space_id));
+  EXPECT_FALSE(service_->GetOriginSpaceForDomain(url));
+}
+
+TEST_F(WorkspaceServiceTest, OriginLastTemporaryLinkSpacePersistsAndClears) {
+  const std::string space_id = service_->GetOriginSpaces()[1].id;
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
+  EXPECT_FALSE(service_->SetLastOriginTemporaryLinkSpace("missing-space"));
+  ASSERT_TRUE(service_->SetLastOriginTemporaryLinkSpace(space_id));
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+  ASSERT_TRUE(service_->DeleteOriginSpace(space_id));
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
 }
 
 // Verify saving preference adds workspace to list

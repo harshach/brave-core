@@ -1,6 +1,6 @@
-# Origin Desktop Builds
+# Socket Desktop Builds
 
-Origin has separate reusable GitHub Actions workflows for unsigned Linux,
+Socket has separate reusable GitHub Actions workflows for unsigned Linux,
 Windows, and macOS developer packages:
 
 - `origin-build-linux.yml` creates x64 Debian, RPM, and portable ZIP artifacts.
@@ -15,7 +15,7 @@ macOS Intel packages.
 
 ## Runtime performance
 
-Distributed Origin packages use Brave's true `Release` configuration with
+Distributed Socket packages use Brave's true `Release` configuration with
 `is_brave_release_build=1` and DCHECKs disabled. This checks out Chromium's PGO
 profiles and enables the same PGO and ThinLTO optimization path used by Brave's
 release binaries. Public builds use explicit non-secret placeholder values for
@@ -71,11 +71,11 @@ a prerelease from the Actions page or with GitHub CLI:
 ```sh
 gh workflow run origin-release.yml \
   --ref master \
-  -f tag=origin-v0.1.0-preview.1 \
+  -f tag=socket-v0.1.0-preview.1 \
   -f prerelease=true
 ```
 
-Pushing a tag matching `origin-v*` also starts the complete release pipeline.
+Pushing a tag matching `socket-v*` also starts the complete release pipeline.
 Tags containing a suffix such as `-preview.1` become prereleases; other tags
 become latest releases.
 

@@ -46,7 +46,11 @@ def BraveModifyPartsForSigning(parts, config):
     del parts['libchromecompaneros.dylib']
     del parts['liboptimization_guide_internal.dylib']
 
-    development = (config.provisioning_profile_basename is None)
+    # Developer ID releases do not require a provisioning profile. Use the
+    # signing configuration's explicit development entitlement instead of the
+    # profile's presence so release builds still re-sign Sparkle for
+    # notarization.
+    development = config.inject_get_task_allow_entitlement
 
     full_hardened_runtime_options = (
         CodeSignOptions.HARDENED_RUNTIME | CodeSignOptions.RESTRICT

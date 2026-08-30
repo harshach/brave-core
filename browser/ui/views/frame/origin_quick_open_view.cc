@@ -109,6 +109,9 @@ constexpr size_t kSecondarySectionCapacity = 3;
 constexpr size_t kTertiarySectionCapacity = 3;
 constexpr size_t kMaxHistoryResults = 24;
 constexpr size_t kMaxQueryHistoryResults = 100;
+constexpr int kGuessedUrlScore = 16000;
+// Keep a complete typed URL ahead of other non-pinned navigation matches.
+constexpr int kTypedUrlScore = 30000;
 constexpr int64_t kMaxFaviconDownloadBytes = 1024 * 1024;
 constexpr float kPanelBlurSigma = 32.0f;
 constexpr float kPanelBackdropQuality = 0.40f;
@@ -466,6 +469,26 @@ std::optional<GURL> BuildTypedDomainCandidate(std::u16string_view input) {
   GURL completed_url("https://" + host + ".com" + path);
   return completed_url.is_valid() ? std::optional<GURL>(completed_url)
                                   : std::nullopt;
+}
+
+bool HasExplicitUrlSyntax(std::u16string_view input) {
+  std::u16string trimmed;
+  base::TrimWhitespace(input, base::TrimPositions::TRIM_ALL, &trimmed);
+  const std::string typed = base::ToLowerASCII(base::UTF16ToUTF8(trimmed));
+  return typed.starts_with("http://") || typed.starts_with("https://") ||
+         typed.find('.') != std::string::npos ||
+         typed.find('/') != std::string::npos;
+}
+
+GURL GetOriginRootURL(const GURL& url) {
+  if (!IsUsefulPageURL(url)) {
+    return GURL();
+  }
+  GURL::Replacements replacements;
+  replacements.SetPathStr("/");
+  replacements.ClearQuery();
+  replacements.ClearRef();
+  return url.ReplaceComponents(replacements);
 }
 
 std::u16string FormatElapsedTime(base::Time time) {
@@ -1384,6 +1407,7 @@ void OriginQuickOpenView::RebuildResults() {
   std::optional<Result> exact_search_result;
   std::vector<RankedResult> search_suggestion_results;
   std::set<std::string> search_suggestion_keys;
+  std::optional<GURL> typed_domain_candidate;
 
   std::u16string trimmed_input;
   base::TrimWhitespace(user_input_, base::TrimPositions::TRIM_ALL,
@@ -1591,20 +1615,35 @@ void OriginQuickOpenView::RebuildResults() {
     }
   }
 
-  if (std::optional<GURL> typed_domain =
-          BuildTypedDomainCandidate(trimmed_input)) {
+  typed_domain_candidate = BuildTypedDomainCandidate(trimmed_input);
+  if (typed_domain_candidate) {
+    const std::string typed_host = NormalizeHost(*typed_domain_candidate);
+    const auto contains_typed_host = [&typed_host](const auto& results) {
+      return std::ranges::any_of(results, [&typed_host](const auto& candidate) {
+        return NormalizeHost(candidate.result.destination_url) == typed_host;
+      });
+    };
+    const bool host_has_matching_page =
+        contains_typed_host(open_tab_results_) ||
+        contains_typed_host(history_results_) ||
+        contains_typed_host(query_history_results_);
+
     Result result;
-    result.title = base::UTF8ToUTF16(NormalizeHost(*typed_domain));
+    result.title = base::UTF8ToUTF16(typed_host);
     result.badge = u"Open URL";
-    result.destination_url = *typed_domain;
-    result.icon_model = GetFaviconModelForURL(*typed_domain);
-    if (const Result* open_tab = find_open_tab(*typed_domain)) {
+    result.destination_url = *typed_domain_candidate;
+    result.icon_model = GetFaviconModelForURL(*typed_domain_candidate);
+    if (const Result* open_tab = find_open_tab(*typed_domain_candidate)) {
       result = *open_tab;
       result.badge = u"Switch  ›";
     } else {
-      RequestFavicon(*typed_domain, /*allow_network_fetch=*/true);
+      RequestFavicon(*typed_domain_candidate, /*allow_network_fetch=*/true);
     }
-    add_navigation_result(std::move(result), 16000);
+    add_navigation_result(
+        std::move(result),
+        HasExplicitUrlSyntax(trimmed_input) || host_has_matching_page
+            ? kTypedUrlScore
+            : kGuessedUrlScore);
   }
 
   std::stable_sort(
@@ -1636,6 +1675,58 @@ void OriginQuickOpenView::RebuildResults() {
   }
   query_results_[0].push_back(std::move(search_result));
 
+  // Inline completion must also be an actionable result. If "gearpa" is
+  // completed from history to "gearpatrol.com", synthesize the host root and
+  // pin it above deep history pages. For an explicit URL, preserve the exact
+  // typed path. A merely partial query still prefers an already-open page,
+  // matching Quick Open's switch-without-duplication behavior.
+  std::optional<Result> pinned_direct_result;
+  const bool has_explicit_url_syntax = HasExplicitUrlSyntax(trimmed_input);
+  if (has_explicit_url_syntax && typed_domain_candidate) {
+    Result result;
+    result.title =
+        base::UTF8ToUTF16(NormalizeHost(*typed_domain_candidate));
+    result.badge = u"Open URL";
+    result.destination_url = *typed_domain_candidate;
+    result.icon_model = GetFaviconModelForURL(*typed_domain_candidate);
+    RequestFavicon(*typed_domain_candidate, /*allow_network_fetch=*/true);
+    pinned_direct_result = std::move(result);
+  } else if (!navigation_results.empty() &&
+             !navigation_results.front().result.switch_to_tab &&
+             normalized_input.find_first_of(" \t\r\n/:?#@") ==
+                 std::string::npos) {
+    const std::string completed_host =
+        NormalizeHost(navigation_results.front().result.destination_url);
+    if (completed_host.starts_with(normalized_input)) {
+      const GURL completed_root =
+          GetOriginRootURL(navigation_results.front().result.destination_url);
+      if (completed_root.is_valid()) {
+        Result result;
+        result.title = base::UTF8ToUTF16(completed_host);
+        result.badge = u"Open URL";
+        result.destination_url = completed_root;
+        result.icon_model = GetFaviconModelForURL(completed_root);
+        RequestFavicon(completed_root, /*allow_network_fetch=*/true);
+        pinned_direct_result = std::move(result);
+      }
+    }
+  }
+
+  if (pinned_direct_result) {
+    const GURL pinned_url = pinned_direct_result->destination_url;
+    const GURL uncompleted_guess =
+        !has_explicit_url_syntax && typed_domain_candidate
+            ? *typed_domain_candidate
+            : GURL();
+    std::erase_if(
+        navigation_results,
+        [&pinned_url, &uncompleted_guess](const RankedResult& result) {
+          return result.result.destination_url == pinned_url ||
+                 (uncompleted_guess.is_valid() &&
+                  result.result.destination_url == uncompleted_guess);
+        });
+  }
+
   bool prefer_top_hit = false;
   std::optional<Result> open_as_new_result;
   if (!navigation_results.empty()) {
@@ -1658,6 +1749,10 @@ void OriginQuickOpenView::RebuildResults() {
     }
   }
 
+  if (pinned_direct_result) {
+    query_results_[1].push_back(std::move(*pinned_direct_result));
+    prefer_top_hit = true;
+  }
   while (query_results_[1].size() < kSecondarySectionCapacity &&
          !navigation_results.empty()) {
     query_results_[1].push_back(

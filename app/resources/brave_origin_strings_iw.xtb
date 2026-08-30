@@ -111,7 +111,7 @@
 <translation id="2170098639895543546">צריך לבחור משהו מהדף</translation>
 <translation id="142389341645668510">‏התאמה אישית של Brave</translation>
 <translation id="2174917724755363426">ההתקנה לא הושלמה. להמשיך בביטול?</translation>
-<translation id="8841019650931243995">‏Brave Origin – כניסה לרשת – <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">‏Socket – כניסה לרשת – <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">השגיאה בבדיקת העדכון: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">‏הסרת החשבון מ-Brave</translation>
 <translation id="4022045673362955204">‏עם אפליקציית Brave אפשר ליהנות מהכלים הכי טובים לשופינג בכל מקום</translation>
@@ -146,7 +146,7 @@
 <translation id="2542968102051442371">בחירה של טקסט באמצעות התכונה 'חיפוש תמונות'</translation>
 <translation id="70183448213529602">‏Brave מנסה להחליף את הסיסמאות הקיימות. כדי לאפשר זאת, יש להזין את הסיסמה שלך ל-Windows.</translation>
 <translation id="7798069806040634998">‏Brave זקוק לגישה לאחסון כדי להוריד קבצים</translation>
-<translation id="2351700486811407088">Brave Origin Helper</translation>
+<translation id="9082785458664620820">Socket Helper</translation>
 <translation id="2575822587468774919">אפשר לבחור משהו לחיפוש באמצעות התכונה 'חיפוש תמונות'</translation>
 <translation id="3830890663494219270">‏כדי לקבל גישה לסיסמאות ולנתונים נוספים בכל המכשירים שלך, כדאי להיכנס ל-Brave</translation>
 <translation id="6908148552215338695">‏זה קוד ה-QR שצריך לסרוק בטלפון כדי להוריד את Brave ולהיכנס לחשבון ב-Brave.</translation>
@@ -176,7 +176,7 @@
 <translation id="777113543093865885">‏הסרה מ-Brave...</translation>
 <translation id="5265419033369521352">‏מגינה עליך ב-Brave ועשויה לשפר את רמת האבטחה באפליקציות אחרות של Brave. ההגנה הזו פעילה רק אם נכנסים לחשבון.</translation>
 <translation id="2885378588091291677">מנהל המשימות</translation>
-<translation id="2176825726964012531">‏מידע על &amp;Brave‏</translation>
+<translation id="3984800435132982628">‏מידע על &amp;Socket‏</translation>
 <translation id="2915996080311180594">הפעלה מחדש מאוחר יותר</translation>
 <translation id="2481553173340651149">‏הנתונים שלך מוצפנים באמצעות ביטוי הסיסמה. כדי להשתמש בנתוני Brave ולשמור אותם בחשבון Brave, עליך להזין את ביטוי הסיסמה.</translation>
 <translation id="2945997411976714835">שגיאת התקנה: הפעלת התהליך של מנהל ההתקנה נכשלה.</translation>
@@ -260,7 +260,7 @@
 <translation id="3846683726093018685">**סיכום:** במשפט אחד של פחות מ-30 מילים, צריך לתאר את הנושא והמטרה העיקריים של התוכן בצילום המסך.
 
           **הצעת שאלות:** יצירת רשימה של 3-5 שאלות מעוררות מחשבה שהמשתמש יכול לשאול כדי להבין טוב יותר את צילום המסך. לפחות שאלה אחת צריכה להתייחס באופן ספציפי לאובייקט חזותי, לעיצוב שלו או למיקום שלו.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">הכלי לבחירת שפה</translation>
 <translation id="6315734375101223238">‏התאמה אישית וניהול של Brave נחוצה פעולה שלך - יש ללחוץ לקבלת פרטים נוספים.</translation>
 <translation id="7130675370997202556">‏יש ללחוץ על השם שלך כדי לפתוח את Brave ולהתחיל לגלוש.</translation>
@@ -274,7 +274,7 @@
 <translation id="4194619960643453552">‏איך מערכת Brave שומרת על האבטחה שלך</translation>
 <translation id="3967822245660637423">ההורדה הושלמה</translation>
 <translation id="1486377520191913768">‏כשמקלידים טקסט בסרגל הכתובות או בתיבת החיפוש, Brave שולח את הטקסט הזה לכלי החיפוש, הבינה המלאכותית והסוכנים של הארגון כדי לקבל הצעות.</translation>
-<translation id="1311808042904310985">‏מידע על &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">‏מידע על &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">‏מידע על ChromeOS</translation>
 <translation id="8282895427217902177">‏כשמבקרים באתר מסוים, Brave שולח ל<ph name="BEGIN_LINK"/>גלישה בטוחה של Brave<ph name="END_LINK"/> קטע קוד מעורפל מכתובת ה-URL דרך שרת פרטיות שמסתיר את כתובת ה-IP. אם האתר פועל באופן שמעורר חשד, יישלחו גם כתובות URL מלאות וקטעי תוכן מדפים.</translation>
 <translation id="4016217212818346953">מנהל הסיסמאות עוזר לשמור על הבטיחות שלך</translation>
@@ -293,7 +293,7 @@
 <translation id="10925962326134232">‏אפשר להתאים אישית את Brave כדי לשנות את מראה הדפדפן</translation>
 <translation id="6596295505984504022">‏התאמה אישית של Brave</translation>
 <translation id="4148957013307229264">מתקין...</translation>
-<translation id="5011704081781303429">‏<ph name="PAGE_TITLE"/> – כניסה לרשת – Brave Origin</translation>
+<translation id="651464753560842396">‏<ph name="PAGE_TITLE"/> – כניסה לרשת – Socket</translation>
 <translation id="2871190378186459992">‏אפליקציות, משחקים, תוספים ועיצובים מעולים בשביל Brave.</translation>
 <translation id="462105622535258178">‏כדי לקבל גישה לתוסף הזה ולנתונים נוספים בכל המחשבים, צריך להיכנס ל-Brave</translation>
 <translation id="6670140629169983459">‏כדי לשמור על הבטיחות אונליין בהתאם לאפשרויות שנבחרו על ידי ההורה שלך, עליך לעבור לפרופיל Brave שבו כבר נכנסת לחשבון עם האימייל <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -325,7 +325,7 @@
 <translation id="4493028449971051158">שגיאת הפעלה: יש להפעיל את מנהל ההתקנה כאדמין.</translation>
 <translation id="4501471624619070934">ההתקנה נכשלה כי הגישה מוגבלת במדינה הזו.</translation>
 <translation id="8594994021633965927">‏לתוסף הזה לא פורסמו נוהלי פרטיות, למשל האופן שבו הוא אוסף נתונים ומשתמש בהם. ההמלצה של Brave היא להסיר אותו.</translation>
-<translation id="770557926599450702">‏ברוך בואך אל Brave Origin. נפתח חלון חדש בדפדפן</translation>
+<translation id="3788134970312783571">‏ברוך בואך אל Socket. נפתח חלון חדש בדפדפן</translation>
 <translation id="137732229629632648">‏ל-Brave נדרשת הרשאה כדי למפות את הסביבה שלך ולעקוב אחרי תנועות הידיים</translation>
 <translation id="5036046007335188949">‏כבר נכנסת לחשבון בתור <ph name="USER_EMAIL_ADDRESS"/> בפרופיל Brave אחר</translation>
 <translation id="1878185978731985193">‏‫Brave טוען מראש דפים וכך ניתן לגלוש ולחפש מהר יותר. <ph name="BEGIN_LINK"/>מידע נוסף על טעינה מראש של דפים<ph name="END_LINK"/></translation>
@@ -333,7 +333,7 @@
 <translation id="8669339108356170796">‏Brave חסם את ההורדה הזאת כי השבתת את הגלישה הבטוחה ואי אפשר לאמת את הקובץ</translation>
 <translation id="7583343841997441047">‏רוצה לנסות את Google Lens ב-Brave בטלפון?</translation>
 <translation id="4594305310729380060">שמירה למנהל הסיסמאות במכשיר הזה</translation>
-<translation id="7776200949522126045">‏יישומי Brave Origin</translation>
+<translation id="1662388968719244110">‏יישומי Socket</translation>
 <translation id="4598116752460667024">מחפשים תהליך כלשהו מהרשימה.</translation>
 <translation id="4970880042055371251">‏גרסת ChromeOS</translation>
 <translation id="2182657378556811785">‏העדכון כמעט הושלם! הפעל מחדש את Brave‏ כדי לסיים את העדכון.</translation>
@@ -351,8 +351,8 @@
 <translation id="844451748565342664">‏אם Gemini פתוח ב-Brave, החלונית הצדדית נשארת פתוחה כשיוצרים כרטיסיות חדשות</translation>
 <translation id="215320507915280336">‏נעשה כאן שימוש בבדיקת האיות של חיפוש Brave. הטקסט המוקלד בדפדפן נשלח אל Brave. אפשר לשנות את ההתנהגות הזו בכל שלב דרך ההגדרות.</translation>
 <translation id="2899369907387169108">‏שימוש ב-Brave ללא חשבון</translation>
-<translation id="1833893255023048385">‏כלל נכנס עבור Brave Origin על מנת לאפשר תנועת mDNS.</translation>
-<translation id="711601904575862069">‏הפעלה מחדש לצורך עדכון &amp;Brave</translation>
+<translation id="6972301482162050771">‏כלל נכנס עבור Socket על מנת לאפשר תנועת mDNS.</translation>
+<translation id="2428387668457441558">‏הפעלה מחדש לצורך עדכון &amp;Socket</translation>
 <translation id="4918086044614829423">אישור</translation>
 <translation id="4918844574251943176">התמונה הועתקה</translation>
 <translation id="8797356639448065696">‏Brave נמצא במצב רקע.</translation>
@@ -392,7 +392,7 @@
 <translation id="5267531627648004734">‏להסיר מ-‏Brave‏</translation>
 <translation id="4620757336635063467">‏ירידה ברמת הביצועים בתמורה להגברת העמידות של Brave בפני מתקפות</translation>
 <translation id="239760341987199724">‏הגדרת Brave כדפדפן ברירת המחדל שלך</translation>
-<translation id="5165277482382778404">‏<ph name="PAGE_TITLE"/> - Brave Origin בגרסת בטא</translation>
+<translation id="178401659743246113">‏<ph name="PAGE_TITLE"/> - Socket בגרסת בטא</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{‏ההמלצה של Brave היא להשהות את הכרטיסייה שמאטה את הדפדפן}one{‏ההמלצה של Brave היא להשהות את הכרטיסיות שמאטות את הדפדפן}two{‏ההמלצה של Brave היא להשהות את הכרטיסיות שמאטות את הדפדפן}other{‏ההמלצה של Brave היא להשהות את הכרטיסיות שמאטות את הדפדפן}}</translation>
 <translation id="894936507076470937">‏יכול להיות ש-Brave לא יפעל כראוי כי הוא כבר לא נתמך בגרסה הזו של Linux</translation>
 <translation id="2596557398669145729">‏‫Brave חסם את ההורדה הזו כי הקובץ יכול לפגוע בחשבונות האישיים ובחשבונות שלך ברשתות החברתיות</translation>
@@ -425,7 +425,7 @@
 <translation id="95980832839683236">‏אפשר להאיץ ביצועים של אתרים באמצעות מנוע V8 של Brave, אבל Brave יהיה קצת פחות עמיד בפני מתקפות. ההגדרה הזו מושבתת.</translation>
 <translation id="1224606669200461217">‏כדי להשתמש בנתוני Brave ולשמור אותם בחשבון Brave, עליך לעדכן את Brave</translation>
 <translation id="5824893331272123205">לא הצלחנו לטעון את החלונית, אפשר לנסות שוב</translation>
-<translation id="4467664627714200493">‏ברוכים הבאים ל-Brave Origin‏</translation>
+<translation id="1125671961408630460">‏ברוכים הבאים ל-Socket‏</translation>
 <translation id="4026807082142463673">‏מפעילה תכונות נוספות שמספקות את ההגנות החזקות ביותר של Brave</translation>
 <translation id="5871205389137001634">יש ללחוץ כדי לצאת מחיפוש התמונות</translation>
 <translation id="8054200348483755053">‏מערכת Brave גילתה שהפריטים האלה מכילים תוכנה זדונית:</translation>
@@ -491,7 +491,7 @@
 <translation id="6388799252195623474">אני רוצה עזרה בנושא הזה</translation>
 <translation id="7920857181125123335">‏כדי להמשיך, עליך להיכנס ל-Brave באמצעות החשבון <ph name="EMAIL"/>. כך המדיניות של הארגון תחול על המכשיר שלך.</translation>
 <translation id="3256100650978957522">‏הלוגו של Brave בתוך מסך מחשב.</translation>
-<translation id="5880764554173582719">‏Brave Origin הוא דפדפן אינטרנט המפעיל דפי אינטרנט ואפליקציות במהירות הבזק. זהו דפדפן מהיר, יציב וקל לשימוש שמאפשר לך לגלוש באינטרנט בצורה מאובטחת יותר הודות להגנה מפני תוכנות זדוניות ופישינג המובנית ב-Brave Origin.</translation>
+<translation id="7527968786016866645">‏Socket הוא דפדפן אינטרנט המפעיל דפי אינטרנט ואפליקציות במהירות הבזק. זהו דפדפן מהיר, יציב וקל לשימוש שמאפשר לך לגלוש באינטרנט בצורה מאובטחת יותר הודות להגנה מפני תוכנות זדוניות ופישינג המובנית ב-Socket.</translation>
 <translation id="4091049150278654573">‏כדי שתמיד תהיה לך אפשרות להשתמש בנתונים ב-Brave ולשמור אותם בחשבון שלך ב-Brave, עליך לאמת את הזהות שלך</translation>
 <translation id="2532326772258858491">‏דפדפן Brave פועל מהר יותר ותכונות שמשתמשות ב-JavaScript אמורות לפעול כמו שצריך</translation>
 <translation id="6436260184216827876">התכונה 'חיפוש תמונות' לא זמינה. יש לנסות שוב מאוחר יותר.</translation>
@@ -539,7 +539,7 @@
 <translation id="6831043979455480757">תרגום</translation>
 <translation id="8211837073776713955">‏Brave מודיע לך אם הסיסמאות שלך נמצאות בסיכון</translation>
 <translation id="684888714667046800">לא ניתן להתחבר לאינטרנט. אם משתמשים בחומת אש, צריך לוודא ש-<ph name="PRODUCT_EXE_NAME"/> ברשימת ההיתרים.</translation>
-<translation id="8237613041998823669">‏Brave Origin‏ - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">‏Socket‏ - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">צריך ללחוץ כדי להמשיך</translation>
 <translation id="6862030660799253820">חיפוש התמונה הזו באמצעות התכונה "חיפוש תמונות"</translation>
 <translation id="3028928628792374067">‏הפריט "<ph name="EXTENSION_NAME"/>" שנמצא ב-Brave מכיל תוכנה זדונית</translation>
@@ -607,7 +607,7 @@ Brave לא יכול לשחזר את ההגדרות שלך.</translation>
 <translation id="284799389314308801">‏1. לוחצים על <ph name="BUTTON_LABEL"/> למטה
 2. לוחצים על <ph name="BUTTON_2"/> בהגדרות של Windows
 3. לוחצים על <ph name="BUTTON_3"/> בהתראה של Windows כדי להצמיד את Brave לסרגל האפליקציות לגישה מהירה</translation>
-<translation id="4864311514218370796">‏<ph name="PAGE_TITLE"/> - Brave Origin בגרסת פיתוח</translation>
+<translation id="8926066385033744246">‏<ph name="PAGE_TITLE"/> - Socket בגרסת פיתוח</translation>
 <translation id="7450541714075000668">הטקסט הועתק</translation>
 <translation id="2034072705932785495">‏Brave זקוק להרשאת גישה למצלמה בשביל האתר הזה</translation>
 <translation id="7129342855140808694">‏כדי להשתמש במיקרופון, צריך להיכנס אל <ph name="BEGIN_LINK"/>הגדרות המערכת<ph name="END_LINK"/> ולתת ל-Brave גישה</translation>
@@ -638,7 +638,7 @@ Brave לא יכול לשחזר את ההגדרות שלך.</translation>
 <translation id="8543787950557226450">‏איפוס לברירת המחדל של Brave</translation>
 <translation id="4976450819672499783">‏הגדרת Brave כדפדפן ברירת המחדל והצמדה שלו לסרגל האפליקציות</translation>
 <translation id="1978509466033734608">‏שיפור המהירות ב-Brave</translation>
-<translation id="8607348724092473027">‏<ph name="PAGE_TITLE"/> – Brave Origin בגרסת Canary</translation>
+<translation id="7125811958284429100">‏<ph name="PAGE_TITLE"/> – Socket בגרסת Canary</translation>
 <translation id="2684504034454188774">‏לאנשים שיש להם גישה לתעבורת הנתונים שלך יהיה קשה יותר לראות את האתרים שביקרת בהם. ‫Brave משתמש בחיבור מאובטח לחיפוש כתובות IP של אתרים ב-DNS.</translation>
 <translation id="7810005234485217901">אפשר להצמיד את התכונה 'חיפוש תמונות' כדי לאפשר גישה נוחה</translation>
 <translation id="1652855885539187849">‏כבר קיים במכשיר פרופיל Brave עם החשבון הזה.</translation>
@@ -665,7 +665,7 @@ Brave לא יכול לשחזר את ההגדרות שלך.</translation>
 <translation id="6175141682081019059">‏השבתת הפעילות של Brave ברקע לאפליקציות</translation>
 <translation id="80790299200510644">חיפוש באמצעות תמונות</translation>
 <translation id="8086881907087796310">ההתקנה נכשלה כי המחשב לא עומד בדרישות החומרה המינימליות.</translation>
-<translation id="5528402763209637578">‏<ph name="PAGE_TITLE"/> –‏ Brave Origin for Testing</translation>
+<translation id="1622905132862247621">‏<ph name="PAGE_TITLE"/> –‏ Socket for Testing</translation>
 <translation id="2061155704815580583">‏נדרשת הרשאת מיקום ב-Brave עבור האתר הזה</translation>
 <translation id="3576319845915562805">‏בפתיחה הבאה של Brave במכשיר <ph name="DEVICE_TYPE"/>, תופיע הנחיה להפעיל התראות על מעקב מחירים.</translation>
 <translation id="3728025339793417202">‏התראות על ירידות מחירים של פריטים שמעניינים אותך מחכות לך באפליקציית Brave בטלפון</translation>
@@ -776,8 +776,8 @@ Brave לא יכול לשחזר את ההגדרות שלך.</translation>
 <translation id="9148058034647219655">יציאה</translation>
 <translation id="2792073155252170448">‏רוצה להמשיך מהמקום שבו הפסקת? Brave יכול לשחזר את הכרטיסיות שלך בכל הפעלה מחדש. כדי להפעיל את האפשרות הזו, צריך לעבור אל</translation>
 <translation id="2444257125841652328">‏לפי הגדרת מנהל המערכת, Brave יפתח דפדפן חלופי כדי לגשת אל <ph name="TARGET_URL_HOSTNAME"/>.</translation>
-<translation id="7902365066753170041">‏הפעלה מחדש לצורך עדכון &amp;Brave</translation>
-<translation id="538146372587193686">‏Brave Origin ‏(mDNS-In)</translation>
+<translation id="8649131107612558845">‏הפעלה מחדש לצורך עדכון &amp;Socket</translation>
+<translation id="4540787955808828187">‏Socket ‏(mDNS-In)</translation>
 <translation id="296137235951584143">‏אפשר להתאים אישית את Brave בדרך שנוחה לך</translation>
 <translation id="7977787072794666032">‏ייתכן ש-Brave לא יפעל כראוי כי הוא כבר לא נתמך ב-Windows XP וב-Windows Vista</translation>
 <translation id="8462937515915443472">‏עם Brave אפשר ליהנות מתכונות הבטיחות הכי טובות של Brave.</translation>

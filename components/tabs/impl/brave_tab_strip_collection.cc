@@ -161,6 +161,12 @@ void BraveTabStripCollection::MoveTabsRecursiveForDelegate(
                                         retain_collection_types);
 }
 
+bool BraveTabStripCollection::ReparentTreeTabNode(TabInterface* child,
+                                                  TabInterface* parent) {
+  return delegate_ && delegate_->ShouldHandleTabManipulation() &&
+         delegate_->ReparentTreeTabNode(child, parent);
+}
+
 void BraveTabStripCollection::Unsplit(split_tabs::SplitTabId split_id) {
   if (delegate_ && delegate_->ShouldHandleTabManipulation() &&
       delegate_->Unsplit(split_id)) {

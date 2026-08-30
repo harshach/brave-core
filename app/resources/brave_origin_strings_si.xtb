@@ -112,7 +112,7 @@
 <translation id="2170098639895543546">පිටුවෙහි ඕනෑම දෙයක් තෝරන්න</translation>
 <translation id="142389341645668510">Brave අභිරුචිකරණය කරන්න</translation>
 <translation id="2174917724755363426">ස්ථාපනය සම්පූර්ණ නැත. ඔබට අවලංගු කිරීමට අවශ්‍ය බව විශ්වාසද?</translation>
-<translation id="8841019650931243995">Brave Origin - ජාල පුරනය - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - ජාල පුරනය - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">යාවත්කාලීන පරීක්ෂාවේ දෝෂය: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Brave වෙතින් ගිණුම ඉවත් කරන්න</translation>
 <translation id="4022045673362955204">යන ගමන් හොඳම සාප්පු සවාරි මෙවලම් රැගෙන යාමට Brave යෙදුම භාවිතා කරන්න</translation>
@@ -147,7 +147,7 @@
 <translation id="2542968102051442371">රූප සෙවීම සමග පෙළ තෝරන්න</translation>
 <translation id="70183448213529602">Brave පවතින මුරපද ප්‍රතිස්ථාපනය කිරීමට උත්සාහ කරයි. මෙයට ඉඩ දීමට ඔබේ Windows මුරපදය ටයිප් කරන්න.</translation>
 <translation id="7798069806040634998">Brave හට ගොනු බාගැනීමට ආචයන ප්‍රවේශය අවශ්‍යයි</translation>
-<translation id="2351700486811407088">Brave Origin උදව්කරු</translation>
+<translation id="9082785458664620820">Socket උදව්කරු</translation>
 <translation id="2575822587468774919">රූප සෙවීම සමග සෙවීමට ඕනෑම දෙයක් තෝරන්න</translation>
 <translation id="3830890663494219270">ඔබේ සියලු උපාංග මත ඔබේ මුරපද සහ තවත් දේ ලබා ගැනීමට, Brave වෙත පුරන්න</translation>
 <translation id="6908148552215338695">Brave බාගැනීමට සහ ඔබේ Brave ගිණුමට පුරනය වීමට ඔබේ දුරකථනයෙන් QR කේතය ස්කෑන් කරන්න.</translation>
@@ -177,7 +177,7 @@
 <translation id="777113543093865885">Brave වෙතින් ඉවත් කරන්න...</translation>
 <translation id="5265419033369521352">ඔබ පුරා සිටින විට Brave හි ඔබව ආරක්ෂිතව තබා ගන්නා අතර අනෙකුත් Brave යෙදුම් තුළ ඔබගේ ආරක්ෂාව වැඩි දියුණු කිරීමට භාවිත කළ හැකිය</translation>
 <translation id="2885378588091291677">කාර්ය කළමණාකරු</translation>
-<translation id="2176825726964012531">&amp;Brave පිළිබඳ</translation>
+<translation id="3984800435132982628">&amp;Socket පිළිබඳ</translation>
 <translation id="2915996080311180594">පසුව යළි අරඹන්න</translation>
 <translation id="2481553173340651149">ඔබේ දත්ත ඔබේ මුර-වැකිකඩ සමග සංකේතනය කර ඇත. ඔබේ Brave ගිණුමේ Brave දත්ත භාවිතා කිරීමට සහ සුරැකීමට එය ඇතුළු කරන්න.</translation>
 <translation id="2945997411976714835">ස්ථාපන දෝෂය: ස්ථාපක ක්‍රියාවලිය ආරම්භ කිරීමට අසමත් විය.</translation>
@@ -263,7 +263,7 @@
 <translation id="3846683726093018685">**සාරාංශගත කරන්න:** වචන 30ක් ඇතුළත තනි වාක්‍යයකින්, තිර රුවෙහි අන්තර්ගතයේ ප්‍රාථමික විෂය සහ අරමුණ විස්තර කරන්න.
 
           **ප්‍රශ්න යෝජනා කරන්න:** තිර රුව වඩා හොඳින් තේරුම් ගැනීම සඳහා පරිශීලකයෙකුට ඇසිය හැකි සිතුවිලි අවුස්සන ප්‍රශ්න 3-5 ක බුලටිත ලැයිස්තුවක් ජනනය කරන්න. මෙම ප්‍රශ්නවලට අවම වශයෙන් දෘශ්‍ය වස්තුවක්, එහි සැලසුම හෝ එහි පිහිටීම පිළිබඳව විශේෂිත වූ එකක්වත් ඇතුළත් විය යුතු ය.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">භාෂාව තේරීම</translation>
 <translation id="6315734375101223238">Brave අභිරුචි කිරීම සහ පාලනය. යම් දෙයකට ඔබේ අවධානය අවශ්‍යයි - විස්තර සඳහා ක්ලික් කරන්න.</translation>
 <translation id="7130675370997202556">Brave විවෘත කිරීමට සහ පිරික්සීම ආරම්භ කිරීමට ඔබේ නම ක්ලික් කරන්න.</translation>
@@ -277,7 +277,7 @@
 <translation id="4194619960643453552">Brave ඔබව සුරක්ෂිතව තබන ආකාරය ඉගෙන ගන්න</translation>
 <translation id="3967822245660637423">බාගැනීම සම්පූර්ණයි</translation>
 <translation id="1486377520191913768">ඔබ ලිපින තීරුවේ හෝ සෙවීම් කොටුවේ ටයිප් කරන විට, යෝජනා ලබා ගැනීම සඳහා Brave ඔබ ටයිප් කරන දේ ඔබේ සංවිධානයේ සෙවීම්, AI සහ නියෝජිත මෙවලම් වෙත යවයි.</translation>
-<translation id="1311808042904310985">&amp;පරීක්ෂා කිරීම සඳහා Brave ගැන</translation>
+<translation id="3813099290530551762">&amp;පරීක්ෂා කිරීම සඳහා Socket ගැන</translation>
 <translation id="1152920704813762236">ChromeOS ගැන</translation>
 <translation id="8282895427217902177">ඔබ වෙබ් අඩවියකට පිවිසෙන විට, Brave ඔබේ IP ලිපිනය සඟවන රහස්‍යතා සේවාදායකයක් හරහා URL හි අපැහැදිලි කොටසක් <ph name="BEGIN_LINK"/>Brave සුරක්ෂිත බ්‍රවුස් කිරීම<ph name="END_LINK"/> වෙත යවයි. වෙබ් අඩවියක් සැක කටයුතු දෙයක් සිදු කරන්නේ නම්, සම්පූර්ණ URL සහ පිටු අන්තර්ගතයේ බිටු ද යවයි.</translation>
 <translation id="4016217212818346953">මුරපද කළමනාකරු සමග සුරක්ෂිතව සිටින්න</translation>
@@ -296,7 +296,7 @@
 <translation id="10925962326134232">ඔබේ බ්‍රව්සරයට නව පෙනුමක් ලබා දීමට Brave අභිරුචිකරණය කරන්න</translation>
 <translation id="6596295505984504022">ඔබේ Brave අභිරුචි කරන්න</translation>
 <translation id="4148957013307229264">ස්ථාපනය කරමින්...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - ජාල පුරනය - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - ජාල පුරනය - Socket</translation>
 <translation id="2871190378186459992">Brave සඳහා විශිෂ්ට යෙදුම්, ක්‍රීඩා, දිගු සහ තේමා අනාවරණය කර ගන්න.</translation>
 <translation id="462105622535258178">මෙම දිගුව සහ තවත් දේ ඔබේ සියලු පරිගණකවල ලබා ගැනීමට, Brave වෙත පුරන්න</translation>
 <translation id="6670140629169983459">ඔබේ මාපියන්ගේ තේරීම් සමග සබැඳිව ආරක්ෂිතව සිටීමට, ඔබ <ph name="USER_EMAIL_ADDRESS"/> ලෙස දැනටමත් පුරනය වී ඇති ඔබේ Brave පැතිකඩ වෙත මාරු වන්න</translation>
@@ -328,7 +328,7 @@
 <translation id="4493028449971051158">ආරම්භක දෝෂය: ස්ථාපකය පරිපාලක ලෙස ධාවනය කරන්න.</translation>
 <translation id="4501471624619070934">මෙම රට තුළ ප්‍රවේශය සීමා කර ඇති නිසා ස්ථාපනය අසමත් විය.</translation>
 <translation id="8594994021633965927">මෙම දිගුව මෙය දත්ත රැස් කර භාවිත කරන ආකාරය වැනි පෞද්ගලිකත්ව පුරුදු ප්‍රකාශන කර නැත. Brave ඔබ එය ඉවත් කිරීම නිර්දේශ කරයි.</translation>
-<translation id="770557926599450702">Brave Origin වෙත සාදරයෙන් පිළිගනිමු; නව බ්‍රවුසර කවුළුවක් විවෘත කරන ලදි</translation>
+<translation id="3788134970312783571">Socket වෙත සාදරයෙන් පිළිගනිමු; නව බ්‍රවුසර කවුළුවක් විවෘත කරන ලදි</translation>
 <translation id="137732229629632648">ඔබේ වටපිටාව සිතියම් කිරීමට සහ ඔබේ අත් හඹා යාමට Brave හට අවසරය අවශ්‍ය ය</translation>
 <translation id="5036046007335188949">ඔබ දැනටමත් තව Brave පැතිඩකක් තුළ <ph name="USER_EMAIL_ADDRESS"/> ලෙස පුරනය වී ඇත</translation>
 <translation id="1878185978731985193">Brave බ්‍රවුස් කිරීම සහ සෙවීම වේගවත් කරන පිටු පූර්ව පූරණය කරයි. <ph name="BEGIN_LINK"/>පිටු පූර්ව පූරණය ගැන තව දැන ගන්න<ph name="END_LINK"/></translation>
@@ -336,7 +336,7 @@
 <translation id="8669339108356170796">ඔබ සුරක්ෂිත බ්‍රවුස් කිරීම ක්‍රියාවිරහිත කළ නිසා සහ ගොනුව සත්‍යාපනය කළ නොහැකි නිසා Brave මෙම බාගැනීම අවහිර කර ඇත</translation>
 <translation id="7583343841997441047">ඔබේ දුරකථනයේ Brave සමග Google Lens උත්සාහ කරන්න</translation>
 <translation id="4594305310729380060">මෙම උපාංගයේ මුරපද කළමනාකරු වෙත</translation>
-<translation id="7776200949522126045">Brave Origin යෙදුම්</translation>
+<translation id="1662388968719244110">Socket යෙදුම්</translation>
 <translation id="4598116752460667024">ලැයිස්තුවෙන් ඕනෑම ක්‍රියාවලියක් සොයන්න.</translation>
 <translation id="4970880042055371251">ChromeOS අනුවාදය</translation>
 <translation id="2182657378556811785">බොහෝ දුරට යාවත්කාලීනයි! යාවත්කාලීනය අවසන් කිරීමට Brave යළි දියත් කරන්න.</translation>
@@ -354,8 +354,8 @@
 <translation id="844451748565342664">Brave තුළ Gemini විවෘත නම්, නව පටිති තැනීමේ දී පැති පුවරුව විවෘතව පවතී</translation>
 <translation id="215320507915280336">මෙය Brave සෙවීම තුළ භාවිත කෙරෙන අක්‍ෂර පරීක්‍ෂකයම භාවිත කරයි. ඔබ බ්‍රවුසරය තුළ ටයිප් කරන පාඨය Brave වෙත යවනු ලැබේ. ඔබට සැම විටම මෙම හැසිරීම සැකසීම් තුළ වෙනස් කළ හැක.</translation>
 <translation id="2899369907387169108">ගිණුමක් නොමැතිව Brave භාවිත කරන්න</translation>
-<translation id="1833893255023048385">Brave Origin සඳහා අභ්‍යන්තර නියෝගය mDNS තදබදය ඉඩ දීමයි.</translation>
-<translation id="711601904575862069">&amp;Brave යාවත්කාලීන කිරීමට යළි දියත් කරන්න</translation>
+<translation id="6972301482162050771">Socket සඳහා අභ්‍යන්තර නියෝගය mDNS තදබදය ඉඩ දීමයි.</translation>
+<translation id="2428387668457441558">&amp;Socket යාවත්කාලීන කිරීමට යළි දියත් කරන්න</translation>
 <translation id="4918086044614829423">පිළිගන්න</translation>
 <translation id="4918844574251943176">රූපය පිටපත් කරන ලදි</translation>
 <translation id="8797356639448065696">Brave පසුබිම් ප්‍රකාරය තුළ ඇත.</translation>
@@ -396,7 +396,7 @@
 <translation id="5267531627648004734">Brave වෙතින් ඉවත් කරන්න</translation>
 <translation id="4620757336635063467">කාර්යසාධනය අඩු කරන නමුත් Brave ප්‍රහාරවලට ඉතා විරුද්ධයි</translation>
 <translation id="239760341987199724">Brave ඔබේ පෙරනිමි බ්‍රව්සරය ලෙස සකසන්න</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin බීටා</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket බීටා</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{ඔබේ බ්‍රව්සරය මන්දගාමී කරන පටිත්ත විරාම කිරීමට Brave නිර්දේශ කරයි}one{ඔබේ බ්‍රව්සරය මන්දගාමී කරන පටිති විරාම කිරීමට Brave නිර්දේශ කරයි}other{ඔබේ බ්‍රව්සරය මන්දගාමී කරන පටිති විරාම කිරීමට Brave නිර්දේශ කරයි}}</translation>
 <translation id="894936507076470937">එය තවදුරටත් මෙම Linux ව්‍යාප්තියට සහාය නොදක්වන නිසා Brave නිවැරදිව ක්‍රියා නොකළ හැකිය.</translation>
 <translation id="2596557398669145729">ගොනුව ඔබේ පුද්ගලික සහ සමාජ ජාල ගිණුම් වලට හානි කළ හැකි නිසා Brave මෙම බාගැනීම අවහිර කර ඇත</translation>
@@ -429,7 +429,7 @@
 <translation id="95980832839683236">Brave හි V8 එන්ජිම සමග අඩවි වේගවත් කරයි, නමුත් Brave ප්‍රහාරවලට තරමක් අඩු ප්‍රතිරෝධයක් දක්වයි. මෙම සැකසීම ක්‍රියාවිරහිතයි.</translation>
 <translation id="1224606669200461217">ඔබේ Brave ගිණුමේ Brave දත්ත භාවිත කිරීමට සහ සුරැකීමට, Brave යාවත්කාලීන කරන්න</translation>
 <translation id="5824893331272123205">මෙම පැනලය පූරණය කිරීමට නොහැකි විය, නැවත උත්සාහ කරන්න</translation>
-<translation id="4467664627714200493">Brave Origin වෙත සාදරයෙන් පිළිගනිමු</translation>
+<translation id="1125671961408630460">Socket වෙත සාදරයෙන් පිළිගනිමු</translation>
 <translation id="4026807082142463673">Brave හි ශක්තිමත්ම ආරක්ෂාව සැපයීමට අමතර විශේෂාංග ක්‍රියාත්මක කරයි</translation>
 <translation id="5871205389137001634">රූප සෙවීමෙන් පිටවීමට ක්ලික් කරන්න</translation>
 <translation id="8054200348483755053">මෙම අයිතමවල අනිෂ්ට මෘදුකාංග අඩංගු බව Brave සොයා ගෙන ඇත:</translation>
@@ -495,7 +495,7 @@
 <translation id="6388799252195623474">මේකට මට උදවු කරන්න</translation>
 <translation id="7920857181125123335">ඉදිරියට යාමට, <ph name="EMAIL"/> ලෙස Brave වෙත පුරන්න. මෙය ඔබේ සංවිධානයේ ප්‍රතිපත්ති ඔබ සතුව ඇති බවට සහතික කරයි.</translation>
 <translation id="3256100650978957522">පරිගණක තිරයක් තුළ Brave ලාංඡනය.</translation>
-<translation id="5880764554173582719">Brave Origin යනු විදුලි වේගයෙන් යෙදුම් හා වෙබ් පිටු ක්‍රියාකරවන ජාල බ්‍රව්සරයකි. එය වේගවත්, ස්ථාවර හා භාවිතයට පහසුයි. Brave Origin තුළ තිළැලි දූශිත මෘදුකාංග හා දත්ත සොරකම් ආරක්ෂාව සමඟ ජාලය වඩා ආරක්ෂිතව ගවේශනය කරන්න.</translation>
+<translation id="7527968786016866645">Socket යනු විදුලි වේගයෙන් යෙදුම් හා වෙබ් පිටු ක්‍රියාකරවන ජාල බ්‍රව්සරයකි. එය වේගවත්, ස්ථාවර හා භාවිතයට පහසුයි. Socket තුළ තිළැලි දූශිත මෘදුකාංග හා දත්ත සොරකම් ආරක්ෂාව සමඟ ජාලය වඩා ආරක්ෂිතව ගවේශනය කරන්න.</translation>
 <translation id="4091049150278654573">ඔබට සැම විටම ඔබේ Brave ගිණුමේ ඇති Brave දත්ත භාවිතා කිරීමට සහ සුරැකීමට හැකි බව සහතික කර ගැනීමට, ඒ ඔබ බව සත්‍යාපනය කරන්න</translation>
 <translation id="2532326772258858491">Brave ඉතා වේගයෙන් සහ සැලසුම් කළ පරිදි ජාවාස්ක්‍රිප්ට් භාවිත කළ යුතු විශේෂාංග ධාවනය කරයි</translation>
 <translation id="6436260184216827876">රූප සෙවීම ලබා ගත නොහැක. පසුව නැවත උත්සාහ කරන්න.</translation>
@@ -543,7 +543,7 @@
 <translation id="6831043979455480757">පරිවර්තනය කරන්න</translation>
 <translation id="8211837073776713955">Brave ඔබට ඔබේ මුරපද කිසි විටෙක හෝ අවදානමට ලක් වී තිබේද යන්න දන්වයි</translation>
 <translation id="684888714667046800">අන්තර්ජාලය වෙත සම්බන්ධ වීමට නොහැකි වේ. ඔබ ෆයර් වෝලයක් භාවිතා කරන්නේ නම්, <ph name="PRODUCT_EXE_NAME"/> ඉඩ දුන් ලැයිස්තුවේ ඇති බව සහතික කර ගන්න.</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">ඉදිරියට යාමට පටිත්ත</translation>
 <translation id="6862030660799253820">රූප සෙවීම භාවිතයෙන් මෙම රූපය සොයන්න</translation>
 <translation id="3028928628792374067">Brave "<ph name="EXTENSION_NAME"/>" හි අනිෂ්ට මෘදුකාංග අඩංගු බව සොයා ගෙන ඇත</translation>
@@ -610,7 +610,7 @@ Brave හට ඔබගේ සැකසුම් ප්‍රතිසාධන�
 <translation id="3191314862567596053">Brave වෙත මුරපද ආයාත කරන්න</translation>
 <translation id="284799389314308801">1. පහත <ph name="BUTTON_LABEL"/> ක්ලික් කරන්න ඔබේ Windows සැකසීම් තුළ <ph name="BUTTON_2"/> ක්ලික් කරන්න
 3. ඉක්මන් ප්‍රවේශය සඳහා Brave ඔබේ කාර්ය තීරුවට ඇමිණීමට Windows දැනුම්දීම තුළ <ph name="BUTTON_3"/> ක්ලික් කරන්න</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">පෙළ පිටපත් කරන ලදී</translation>
 <translation id="2034072705932785495">Brave හට මෙම අඩවිය සදහා ඔබේ කැමරාවට ප්‍රවේශ වීමට අවසර අවශ්‍යයි</translation>
 <translation id="7129342855140808694">ඔබේ මයික්‍රෆෝනය භාවිත කිරීමට, <ph name="BEGIN_LINK"/>පද්ධති සැකසීම්<ph name="END_LINK"/> තුළ Brave හට ප්‍රවේශය දෙන්න</translation>
@@ -641,7 +641,7 @@ Brave හට ඔබගේ සැකසුම් ප්‍රතිසාධන�
 <translation id="8543787950557226450">පෙරනිමි Brave වෙත යළි සකසන්න</translation>
 <translation id="4976450819672499783">Brave පෙරනිමිය ලෙස සකසා එය කාර්ය තීරුවට අමුණන්න</translation>
 <translation id="1978509466033734608">Brave වේගවත් කරන්න</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin කැනරි</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket කැනරි</translation>
 <translation id="2684504034454188774">ඔබේ අන්තර්ජාල ගමනාගමනයට ප්‍රවේශය ඇති පුද්ගලයින්ට ඔබ පිවිසෙන්නේ කුමන අඩවි දැයි බැලීම අසීරු කරන්න. Brave DNS (වසම් නාම පද්ධතිය) තුළ වෙබ් අඩවියක IP ලිපිනය සෙවීමට ආරක්ෂිත සම්බන්ධතාවයක් භාවිතා කරයි.</translation>
 <translation id="7810005234485217901">පහසු ප්‍රවේශය සඳහා ඔබට රූප සෙවීම ඇමිණිය හැක</translation>
 <translation id="1652855885539187849">මෙම ගිණුම සහිත Brave පැතිකඩක් දැනටමත් මෙම උපාංගයේ පවතී</translation>
@@ -668,7 +668,7 @@ Brave හට ඔබගේ සැකසුම් ප්‍රතිසාධන�
 <translation id="6175141682081019059">යෙදුම් සඳහා පසුබිමේ Brave ධාවනය අබල කරන්න</translation>
 <translation id="80790299200510644">රූප සෙවීම</translation>
 <translation id="8086881907087796310">ඔබේ පරිගණකය අවම දෘඪාංග අවශ්‍යතා සපුරා නොමැති නිසා ස්ථාපනය අසමත් විය.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - පරීක්ෂණය සඳහා Brave Origin</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - පරීක්ෂණය සඳහා Socket</translation>
 <translation id="2061155704815580583">මෙම අඩවිය සඳහා Brave හට ස්ථාන අවසරය අවශ්‍යයි</translation>
 <translation id="3576319845915562805">මීළඟ වතාවේ ඔබ ඔබේ <ph name="DEVICE_TYPE"/> මත Brave විවෘත කරන විට, මිල ලුහුබැඳීමේ ඇඟවීම් සබල කිරීමට ප්‍රේරකයක් ඔබට පෙනෙනු ඇත.</translation>
 <translation id="3728025339793417202">ඔබේ දුරකථනයේ Brave යෙදුම සමග ඔබ උනන්දු වන අයිතමවල මිල පහත වැටීමේ ඇඟවීම් ලබා ගන්න</translation>
@@ -779,8 +779,8 @@ Brave හට ඔබගේ සැකසුම් ප්‍රතිසාධන�
 <translation id="9148058034647219655">ඉවත් වන්න</translation>
 <translation id="2792073155252170448">ඔබ නතර කළ තැනින් ඉදිරියට යන්න: ඔබ යළි අරඹන සෑම අවස්ථාවකම Brave හට ඔබේ පටිති ප්‍රතිසාධනය කළ හැක. මෙය ක්‍රියාත්මක කිරීමට, වෙත යන්න</translation>
 <translation id="2444257125841652328">ඔබේ පද්ධති පරිපාලකයා <ph name="TARGET_URL_HOSTNAME"/> වෙත ප්‍රවේශ වීමට වෛකල්පික බ්‍රවුසරයක් විවෘත කිරීමට Brave වින්‍යාස කර ඇත.</translation>
-<translation id="7902365066753170041">&amp;Brave යාවත්කාලීන කිරීමට යළි දියත් කරන්න</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">&amp;Socket යාවත්කාලීන කිරීමට යළි දියත් කරන්න</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Brave ඔබගේම කර ගන්න</translation>
 <translation id="7977787072794666032">Brave තවදුරටත් Windows XP හෝ Windows Vista මත සහාය නොදක්වන නිසා නිවැරදිව ක්‍රියා නොකරනු ඇත</translation>
 <translation id="8462937515915443472">Brave සමග යන ගමන් Brave හි හොඳම ආරක්ෂක විශේෂාංග ලබා ගන්න.</translation>

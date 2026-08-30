@@ -20,6 +20,10 @@
 
 class TreeTabModel;
 
+namespace content {
+class WebContents;
+}
+
 class BraveTabStripModel : public TabStripModel {
  public:
   explicit BraveTabStripModel(TabStripModelDelegate* delegate,
@@ -71,6 +75,16 @@ class BraveTabStripModel : public TabStripModel {
   // by BraveBrowserTabStripController::SelectTab() to expand a mouse click on
   // a tree-tab parent to select its whole subtree.
   std::vector<int> GetTreeTabDescendantIndices(int index);
+
+  // Moves the complete subtree containing `child` beneath `parent`. This is
+  // used by Origin's explicit drop-on-page gesture. Returns false for invalid
+  // or cyclic drops.
+  bool NestTabUnder(content::WebContents* child, content::WebContents* parent);
+
+  // Promotes the selected tree subtree(s) to the unpinned root. Used before a
+  // page is moved to another Origin Space so it cannot retain an invisible
+  // parent from the source Space.
+  bool PromoteSelectedTreeTabsToRoot();
 
   // TabStripModel:
   void SelectRelativeTab(TabRelativeDirection direction,

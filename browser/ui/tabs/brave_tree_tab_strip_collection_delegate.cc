@@ -766,6 +766,43 @@ void BraveTreeTabStripCollectionDelegate::MoveTabsRecursive(
   }
 }
 
+bool BraveTreeTabStripCollectionDelegate::ReparentTreeTabNode(
+    tabs::TabInterface* child,
+    tabs::TabInterface* parent) {
+  if (!child || !parent || child == parent) {
+    return false;
+  }
+
+  auto* child_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(child);
+  auto* parent_node =
+      tabs::TreeTabNodeTabCollection::GetNearestTreeTabNodeCollection(parent);
+  if (!child_node || !parent_node || child_node == parent_node) {
+    return false;
+  }
+
+  // A node cannot be placed below itself or any of its descendants.
+  for (tabs::TabCollection* ancestor = parent_node; ancestor;
+       ancestor = ancestor->GetParentCollection()) {
+    if (ancestor == child_node) {
+      return false;
+    }
+  }
+
+  tabs::TabCollection* old_parent = child_node->GetParentCollection();
+  if (!old_parent || old_parent == parent_node) {
+    return false;
+  }
+
+  std::unique_ptr<tabs::TabCollection> owned_child =
+      old_parent->MaybeRemoveCollection(child_node);
+  if (!owned_child) {
+    return false;
+  }
+  parent_node->AddCollection(std::move(owned_child), parent_node->ChildCount());
+  return true;
+}
+
 void BraveTreeTabStripCollectionDelegate::AttachDetachedGroupCollection(
     const std::vector<tabs::TabInterface*>& moving_tabs,
     tab_groups::TabGroupId new_group_id) const {

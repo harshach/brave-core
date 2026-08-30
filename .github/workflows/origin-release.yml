@@ -1,10 +1,10 @@
-name: Publish Origin desktop release
+name: Publish Socket desktop release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: Release tag, for example origin-v0.1.0-preview.1
+        description: Release tag, for example socket-v0.1.0-preview.1
         required: true
         type: string
       prerelease:
@@ -14,13 +14,13 @@ on:
         type: boolean
   push:
     tags:
-      - "origin-v*"
+      - "socket-v*"
 
 permissions:
   contents: read
 
 concurrency:
-  group: origin-release-${{ inputs.tag || github.ref_name }}
+  group: socket-release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
             prerelease="$DISPATCH_PRERELEASE"
           else
             release_tag="$GITHUB_REF_NAME"
-            version="${release_tag#origin-v}"
+            version="${release_tag#socket-v}"
             if [[ "$version" == *-* ]]; then
               prerelease=true
             else
@@ -51,8 +51,8 @@ jobs:
             fi
           fi
 
-          if [[ ! "$release_tag" =~ ^origin-v[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
-            echo "Release tag must start with origin-v and contain only letters, numbers, '.', '_' or '-'." >&2
+          if [[ ! "$release_tag" =~ ^socket-v[0-9A-Za-z][0-9A-Za-z._-]*$ ]]; then
+            echo "Release tag must start with socket-v and contain only letters, numbers, '.', '_' or '-'." >&2
             exit 1
           fi
 
@@ -107,7 +107,7 @@ jobs:
         uses: actions/download-artifact@v8.0.1
         with:
           path: downloaded-packages
-          pattern: origin-*-${{ github.sha }}
+          pattern: socket-*-${{ github.sha }}
 
       - name: Prepare release assets
         shell: bash
@@ -135,10 +135,10 @@ jobs:
           )
 
           for platform in \
-            origin-linux-x64 \
-            origin-windows-x64 \
-            origin-macos-ARM64 \
-            origin-macos-X64; do
+            socket-linux-x64 \
+            socket-windows-x64 \
+            socket-macos-ARM64 \
+            socket-macos-X64; do
             if ! compgen -G "release-assets/$platform-*" > /dev/null; then
               echo "No release package found for $platform." >&2
               exit 1
@@ -155,8 +155,8 @@ jobs:
           PRERELEASE: ${{ needs.validate.outputs.prerelease }}
           RELEASE_TAG: ${{ needs.validate.outputs.tag }}
         run: |
-          title="Origin ${RELEASE_TAG#origin-v}"
-          notes="Unsigned Origin community builds. macOS Gatekeeper and Windows SmartScreen may require manual confirmation. Verify downloads with SHA256SUMS."
+          title="Socket ${RELEASE_TAG#socket-v}"
+          notes="Unsigned Socket community builds. macOS Gatekeeper and Windows SmartScreen may require manual confirmation. Verify downloads with SHA256SUMS."
 
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" release-assets/* \

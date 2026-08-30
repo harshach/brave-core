@@ -7,6 +7,7 @@
 #define BRAVE_BROWSER_WORKSPACES_WORKSPACE_SERVICE_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -23,6 +24,7 @@
 
 class PrefService;
 class Profile;
+class GURL;
 
 // Per-profile service that manages saving and restoring named workspaces.
 //
@@ -65,6 +67,15 @@ class WorkspaceService : public KeyedService {
   bool UpdateOriginSpace(const OriginSpaceMetadata& space);
   bool DeleteOriginSpace(const std::string& id);
   bool ReorderOriginSpace(const std::string& id, size_t target_index);
+
+  // Returns the registrable domain used by external-link routing. Host-only
+  // URLs such as localhost and IP addresses use their canonical host.
+  static std::string GetOriginDomainKey(const GURL& url);
+  std::optional<std::string> GetOriginSpaceForDomain(const GURL& url) const;
+  bool SetOriginSpaceForDomain(const GURL& url, const std::string& space_id);
+  bool ClearOriginSpaceForDomain(const GURL& url);
+  std::optional<std::string> GetLastOriginTemporaryLinkSpace() const;
+  bool SetLastOriginTemporaryLinkSpace(const std::string& space_id);
   void AddObserver(Observer* observer);
   void RemoveObserver(Observer* observer);
 

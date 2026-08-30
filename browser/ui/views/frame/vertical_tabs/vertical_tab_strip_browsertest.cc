@@ -70,6 +70,7 @@
 #include "ui/events/event.h"
 #include "ui/gfx/animation/animation_test_api.h"
 #include "ui/gfx/geometry/skia_conversions.h"
+#include "ui/views/controls/button/label_button.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/test/views_test_utils.h"
@@ -400,6 +401,24 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSpaceRailIsNativeTabDropTarget) {
+  ToggleVerticalTabStrip();
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  ASSERT_GE(region->origin_workspace_buttons_.size(), 2u);
+  views::LabelButton* destination = region->origin_workspace_buttons_[1];
+  ASSERT_TRUE(destination);
+  const gfx::Point destination_center =
+      destination->GetBoundsInScreen().CenterPoint();
+
+  EXPECT_EQ(region, region->GetOriginTabDragTarget(destination_center));
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
                        OriginSidebarResizeFinalizesRendererViewport) {
   auto scoped_animation_mode =
       gfx::AnimationTestApi::SetRichAnimationRenderMode(
@@ -466,6 +485,51 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   }
   EXPECT_EQ(last_page_bottom + 4, container->origin_new_page_button_->y());
   EXPECT_EQ(32, container->origin_new_page_button_->height());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginPagesHeaderClipsScrollingRows) {
+  ToggleVerticalTabStrip();
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+
+  auto* tab_strip = views::AsViewClass<BraveTabStrip>(
+      browser_view()->horizontal_tab_strip_for_testing());
+  ASSERT_TRUE(tab_strip);
+  auto* container = views::AsViewClass<BraveTabContainer>(
+      tab_strip->GetTabContainerForTesting());
+  ASSERT_TRUE(container);
+
+  while (container->GetMaxScrollOffset() <= 5 * tabs::kVerticalTabHeight) {
+    chrome::AddTabAt(browser(), GURL("brave://version/"), -1, true);
+    tab_strip->StopAnimating();
+    InvalidateAndRunLayoutForVerticalTabStrip();
+  }
+
+  ASSERT_TRUE(container->origin_pages_section_header_);
+  ASSERT_TRUE(container->origin_pages_section_header_->GetVisible());
+  const int viewport_top =
+      container->origin_pages_section_header_->bounds().bottom();
+  ASSERT_GT(viewport_top, 0);
+  EXPECT_EQ(viewport_top, container->GetPinnedTabsAreaBoundary());
+  EXPECT_EQ(container->height() - viewport_top,
+            container->GetUnpinnedTabsViewportHeight());
+
+  container->SetScrollOffset(container->GetMaxScrollOffset());
+  tab_strip->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  Tab* first_page = GetTabAt(browser(), 0);
+  ASSERT_TRUE(first_page);
+  ASSERT_FALSE(first_page->clip_path().isEmpty());
+  const gfx::Rect expected_clip_bounds_in_container(
+      0, viewport_top, container->width(), container->height() - viewport_top);
+  const gfx::Rect expected_clip_bounds_in_tab =
+      views::View::ConvertRectToTarget(container, first_page,
+                                       expected_clip_bounds_in_container);
+  const gfx::Rect clip_bounds_in_tab = gfx::ToEnclosingRect(
+      gfx::SkRectToRectF(first_page->clip_path().computeTightBounds()));
+  EXPECT_EQ(expected_clip_bounds_in_tab, clip_bounds_in_tab);
 }
 #endif
 
@@ -1824,7 +1888,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   // Add enough tabs to make the tab strip scrollable
   while (brave_tab_container->GetMaxScrollOffset() <=
          5 * tabs::kVerticalTabHeight) {
-    AppendTab(browser());
+    chrome::AddTabAt(browser(), GURL("brave://version/"), -1, true);
     browser_view()->horizontal_tab_strip_for_testing()->StopAnimating();
 
     InvalidateAndRunLayoutForVerticalTabStrip();
@@ -1832,10 +1896,10 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   const int container_height = brave_tab_container->height();
   ASSERT_GT(container_height, 40);
 
-  const int pinned_tabs_area_bottom =
-      brave_tab_container->GetPinnedTabsAreaBottom();
+  const int unpinned_tabs_area_boundary =
+      brave_tab_container->GetPinnedTabsAreaBoundary();
 
-  ASSERT_GT(pinned_tabs_area_bottom, 0);
+  ASSERT_GT(unpinned_tabs_area_boundary, 0);
   ASSERT_NE(brave_tab_container->scroll_offset_, 0);
 
   // Set scroll offset to 0 (top)
@@ -1846,8 +1910,8 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
   // All unpinned tabs should have clip path set when pinned tabs exist
   // The clip path should match the visible area bounds
   gfx::Rect expected_clip_bounds_in_container(
-      0, pinned_tabs_area_bottom, brave_tab_container->width(),
-      container_height - pinned_tabs_area_bottom);
+      0, unpinned_tabs_area_boundary, brave_tab_container->width(),
+      container_height - unpinned_tabs_area_boundary);
 
   for (int i = 0; i < model->count(); ++i) {
     Tab* tab = GetTabAt(browser(), i);

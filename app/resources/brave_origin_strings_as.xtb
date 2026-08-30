@@ -117,7 +117,7 @@
 <translation id="2170098639895543546">পৃষ্ঠাখনত যিকোনো বস্তু বাছনি কৰক</translation>
 <translation id="142389341645668510">Brave কাষ্টমাইজ কৰক</translation>
 <translation id="2174917724755363426">ইনষ্টল কৰাটো সম্পূৰ্ণ হোৱা নাই। আপুনি বাতিল কৰিব বিচাৰে বুলি নিশ্চিতনে?</translation>
-<translation id="8841019650931243995">Brave Origin - নেটৱর্কত ছাইন ইন - <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket - নেটৱর্কত ছাইন ইন - <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">আপডে’ট পৰীক্ষা কৰা সম্পৰ্কীয় আসোঁৱাহ: <ph name="UPDATE_CHECK_ERROR"/>।</translation>
 <translation id="2058539073923004395">Braveৰ পৰা একাউণ্ট আঁতৰাওক</translation>
 <translation id="4022045673362955204">যিকোনো ঠাইতে সৰ্বশ্ৰেষ্ঠ শ্বপিঙৰ সঁজুলিসমূহ ব্যৱহাৰ কৰিবলৈ Brave এপ্‌টো ব্যৱহাৰ কৰক</translation>
@@ -152,7 +152,7 @@
 <translation id="2542968102051442371">প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটোৰ জৰিয়তে পাঠ বাছনি কৰক</translation>
 <translation id="70183448213529602">Braveএ আগৰে পৰা থকা পাছৱৰ্ডসমূহ সলনি কৰিবলৈ চেষ্টা কৰি আছে। এই কাৰ্যৰ বাবে অনুমতি দিবলৈ আপোনাৰ Windowsৰ পাছৱৰ্ডটো টাইপ কৰক।</translation>
 <translation id="7798069806040634998">ফাইল ডাউনল'ড কৰিবলৈ Braveক ষ্ট'ৰেজৰ এক্সেছৰ আৱশ্যক</translation>
-<translation id="2351700486811407088">Brave Origin সহায়ক</translation>
+<translation id="9082785458664620820">Socket সহায়ক</translation>
 <translation id="2575822587468774919">প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটোৰ জৰিয়তে সন্ধান কৰিবলৈ যিকোনো বস্তু বাছনি কৰক</translation>
 <translation id="3830890663494219270">আপোনাৰ আটাইবোৰ ডিভাইচত নিজৰ পাছৱৰ্ড আৰু অধিক পাবলৈ, Braveত ছাইন ইন কৰক</translation>
 <translation id="6908148552215338695">Brave ডাউনল’ড কৰি আপোনাৰ Brave একাউণ্টত ছাইন ইন কৰিবলৈ আপোনাৰ ফ’নটোৰে কিউআৰ ক’ডটো স্কেন কৰক।</translation>
@@ -183,7 +183,7 @@
 <translation id="777113543093865885">Braveৰপৰা আঁতৰাওক...</translation>
 <translation id="5265419033369521352">আপোনাক Braveত সুৰক্ষিত কৰি ৰাখে আৰু আপুনি ছাইন ইন হৈ থকা অৱস্থাত Braveৰ অন্য এপ্‌সমূহত আপোনাৰ সুৰক্ষা উন্নত কৰিবলৈ ব্যৱহাৰ কৰা হ’ব পাৰে</translation>
 <translation id="2885378588091291677">কাৰ্য পৰিচালক</translation>
-<translation id="2176825726964012531">&amp;Braveৰ বিষয়ে</translation>
+<translation id="3984800435132982628">&amp;Socketৰ বিষয়ে</translation>
 <translation id="2915996080311180594">পাছত ৰিষ্টাৰ্ট কৰক</translation>
 <translation id="2481553173340651149">আপোনাৰ ডেটা আপোনাৰ পাছফ্ৰে’জৰ জৰিয়তে এনক্ৰিপ্ট কৰা হৈছে। আপোনাৰ Brave একাউণ্টত Braveৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিবলৈ এইটো দিয়ক।</translation>
 <translation id="2945997411976714835">ইনষ্টল কৰোঁতে আসোঁৱাহ হৈছে: ইনষ্টলাৰৰ প্ৰক্ৰিয়াটো আৰম্ভ হ’ব পৰা নাই।</translation>
@@ -272,7 +272,7 @@
 <translation id="3846683726093018685">**সাৰাংশ প্ৰস্তুত:** ৩০ টা শব্দৰ ভিতৰৰ এটা শাৰীতেই স্ক্ৰীনশ্বটখনত থকা মুখ্য বিষয় আৰু উদ্দেশ্যটো বৰ্ণনা কৰক।
 
           **প্ৰশ্নৰ পৰামৰ্শ আগবঢ়োৱা:** স্ক্ৰীনশ্বটখন ভালকৈ বুজিবলৈ কোনো ব্যৱহাৰকাৰীয়ে সুধিব পৰা ৩-৫ টা চিন্তা উদ্ৰেককাৰী প্ৰশ্নৰ এখন বুলেটযুক্ত সূচী সৃষ্টি কৰক। এই প্ৰশ্নসমূহত অতি কমেও এনেকুৱা এটা প্ৰশ্ন অন্তৰ্ভুক্ত হ’ব লাগে যিটো বিশেষকৈ ভিজুৱেল বস্তু, ইয়াৰ ডিজাইন বা ইয়াৰ স্থানৰ বিষয়ে হয়।</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> - Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> - Socket</translation>
 <translation id="3885770153807205175">ভাষা বাছনিকৰ্তা</translation>
 <translation id="6315734375101223238">Brave কাষ্টমাইজ আৰু নিয়ন্ত্ৰণ কৰক। এই বিষয়ত আপুনি মনোযোগ দিয়াৰ প্ৰয়োজন - সবিশেষৰ বাবে ক্লিক কৰক।</translation>
 <translation id="7130675370997202556">Brave খুলিবলৈ আপোনাৰ নামত ক্লিক কৰক আৰু ব্ৰাউজিং আৰম্ভ কৰক।</translation>
@@ -287,7 +287,7 @@
 <translation id="4194619960643453552">Braveএ আপোনাক কিদৰে সুৰক্ষিত কৰি ৰাখে জানক</translation>
 <translation id="3967822245660637423">ডাউনল’ড সম্পূৰ্ণ হ’ল</translation>
 <translation id="1486377520191913768">আপুনি ঠিকনাৰ বাৰ বা সন্ধান বাকচত টাইপ কৰিলে, Braveএ পৰামৰ্শ পাবৰ বাবে আপুনি যি টাইপ কৰে সেয়া আপোনাৰ প্ৰতিষ্ঠানৰ সন্ধান, AI আৰু এজেন্টৰ সঁজুলিসমূহলৈ পঠিয়ায়।</translation>
-<translation id="1311808042904310985">&amp;Brave for Testingৰ বিষয়ে</translation>
+<translation id="3813099290530551762">&amp;Socket for Testingৰ বিষয়ে</translation>
 <translation id="1152920704813762236">ChromeOSৰ বিষয়ে</translation>
 <translation id="8282895427217902177">আপুনি কোনো ছাইটলৈ গ’লে, Braveএ আপোনাৰ IP ঠিকনা লুকুৱাই ৰখা এটা গোপনীয়তা সম্পৰ্কীয় ছাৰ্ভাৰৰ জৰিয়তে <ph name="BEGIN_LINK"/>Braveৰ সুৰক্ষিত ব্ৰাউজিঙ<ph name="END_LINK"/>লৈ URLটোৰ এটা অস্পষ্ট অংশ পঠিয়ায়। যদি কোনো ছাইটে কোনো সন্দেহজনক কাৰ্য কৰে, তেন্তে সম্পূৰ্ণ URL আৰু পৃষ্ঠাৰ কিছুমান সমলো পঠিওৱা হয়।</translation>
 <translation id="4016217212818346953">Password Managerৰ সহায়ত সুৰক্ষিত হৈ থাকক</translation>
@@ -307,7 +307,7 @@
 <translation id="10925962326134232">আপোনাৰ ব্ৰাউজাৰক এটা নতুন ৰূপ প্ৰদান কৰিবলৈ Brave কাষ্টমাইজ কৰক</translation>
 <translation id="6596295505984504022">আপোনাৰ Brave কাষ্টমাইজ কৰক</translation>
 <translation id="4148957013307229264">ইনষ্টল কৰি থকা হৈছে…</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> - নেটৱর্কত ছাইন ইন - Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> - নেটৱর্কত ছাইন ইন - Socket</translation>
 <translation id="2871190378186459992">Braveৰ বাবে উৎকৃষ্ট এপ্, গে’ম, এক্সটেনশ্বন আৰু থীমসমূহ বিচাৰক।</translation>
 <translation id="462105622535258178">আপোনাৰ আটাইবোৰ কম্পিউটাৰত এই এক্সটেনশ্বন আৰু অধিক পাবলৈ Braveত ছাইন ইন কৰক</translation>
 <translation id="6670140629169983459">আপোনাৰ অভিভাৱকৰ পচন্দসমূহৰ জৰিয়তে অনলাইনত সুৰক্ষিত হৈ থাকিবলৈ, আপোনাৰ Brave প্ৰ’ফাইললৈ সলনি কৰক, য’ত আপুনি ইতিমধ্যে <ph name="USER_EMAIL_ADDRESS"/> হিচাপে ছাইন ইন কৰিছে</translation>
@@ -339,7 +339,7 @@
 <translation id="4493028449971051158">ষ্টাৰ্টআপ সম্পৰ্কীয় আসোঁৱাহ: অনুগ্ৰহ কৰি ইনষ্টলাৰটো এগৰাকী প্ৰশাসক হিচাপে চলাওক।</translation>
 <translation id="4501471624619070934">এই দেশখনত এক্সেছ প্ৰতিবন্ধিত হোৱাৰ বাবে ইনষ্টল কৰাটো বিফল হৈছে।</translation>
 <translation id="8594994021633965927">এই এক্সটেনশ্বনে গোপনীয়তাৰ ব্যৱস্থাসমূহ প্ৰকাশ কৰা নাই, যেনে ই কেনেকৈ ডেটা সংগ্ৰহ আৰু ব্যৱহাৰ কৰে। Braveএ আপুনি এইটো আঁতৰোৱাটো চুপাৰিছ কৰে।</translation>
-<translation id="770557926599450702">Brave Originলৈ স্বাগতম; নতুন ব্ৰাউজাৰৰ ৱিণ্ড’ খোলা হৈছে</translation>
+<translation id="3788134970312783571">Socketলৈ স্বাগতম; নতুন ব্ৰাউজাৰৰ ৱিণ্ড’ খোলা হৈছে</translation>
 <translation id="137732229629632648">আপোনাৰ চৌপাশৰ ঠাইসমূহ মেপ কৰিবলৈ আৰু আপোনাৰ হাত ট্ৰেক কৰিবলৈ Braveক অনুমতিৰ প্ৰয়োজন</translation>
 <translation id="5036046007335188949">আপুনি আন এটা Brave প্ৰ’ফাইলত ইতিমধ্যে <ph name="USER_EMAIL_ADDRESS"/> হিচাপে ছাইন ইন কৰিছে</translation>
 <translation id="1878185978731985193">Braveএ পৃষ্ঠাসমূহ আগতীয়াকৈ ল’ড কৰে যিয়ে ব্ৰাউজিং আৰু সন্ধান দ্ৰুত কৰে। <ph name="BEGIN_LINK"/>আগতীয়াকৈ ল’ড কৰা পৃষ্ঠাসমূহৰ বিষয়ে অধিক জানক<ph name="END_LINK"/></translation>
@@ -347,7 +347,7 @@
 <translation id="8669339108356170796">আপুনি সুৰক্ষিত ব্ৰাউজিং অফ কৰিছে আৰু ফাইলটো সত্যাপন কৰিব নোৱাৰি বাবে Braveএ এই ডাউনল’ডটো অৱৰোধ কৰিছে</translation>
 <translation id="7583343841997441047">আপোনাৰ ফ’নত Braveৰ জৰিয়তে Google Lens ব্যৱহাৰ কৰি চাওক</translation>
 <translation id="4594305310729380060">এই ডিভাইচটোত Password Managerলৈ</translation>
-<translation id="7776200949522126045">Brave Origin এপ্</translation>
+<translation id="1662388968719244110">Socket এপ্</translation>
 <translation id="4598116752460667024">সূচীখনৰ পৰা যিকোনো প্ৰক্ৰিয়া সন্ধান কৰক।</translation>
 <translation id="4970880042055371251">ChromeOSৰ সংস্কৰণ</translation>
 <translation id="2182657378556811785">প্ৰায় আপ-টু-ডে’ট কৰা হৈছে! আপডে’ট সম্পূৰ্ণ কৰিবলৈ Brave পুনৰ লঞ্চ কৰক৷</translation>
@@ -366,8 +366,8 @@
 <translation id="844451748565342664">যদি Braveত Gemini খোলা থাকে, নতুন টেব সৃষ্টি কৰাৰ সময়ত ছাইডৰ পেনেল খোলা থাকে</translation>
 <translation id="215320507915280336">এইটোৱে Brave Searchত ব্যৱহৃত একেটা বানান পৰীক্ষকেই ব্যৱহাৰ কৰে। আপুনি ব্ৰাউজাৰত টাইপ কৰা পাঠ Braveলৈ পঠিওৱা হয়। আপুনি ছেটিংসমূহ-ত যিকোনো সময়তে এই আচৰণটো সলনি কৰিব পাৰে।</translation>
 <translation id="2899369907387169108">কোনো একাউণ্টৰ অবিহনে Brave ব্যৱহাৰ কৰক</translation>
-<translation id="1833893255023048385">mDNS ট্ৰেফিকক অনুমতি দিবলৈ Brave Origin অন্তৰ্গামী নিয়ম।</translation>
-<translation id="711601904575862069">&amp;Brave আপডে'ট কৰিবলৈ পুনৰ লঞ্চ কৰক</translation>
+<translation id="6972301482162050771">mDNS ট্ৰেফিকক অনুমতি দিবলৈ Socket অন্তৰ্গামী নিয়ম।</translation>
+<translation id="2428387668457441558">&amp;Socket আপডে'ট কৰিবলৈ পুনৰ লঞ্চ কৰক</translation>
 <translation id="4918086044614829423">গ্ৰহণ কৰক</translation>
 <translation id="4918844574251943176">প্ৰতিচ্ছবি প্ৰতিলিপি কৰা হ’ল</translation>
 <translation id="8797356639448065696">Brave নেপথ্য ম’ডত আছে।</translation>
@@ -409,7 +409,7 @@
 <translation id="5267531627648004734">Braveৰ পৰা আঁতৰাওক</translation>
 <translation id="4620757336635063467">কাৰ্যদক্ষতা কম কৰে কিন্তু Braveক আক্ৰমণৰ বাবে অধিক প্ৰতিৰোধী কৰে</translation>
 <translation id="239760341987199724">আপোনাৰ ডিফ'ল্ট ব্ৰাউজাৰ হিচাপে Braveক ছেট কৰক</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> - Brave Origin বিটা</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> - Socket বিটা</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Braveএ আপোনাৰ ব্ৰাউজাৰ লেহেমীয়া কৰি টেবটো পজ কৰাটো চুপাৰিছ কৰে}one{Braveএ আপোনাৰ ব্ৰাউজাৰ লেহেমীয়া কৰি টেবসমূহ পজ কৰাটো চুপাৰিছ কৰে}other{Braveএ আপোনাৰ ব্ৰাউজাৰ লেহেমীয়া কৰি টেবসমূহ পজ কৰাটো চুপাৰিছ কৰে}}</translation>
 <translation id="894936507076470937">Braveএ সঠিকভাৱে কাম নকৰিবও পাৰে কাৰণ এইটো আৰু Linux বিতৰণত সমৰ্থিত নহয়</translation>
 <translation id="2596557398669145729">ফাইলটোৱে আপোনাৰ ব্যক্তিগত আৰু সামাজিক নেটৱৰ্কৰ একাউণ্টসমূহৰ ক্ষতি কৰিব পাৰে বাবে Braveএ এই ডাউনল’ডটো অৱৰোধ কৰিছে</translation>
@@ -442,7 +442,7 @@
 <translation id="95980832839683236">Braveৰ V8 ইঞ্জিনৰ সৈতে ছাইটবোৰ খৰতকীয়া কৰি তোলে কিন্তু Braveক আক্ৰমণৰ পৰা সামান্য কম প্ৰতিৰোধী কৰে। এই ছেটিংটো অফ হৈ আছে।</translation>
 <translation id="1224606669200461217">আপোনাৰ Brave একাউণ্টত Braveৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিবলৈ, Brave আপডে’ট কৰক</translation>
 <translation id="5824893331272123205">এই পেনেলটো ল’ড কৰিব পৰা নগ’ল, পুনৰ চেষ্টা কৰক</translation>
-<translation id="4467664627714200493">Brave Origin লৈ স্বাগতম</translation>
+<translation id="1125671961408630460">Socket লৈ স্বাগতম</translation>
 <translation id="4026807082142463673">Braveৰ আটাইতকৈ শক্তিশালী সুৰক্ষা প্ৰদান কৰিবলৈ অতিৰিক্ত সুবিধাসমূহ অন কৰে</translation>
 <translation id="5871205389137001634">প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটোৰ পৰা বাহিৰ হ’বলৈ ক্লিক কৰক</translation>
 <translation id="8054200348483755053">Braveএ এই বস্তুবোৰত মালৱেৰ থকাটো পাইছে:</translation>
@@ -508,7 +508,7 @@
 <translation id="6388799252195623474">এই ক্ষেত্ৰত মোক সহায় কৰক</translation>
 <translation id="7920857181125123335">অব্যাহত ৰাখিবলৈ Braveত <ph name="EMAIL"/> হিচাপে ছাইন ইন কৰক। এইটোৱে নিশ্চিত কৰে যে আপুনি আপোনাৰ প্ৰতিষ্ঠানৰ নীতিবোৰ জানে।</translation>
 <translation id="3256100650978957522">কম্পিউটাৰৰ স্ক্ৰীনত Brave লগ'।</translation>
-<translation id="5880764554173582719">Brave Origin হৈছে ৱেবপৃষ্ঠা আৰু এপ্লিকেশ্বনসমূহক বিজুলী বেগেৰে চলোৱা এক ৱেব ব্ৰাউজাৰ। এইটো ক্ষিপ্ৰ, স্থিৰ আৰু ব্যৱহাৰৰ বাবে সুবিধাজনক। মালৱেৰ আৰু ফিশ্বিঙৰ পৰা বিশেষভাৱে সুৰক্ষা পোৱা সুবিধাৰে নির্মিত Brave Origin ৰ জৰিয়তে অতি সুৰক্ষিতভাৱে ৱেব ব্ৰাউজিং কৰক।</translation>
+<translation id="7527968786016866645">Socket হৈছে ৱেবপৃষ্ঠা আৰু এপ্লিকেশ্বনসমূহক বিজুলী বেগেৰে চলোৱা এক ৱেব ব্ৰাউজাৰ। এইটো ক্ষিপ্ৰ, স্থিৰ আৰু ব্যৱহাৰৰ বাবে সুবিধাজনক। মালৱেৰ আৰু ফিশ্বিঙৰ পৰা বিশেষভাৱে সুৰক্ষা পোৱা সুবিধাৰে নির্মিত Socket ৰ জৰিয়তে অতি সুৰক্ষিতভাৱে ৱেব ব্ৰাউজিং কৰক।</translation>
 <translation id="4091049150278654573">আপোনাৰ Brave একাউণ্টত আপুনি সদায়েই Braveৰ ডেটা ব্যৱহাৰ আৰু ছেভ কৰিব পৰাটো নিশ্চিত কৰিবলৈ, এয়া আপুনিয়েই বুলি সত্যাপন কৰক</translation>
 <translation id="2532326772258858491">Brave অধিক দ্ৰুততাৰে চলে আৰু JavaScript ব্যৱহাৰ কৰা সুবিধাসমূহে ডিজাইন কৰা অনুসৰি কাম কৰিব লাগে</translation>
 <translation id="6436260184216827876">প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটো উপলব্ধ নহয়। পাছত পুনৰ চেষ্টা কৰক।</translation>
@@ -556,7 +556,7 @@
 <translation id="6831043979455480757">Translate</translation>
 <translation id="8211837073776713955">Braveএ আপোনাৰ পাছৱৰ্ডসমূহ কেতিয়াবা হেক কৰা হৈছিল নেকি আপোনাক জানিবলৈ দিয়ে</translation>
 <translation id="684888714667046800">ইণ্টাৰনেটৰ লগত সংযোগ কৰিব পৰা নাই। আপুনি যদি কোনো ফায়াৰৱাল ব্যৱহাৰ কৰে, অনুগ্ৰহ কৰি অনুমতি দিয়া সূচীখনত <ph name="PRODUCT_EXE_NAME"/> থকাটো নিশ্চিত কৰক।</translation>
-<translation id="8237613041998823669">Brave Origin - <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket - <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">অব্যাহত ৰাখিবলৈ টেব</translation>
 <translation id="6862030660799253820">প্ৰতিচ্ছবিৰ সন্ধানৰ জৰিয়তে এই প্ৰতিচ্ছবি সন্ধান কৰক</translation>
 <translation id="3028928628792374067">Braveএ "<ph name="EXTENSION_NAME"/>"ত মালৱেৰ থকাটো পাইছে</translation>
@@ -626,7 +626,7 @@ Braveএ আপোনাৰ ছেটিংসমূহ পুনৰুদ্ধ
 <translation id="284799389314308801">১) তলৰ <ph name="BUTTON_LABEL"/>ত ক্লিক কৰক
 ২) আপোনাৰ Windowsৰ ছেটিঙত <ph name="BUTTON_2"/>ত ক্লিক কৰক
 ৩) দ্ৰুত এক্সেছৰ বাবে Braveক আপোনাৰ টাস্কবাৰত পিন কৰিবলৈ Windowsৰ জাননীত <ph name="BUTTON_3"/>ত ক্লিক কৰক</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> - Brave Origin Dev</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> - Socket Dev</translation>
 <translation id="7450541714075000668">পাঠৰ প্ৰতিলিপি কৰা হ’ল</translation>
 <translation id="2034072705932785495">এই ছাইটটোৰ বাবে আপোনাৰ কেমেৰালৈ এক্সেছ পাবলৈ Braveক অনুমতিৰ আৱশ্যক</translation>
 <translation id="7129342855140808694">আপোনাৰ মাইক্ৰ’ফ’ন ব্যৱহাৰ কৰিবলৈ, <ph name="BEGIN_LINK"/>ছিষ্টেমৰ ছেটিঙ<ph name="END_LINK"/>ত Braveক এক্সেছ দিয়ক</translation>
@@ -657,7 +657,7 @@ Braveএ আপোনাৰ ছেটিংসমূহ পুনৰুদ্ধ
 <translation id="8543787950557226450">ডিফ’ল্ট Braveলৈ ৰিছেট কৰক</translation>
 <translation id="4976450819672499783">Braveক ডিফ’ল্ট হিচাপে ছেট কৰি সেইটোক টাস্কবাৰত পিন কৰক</translation>
 <translation id="1978509466033734608">Braveক দ্ৰুত কৰি তোলক</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> - Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> - Socket Canary</translation>
 <translation id="2684504034454188774">আপোনাৰ ইণ্টাৰনেটৰ ট্ৰেফিকৰ এক্সেছ থকা লোকসকলে আপুনি কি ছাইটলৈ যায় সেয়া চোৱাটো কঠিন কৰি তোলক। Braveএ DNSত (ড’মেইন নে’ম ছিষ্টেম) কোনো ছাইটৰ IP ঠিকনা চাবলৈ এক সুৰক্ষিত সংযোগ ব্যৱহাৰ কৰে।</translation>
 <translation id="7810005234485217901">সহজে এক্সেছ কৰিবলৈ আপুনি প্ৰতিচ্ছবিৰ সন্ধান সুবিধাটো পিন কৰিব পাৰে</translation>
 <translation id="1652855885539187849">এই ডিভাইচটোত এই একাউণ্টটোৰ সৈতে এটা Brave প্ৰ’ফাইল ইতিমধ্যে আছে</translation>
@@ -686,7 +686,7 @@ Braveএ আপোনাৰ ছেটিংসমূহ পুনৰুদ্ধ
 <translation id="6175141682081019059">এপৰ বাবে পটভূমিত চলি থকা Brave অক্ষম কৰক</translation>
 <translation id="80790299200510644">প্ৰতিচ্ছবিৰ সন্ধান</translation>
 <translation id="8086881907087796310">আপোনাৰ কম্পিউটাৰটোৱে হাৰ্ডৱেৰৰ ন্যূনতম আৱশ্যকতাসমূহ পূৰণ নকৰে বাবে ইনষ্টল কৰিব পৰা নগ’ল।</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> - Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> - Socket for Testing</translation>
 <translation id="2061155704815580583">Braveক এই ছাইটটোৰ বাবে অৱস্থানৰ অনুমতিৰ আৱশ্যক</translation>
 <translation id="3576319845915562805">পৰৱৰ্তী সময়ত আপুনি নিজৰ <ph name="DEVICE_TYPE"/>ত Brave খুলিলে, আপুনি মূল্য ট্ৰেকিঙৰ সতৰ্কবাৰ্তা সক্ষম কৰিবলৈ কোৱা এটা প্ৰ’ম্পট্‌ দেখা পাব।</translation>
 <translation id="3728025339793417202">আপোনাৰ ফ’নত Brave এপ্‌টোৰ জৰিয়তে আপুনি আগ্ৰহী হোৱা বস্তুবোৰৰ মূল্য কমিলে সতৰ্কবাৰ্তা পাওক</translation>
@@ -798,8 +798,8 @@ Braveএ আপোনাৰ ছেটিংসমূহ পুনৰুদ্ধ
 <translation id="9148058034647219655">বাহিৰ হওক</translation>
 <translation id="2792073155252170448">আপুনি য’ত এৰিছিল তাৰ পৰা অব্যাহত ৰাখক: আপুনি প্ৰতিবাৰে ৰিষ্টাৰ্ট কৰোঁতে Braveএ আপোনাৰ টেবসমূহ পুনঃস্থাপন কৰিব পাৰে। এইটো অন কৰিবলৈ ইয়ালৈ যাওক</translation>
 <translation id="2444257125841652328">আপোনাৰ ছিষ্টেমৰ প্ৰশাসকে <ph name="TARGET_URL_HOSTNAME"/> এক্সেছ কৰিবলৈ Braveক এটা বিকল্প ব্ৰাউজাৰ খুলিবলৈ কনফিগাৰ কৰিছে।</translation>
-<translation id="7902365066753170041">&amp;Brave আপডে'ট কৰিবলৈ পুনৰ লঞ্চ কৰক</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">&amp;Socket আপডে'ট কৰিবলৈ পুনৰ লঞ্চ কৰক</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Brave আপোনাৰ নিজৰ কৰি লওক</translation>
 <translation id="7977787072794666032">Braveএ সঠিকভাৱে কাম নকৰিবও পাৰে কাৰণ এই সংস্কৰণটো Windows XP বা Windows Vistaত আৰু নচলে</translation>
 <translation id="8462937515915443472">Braveৰ জৰিয়তে যিকোনো ঠাইতে Braveৰ শ্ৰেষ্ঠ সুৰক্ষা সুবিধাসমূহ লাভ কৰক।</translation>

@@ -24,6 +24,11 @@ substitutions:
       class_name: TabDragController
       method_name: StartDraggingTabsSession
 
+  - description: 'Let Brave finalize explicit page hierarchy drops.'
+    make_virtual:
+      class_name: TabDragController
+      method_name: CompleteDrag
+
   - description: 'Friend BraveTabDragController'
     add_friend:
       class_name: TabDragController

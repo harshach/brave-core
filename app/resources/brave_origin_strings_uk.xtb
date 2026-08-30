@@ -111,7 +111,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="2170098639895543546">Виберіть будь-що на сторінці</translation>
 <translation id="142389341645668510">Налаштувати Brave</translation>
 <translation id="2174917724755363426">Встановлення не завершено. Скасувати його?</translation>
-<translation id="8841019650931243995">Brave Origin – Вхід у мережу– <ph name="PAGE_TITLE"/></translation>
+<translation id="1858268291856808401">Socket – Вхід у мережу– <ph name="PAGE_TITLE"/></translation>
 <translation id="2190166659037789668">Помилка перевірки наявності оновлень: <ph name="UPDATE_CHECK_ERROR"/>.</translation>
 <translation id="2058539073923004395">Вилучити обліковий запис із Brave</translation>
 <translation id="4022045673362955204">Користуйтеся найкращими інструментами для покупок, де б ви не були, у додатку Brave</translation>
@@ -146,7 +146,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="2542968102051442371">Виберіть текст за допомогою функції пошуку за зображенням</translation>
 <translation id="70183448213529602">Brave намагається замінити наявні паролі. Щоб дозволити це, введіть пароль Windows.</translation>
 <translation id="7798069806040634998">Brave потрібен доступ до пам’яті, щоб завантажувати файли</translation>
-<translation id="2351700486811407088">Помічник Brave Origin</translation>
+<translation id="9082785458664620820">Помічник Socket</translation>
 <translation id="2575822587468774919">Виберіть об’єкт на зображенні, за яким хочете виконати пошук</translation>
 <translation id="3830890663494219270">Щоб отримати доступ до паролів і інших даних на всіх своїх пристроях, увійдіть у Brave</translation>
 <translation id="6908148552215338695">Зіскануйте QR-код за допомогою телефона, щоб завантажити Brave і ввійти в обліковий запис Brave.</translation>
@@ -176,7 +176,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="777113543093865885">Видалити з Brave…</translation>
 <translation id="5265419033369521352">Захищає вас у Brave і може покращувати безпеку в інших додатках Brave після входу в обліковий запис.</translation>
 <translation id="2885378588091291677">Диспетчер завдань</translation>
-<translation id="2176825726964012531">Про &amp;Brave</translation>
+<translation id="3984800435132982628">Про &amp;Socket</translation>
 <translation id="2915996080311180594">Перезапустити пізніше</translation>
 <translation id="2481553173340651149">Ваші дані зашифровано за допомогою парольної фрази. Введіть її, щоб використовувати й зберігати дані Brave в обліковому записі Brave.</translation>
 <translation id="2945997411976714835">Сталася помилка. Не вдалося розпочати встановлення.</translation>
@@ -262,7 +262,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="3846683726093018685">**Підсумуй:** опиши основну тему й мету контенту на знімку екрана одним реченням, що містить до 30 слів.
 
           **Запропонуй запитання:** створи список із 3–5 запитань для роздумів, які може поставити користувач, щоб краще зрозуміти знімок екрана. Принаймні одне із цих запитань має стосуватися візуального об’єкта, його оформлення або розміщення.</translation>
-<translation id="6899774208752247219"><ph name="PAGE_TITLE"/> – Brave Origin</translation>
+<translation id="4038229417228464618"><ph name="PAGE_TITLE"/> – Socket</translation>
 <translation id="3885770153807205175">Засіб вибору мови</translation>
 <translation id="6315734375101223238">Налаштуйте й керуйте Brave. Якщо з’явиться сповіщення, натисніть його, щоб дізнатися більше.</translation>
 <translation id="7130675370997202556">Натисніть своє ім’я, щоб відкрити Brave і розпочати перегляд сайтів.</translation>
@@ -276,7 +276,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="4194619960643453552">Дізнайтесь, як Brave дбає про вашу безпеку</translation>
 <translation id="3967822245660637423">Завантажено</translation>
 <translation id="1486377520191913768">Коли ви вводите запит в адресному рядку або полі пошуку, Brave надсилає його в агрегатор пошуку вашої організації, а також штучному інтелекту й агентам на основі ШІ, які вона використовує, щоб надавати вам підказки.</translation>
-<translation id="1311808042904310985">Про &amp;Brave for Testing</translation>
+<translation id="3813099290530551762">Про &amp;Socket for Testing</translation>
 <translation id="1152920704813762236">Про Chrome OS</translation>
 <translation id="8282895427217902177">Коли ви відвідуєте сайт, Brave надсилає в <ph name="BEGIN_LINK"/>Безпечний перегляд Brave<ph name="END_LINK"/> обфусковану частину URL-адреси через сервер захисту конфіденційності, який приховує вашу IP-адресу. Якщо на сайті виявлено підозрілу поведінку, Brave також надсилає повні URL-адреси й уривки контенту сторінки.</translation>
 <translation id="4016217212818346953">Дбайте про безпеку з Менеджером паролів</translation>
@@ -295,7 +295,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="10925962326134232">Налаштуйте вигляд вебпереглядача Brave</translation>
 <translation id="6596295505984504022">Н&amp;алаштувати Brave</translation>
 <translation id="4148957013307229264">Встановлення...</translation>
-<translation id="5011704081781303429"><ph name="PAGE_TITLE"/> – Вхід у мережу – Brave Origin</translation>
+<translation id="651464753560842396"><ph name="PAGE_TITLE"/> – Вхід у мережу – Socket</translation>
 <translation id="2871190378186459992">Знаходьте чудові додатки, ігри, розширення й теми для Brave.</translation>
 <translation id="462105622535258178">Щоб отримати доступ до цього розширення й інших даних на всіх комп’ютерах, увійдіть у Brave</translation>
 <translation id="6670140629169983459">Щоб користуватися безпечнішими налаштуваннями, які вибрали твої батьки, перейди в профіль Brave, у який уже виконано вхід за допомогою електронної адреси <ph name="USER_EMAIL_ADDRESS"/></translation>
@@ -327,7 +327,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="4493028449971051158">Помилка: запустіть програму встановлення з правами адміністратора.</translation>
 <translation id="4501471624619070934">Помилка встановлення через обмеження доступу в цій країні.</translation>
 <translation id="8594994021633965927">Немає відомостей про конфіденційність цього розширення, зокрема про те, як воно збирає і використовує дані. Brave радить вилучити його.</translation>
-<translation id="770557926599450702">Вітаємо в Brave Origin! Відкрито нове вікно веб-переглядача</translation>
+<translation id="3788134970312783571">Вітаємо в Socket! Відкрито нове вікно веб-переглядача</translation>
 <translation id="137732229629632648">Вебпереглядачу Brave потрібен дозвіл, щоб створити карту оточення й відстежувати ваші руки</translation>
 <translation id="5036046007335188949">Ви вже ввійшли як <ph name="USER_EMAIL_ADDRESS"/> в іншому профілі Brave</translation>
 <translation id="1878185978731985193">Brave попередньо завантажує сторінки, щоб ви могли швидше переглядати й шукати контент. <ph name="BEGIN_LINK"/>Докладніше про попереднє завантаження сторінок.<ph name="END_LINK"/></translation>
@@ -335,7 +335,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="8669339108356170796">Веб-переглядач Brave заблокував завантаження, оскільки ви вимкнули Безпечний перегляд і файл не вдалося підтвердити</translation>
 <translation id="7583343841997441047">Спробуйте Brave Об’єктив у Brave на телефоні</translation>
 <translation id="4594305310729380060">У Менеджер паролів на цьому пристрої</translation>
-<translation id="7776200949522126045">Програми Brave Origin</translation>
+<translation id="1662388968719244110">Програми Socket</translation>
 <translation id="4598116752460667024">Пошукайте потрібний процес у списку.</translation>
 <translation id="4970880042055371251">Версія Chrome OS</translation>
 <translation id="2182657378556811785">Майже оновлено. Перезапустіть Brave, щоб завершити оновлення.</translation>
@@ -353,8 +353,8 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="844451748565342664">Якщо Gemini у Brave відкрито, бічна панель не закривається, коли ви відкриваєте нові вкладки</translation>
 <translation id="215320507915280336">Використовується та сама технологія перевірки правопису, що й у Пошуку Brave. Текст, який ви вводите у веб-переглядачі, надсилається в Brave. Це завжди можна змінити в налаштуваннях.</translation>
 <translation id="2899369907387169108">Використовувати Brave, не входячи в обліковий запис</translation>
-<translation id="1833893255023048385">Вхідне правило для Brave Origin дозволяє трафік mDNS.</translation>
-<translation id="711601904575862069">Перезапустити, щоб оновити &amp;Brave</translation>
+<translation id="6972301482162050771">Вхідне правило для Socket дозволяє трафік mDNS.</translation>
+<translation id="2428387668457441558">Перезапустити, щоб оновити &amp;Socket</translation>
 <translation id="4918086044614829423">Прийняти</translation>
 <translation id="4918844574251943176">Зображення скопійовано</translation>
 <translation id="8797356639448065696">Brave у фоновому режимі.</translation>
@@ -394,7 +394,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="5267531627648004734">Видалити з Brave</translation>
 <translation id="4620757336635063467">Знижує продуктивність, але робить вебпереглядач Brave стійкішим до атак</translation>
 <translation id="239760341987199724">Зробити Brave веб-переглядачем за умовчанням</translation>
-<translation id="5165277482382778404"><ph name="PAGE_TITLE"/> – Бета-версія Brave Origin</translation>
+<translation id="178401659743246113"><ph name="PAGE_TITLE"/> – Бета-версія Socket</translation>
 <translation id="604223321106006231">{NUM_TABS,plural, =1{Рекомендуємо призупинити вкладку, яка вповільнює роботу Brave}one{Рекомендуємо призупинити вкладки, які вповільнюють роботу Brave}few{Рекомендуємо призупинити вкладки, які вповільнюють роботу Brave}many{Рекомендуємо призупинити вкладки, які вповільнюють роботу Brave}other{Рекомендуємо призупинити вкладки, які вповільнюють роботу Brave}}</translation>
 <translation id="894936507076470937">Brave може працювати неналежним чином, оскільки більше не підтримується в цьому дистрибутиві Linux</translation>
 <translation id="2596557398669145729">Вебпереглядач Brave заблокував завантаження, оскільки цей файл може зашкодити вашим особистим обліковим записам і обліковим записам у соціальних мережах</translation>
@@ -427,7 +427,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="95980832839683236">Прискорює роботу сайтів за допомогою системи V8 для Brave, проте робить вебпереглядач трохи менш стійким до атак. Це налаштування вимкнено.</translation>
 <translation id="1224606669200461217">Щоб зберігати й використовувати дані Brave в обліковому записі Brave, оновіть Brave</translation>
 <translation id="5824893331272123205">Не вдалося завантажити цю панель. Повторіть спробу.</translation>
-<translation id="4467664627714200493">Вітаємо в Brave Origin</translation>
+<translation id="1125671961408630460">Вітаємо в Socket</translation>
 <translation id="4026807082142463673">Забезпечує найвищий рівень захисту в Brave завдяки додатковим функціям</translation>
 <translation id="5871205389137001634">Натисніть, щоб закрити пошук за зображенням</translation>
 <translation id="8054200348483755053">Веб-переглядач Brave виявив, що наведені нижче елементи містять зловмисне програмне забезпечення.</translation>
@@ -493,7 +493,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="6388799252195623474">допоможи мені із цим</translation>
 <translation id="7920857181125123335">Щоб продовжити, увійдіть у Brave, використовуючи обліковий запис <ph name="EMAIL"/>. Так ви точно дотримуватиметеся правил своєї організації.</translation>
 <translation id="3256100650978957522">Логотип Brave на екрані комп’ютера.</translation>
-<translation id="5880764554173582719">Brave Origin – це веб-переглядач, який запускає веб-сторінки та програми з блискавичною швидкістю. Він швидкий, надійний і зручний у користуванні. Вбудований у Brave Origin захист від шкідливих програм і фішингу гарантує ще більшу безпеку під час перегляду веб-сторінок.</translation>
+<translation id="7527968786016866645">Socket – це веб-переглядач, який запускає веб-сторінки та програми з блискавичною швидкістю. Він швидкий, надійний і зручний у користуванні. Вбудований у Socket захист від шкідливих програм і фішингу гарантує ще більшу безпеку під час перегляду веб-сторінок.</translation>
 <translation id="4091049150278654573">Щоб завжди мати змогу використовувати й зберігати дані Brave в обліковому записі Brave, підтвердьте свою особу</translation>
 <translation id="2532326772258858491">Brave виконує завдання швидше, а функції, які використовують JavaScript, мають працювати належним чином</translation>
 <translation id="6436260184216827876">Пошук за зображенням недоступний. Повторіть спробу пізніше.</translation>
@@ -541,7 +541,7 @@ Brave потрібен доступ до Bluetooth. <ph name="IDS_SERIAL_DEVICE_
 <translation id="6831043979455480757">Перекласти</translation>
 <translation id="8211837073776713955">Якщо ваші паролі колись викрадуть, Brave повідомить вас про це</translation>
 <translation id="684888714667046800">Не вдалося підключитися до Інтернету. Якщо ви використовуєте брандмауер, переконайтеся, що <ph name="PRODUCT_EXE_NAME"/> є в білому списку.</translation>
-<translation id="8237613041998823669">Brave Origin – <ph name="PAGE_TITLE"/></translation>
+<translation id="1798025231744463543">Socket – <ph name="PAGE_TITLE"/></translation>
 <translation id="6859580922007887573">Натисніть, щоб продовжити</translation>
 <translation id="6862030660799253820">Знайти це зображення за допомогою сервісу "Пошук за зображенням"</translation>
 <translation id="3028928628792374067">Веб-переглядач Brave виявив, що розширення "<ph name="EXTENSION_NAME"/>" містить зловмисне програмне забезпечення</translation>
@@ -609,7 +609,7 @@ Brave не може відновити ваші налаштування.</trans
 <translation id="284799389314308801">1. Натисніть кнопку "<ph name="BUTTON_LABEL"/>" нижче.
 2. Натисніть "<ph name="BUTTON_2"/>" у налаштуваннях Windows.
 3. Коли у Windows з’явиться сповіщення, натисніть "<ph name="BUTTON_3"/>", щоб закріпити Brave на панелі завдань для швидкого доступу.</translation>
-<translation id="4864311514218370796"><ph name="PAGE_TITLE"/> – Версія Brave Origin для розробників</translation>
+<translation id="8926066385033744246"><ph name="PAGE_TITLE"/> – Версія Socket для розробників</translation>
 <translation id="7450541714075000668">Текст скопійовано</translation>
 <translation id="2034072705932785495">Brave потрібен дозвіл на використання камери, щоб надати цьому сайту доступ до неї</translation>
 <translation id="7129342855140808694">Щоб використовувати мікрофон, надайте Brave відповідний доступ у <ph name="BEGIN_LINK"/>системних налаштуваннях<ph name="END_LINK"/></translation>
@@ -640,7 +640,7 @@ Brave не може відновити ваші налаштування.</trans
 <translation id="8543787950557226450">Відновити тему Brave за умовчанням</translation>
 <translation id="4976450819672499783">Зробіть Brave вебпереглядачем за умовчанням і закріпіть його на панелі завдань</translation>
 <translation id="1978509466033734608">Пришвидшіть роботу Brave</translation>
-<translation id="8607348724092473027"><ph name="PAGE_TITLE"/> – Brave Origin Canary</translation>
+<translation id="7125811958284429100"><ph name="PAGE_TITLE"/> – Socket Canary</translation>
 <translation id="2684504034454188774">Завадьте користувачам, які мають доступ до вашого інтернет-трафіку, переглядати інформацію про відвідані вами сайти. Brave використовує захищене підключення для пошуку IP-адреси сайту в системі доменних імен (DNS).</translation>
 <translation id="7810005234485217901">Ви можете закріпити пошук за зображенням для швидкого доступу</translation>
 <translation id="1652855885539187849">Профіль Brave із цим обліковим записом уже існує на цьому пристрої</translation>
@@ -667,7 +667,7 @@ Brave не може відновити ваші налаштування.</trans
 <translation id="6175141682081019059">Вимкнути фоновий режим Brave для додатків</translation>
 <translation id="80790299200510644">Пошук за зображенням</translation>
 <translation id="8086881907087796310">Не вдалося встановити, оскільки ваш комп’ютер не відповідає мінімальним вимогам до апаратного забезпечення.</translation>
-<translation id="5528402763209637578"><ph name="PAGE_TITLE"/> – Brave Origin for Testing</translation>
+<translation id="1622905132862247621"><ph name="PAGE_TITLE"/> – Socket for Testing</translation>
 <translation id="2061155704815580583">Веб-переглядачу Brave потрібен дозвіл на доступ до геоданих для цього сайту</translation>
 <translation id="3576319845915562805">Коли ви наступного разу відкриєте Brave на своєму пристрої <ph name="DEVICE_TYPE"/>, з’явиться запит увімкнути сповіщення про відстеження цін.</translation>
 <translation id="3728025339793417202">Отримуйте сповіщення про зниження цін на товари, які вас цікавлять, у додатку Brave на телефоні</translation>
@@ -778,8 +778,8 @@ Brave не може відновити ваші налаштування.</trans
 <translation id="9148058034647219655">Вийти</translation>
 <translation id="2792073155252170448">Продовжуйте роботу з місця, де зупинилися: Brave може відновлювати ваші вкладки після кожного перезапуску. Щоб увімкнути цю функцію, перейдіть у</translation>
 <translation id="2444257125841652328">Ваш системний адміністратор налаштував Brave відкривати сторінку <ph name="TARGET_URL_HOSTNAME"/> в альтернативному веб-переглядачі.</translation>
-<translation id="7902365066753170041">Перезапустити, щоб оновити &amp;Brave</translation>
-<translation id="538146372587193686">Brave Origin (mDNS-In)</translation>
+<translation id="8649131107612558845">Перезапустити, щоб оновити &amp;Socket</translation>
+<translation id="4540787955808828187">Socket (mDNS-In)</translation>
 <translation id="296137235951584143">Персоналізуйте Brave</translation>
 <translation id="7977787072794666032">Brave може працювати неналежним чином, оскільки більше не підтримується у Windows XP та Windows Vista</translation>
 <translation id="8462937515915443472">Користуйтеся провідними функціями безпеки Brave, де б ви не були, у Brave.</translation>

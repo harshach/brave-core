@@ -172,6 +172,8 @@ class BraveTabContainer : public TabContainerImpl,
                            OriginSplitTabSidebarSection);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginNewPageFollowsPageRows);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginPagesHeaderClipsScrollingRows);
 
   class DropArrow {
    public:
@@ -240,9 +242,9 @@ class BraveTabContainer : public TabContainerImpl,
   // visible rect of unpinned tabs.
   int GetPinnedTabsAreaBottom() const;
 
-  // Returns the boundary coordinate of the pinned tabs area. For vertical tabs,
-  // returns the bottom (y-coordinate). For horizontal tabs, returns the right
-  // (x-coordinate). This represents where unpinned tabs begin.
+  // Returns the boundary between fixed UI and the unpinned tabs viewport. For
+  // vertical tabs, this includes the pinned area and any fixed section heading.
+  // For horizontal tabs, this is the right edge of the pinned tabs area.
   int GetPinnedTabsAreaBoundary() const;
 
   // Sets the scroll offset for unpinned tabs. If the offset changes, triggers
@@ -264,7 +266,7 @@ class BraveTabContainer : public TabContainerImpl,
   int GetUnpinnedTabsTotalHeight() const;
 
   // Returns the viewport height available for unpinned tabs.
-  // This excludes the pinned tabs area if any pinned tabs exist.
+  // This excludes pinned tabs and any fixed section heading.
   int GetUnpinnedTabsViewportHeight() const;
 
   // Returns the total size (height for vertical, width for horizontal) of

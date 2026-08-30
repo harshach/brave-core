@@ -31,6 +31,7 @@
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/focus_mode/focus_mode_utils.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -62,6 +63,7 @@
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/browser/ui/views/chrome_layout_provider.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+#include "chrome/browser/ui/views/tabs/dragging/drag_session_data.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_ink_drop_util.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "chrome/common/pref_names.h"
@@ -232,6 +234,15 @@ class OriginWorkspaceButton : public views::LabelButton {
     SchedulePaint();
   }
 
+  void SetWorkspaceDropTarget(bool drop_targeted) {
+    if (drop_targeted_ == drop_targeted) {
+      return;
+    }
+    drop_targeted_ = drop_targeted;
+    UpdateWorkspaceIcon();
+    SchedulePaint();
+  }
+
   void StateChanged(ButtonState old_state) override {
     LabelButton::StateChanged(old_state);
     UpdateWorkspaceIcon();
@@ -247,8 +258,9 @@ class OriginWorkspaceButton : public views::LabelButton {
     const bool dark =
         !GetColorProvider() ||
         color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
-    const bool highlighted =
-        selected_ || GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    const bool highlighted = selected_ || drop_targeted_ ||
+                             GetState() == STATE_HOVERED ||
+                             GetState() == STATE_PRESSED;
     if (highlighted) {
       cc::PaintFlags fill;
       fill.setAntiAlias(true);
@@ -259,19 +271,25 @@ class OriginWorkspaceButton : public views::LabelButton {
                                       : SkColorSetRGB(0xF5, 0xF5, 0xF5)));
       canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), 10, fill);
     }
-    if (!selected_) {
+    if (!selected_ && !drop_targeted_) {
       return;
     }
 
     cc::PaintFlags ring;
     ring.setAntiAlias(true);
     ring.setStyle(cc::PaintFlags::kStroke_Style);
-    ring.setStrokeWidth(1);
-    ring.setColor(dark ? SkColorSetARGB(0x21, 0xFF, 0xFF, 0xFF)
-                       : SkColorSetRGB(0xE9, 0xEA, 0xEB));
+    ring.setStrokeWidth(drop_targeted_ ? 2.0f : 1.0f);
+    ring.setColor(drop_targeted_
+                      ? kOriginActiveAccent
+                      : (dark ? SkColorSetARGB(0x21, 0xFF, 0xFF, 0xFF)
+                              : SkColorSetRGB(0xE9, 0xEA, 0xEB)));
     gfx::RectF ring_bounds(GetLocalBounds());
-    ring_bounds.Inset(0.5f);
+    ring_bounds.Inset(drop_targeted_ ? 1.0f : 0.5f);
     canvas->DrawRoundRect(ring_bounds, 10, ring);
+
+    if (!selected_) {
+      return;
+    }
 
     cc::PaintFlags accent;
     accent.setAntiAlias(true);
@@ -285,8 +303,9 @@ class OriginWorkspaceButton : public views::LabelButton {
     const bool dark =
         !GetColorProvider() ||
         color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
-    const bool highlighted =
-        selected_ || GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    const bool highlighted = selected_ || drop_targeted_ ||
+                             GetState() == STATE_HOVERED ||
+                             GetState() == STATE_PRESSED;
     const SkColor icon_color = highlighted
                                    ? (dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
                                            : SkColorSetRGB(0x18, 0x1D, 0x27))
@@ -299,6 +318,7 @@ class OriginWorkspaceButton : public views::LabelButton {
 
   std::string icon_;
   bool selected_;
+  bool drop_targeted_ = false;
 };
 
 BEGIN_METADATA(OriginWorkspaceButton)
@@ -1169,6 +1189,8 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
 
 BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_drag_target_destroy_callbacks_.Notify();
+  ClearOriginWorkspaceDropTarget();
   if (origin_workspace_service_) {
     origin_workspace_service_->RemoveObserver(this);
   }
@@ -1205,8 +1227,176 @@ void BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected(
 #endif
 }
 
+TabDragTarget* BraveVerticalTabStripRegionView::GetOriginTabDragTarget(
+    const gfx::Point& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (GetVisible() && origin_workspace_rail_ &&
+      origin_workspace_rail_->GetVisible() &&
+      !GetOriginWorkspaceDropSpaceId(point_in_screen).empty()) {
+    return this;
+  }
+#endif
+  return nullptr;
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragEntered() {}
+
+TabDragContext* BraveVerticalTabStripRegionView::OnTabDragUpdated(
+    TabDragTarget::DragController& controller,
+    const gfx::Point& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  std::string space_id = GetOriginWorkspaceDropSpaceId(point_in_screen);
+  if (space_id == origin_active_workspace_id_) {
+    space_id.clear();
+  }
+  SetOriginWorkspaceDropTarget(space_id);
+  // Keep the native tab drag attached to this browser while it crosses the
+  // narrow rail; the Space move is applied after Chromium finishes its drag
+  // cleanup.
+  return tab_strip()->GetDragContext();
+#else
+  return nullptr;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragExited(
+    const gfx::Point& point_in_screen) {
+  ClearOriginWorkspaceDropTarget();
+}
+
+void BraveVerticalTabStripRegionView::OnTabDragEnded() {
+  ClearOriginWorkspaceDropTarget();
+  CompleteOriginWorkspaceDrop();
+}
+
+bool BraveVerticalTabStripRegionView::CanDropTab() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return !origin_drag_destination_space_id_.empty() &&
+         origin_drag_destination_space_id_ != origin_active_workspace_id_ &&
+         origin_workspace_service_->GetOriginSpace(
+             origin_drag_destination_space_id_);
+#else
+  return false;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::HandleTabDrop(
+    TabDragTarget::DragController& controller) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!CanDropTab()) {
+    return;
+  }
+
+  origin_pending_drop_space_id_ = origin_drag_destination_space_id_;
+  origin_pending_drop_contents_.clear();
+  for (const TabDragData& drag_data :
+       controller.GetSessionData().tab_drag_data_) {
+    if (!drag_data.contents ||
+        std::ranges::contains(origin_pending_drop_contents_,
+                              drag_data.contents)) {
+      continue;
+    }
+    origin_pending_drop_contents_.push_back(drag_data.contents);
+  }
+  ClearOriginWorkspaceDropTarget();
+#endif
+}
+
+base::CallbackListSubscription
+BraveVerticalTabStripRegionView::RegisterWillDestroyCallback(
+    base::OnceClosure callback) {
+  return origin_drag_target_destroy_callbacks_.Add(std::move(callback));
+}
+
+std::string BraveVerticalTabStripRegionView::GetOriginWorkspaceDropSpaceId(
+    const gfx::Point& point_in_screen) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_workspace_service_) {
+    return {};
+  }
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const size_t count =
+      std::min(spaces.size(), origin_workspace_buttons_.size());
+  for (size_t index = 0; index < count; ++index) {
+    const auto* button = origin_workspace_buttons_[index].get();
+    if (button && button->GetVisible() &&
+        button->GetBoundsInScreen().Contains(point_in_screen)) {
+      return spaces[index].id;
+    }
+  }
+#endif
+  return {};
+}
+
+void BraveVerticalTabStripRegionView::SetOriginWorkspaceDropTarget(
+    const std::string& space_id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (space_id == origin_drag_destination_space_id_) {
+    return;
+  }
+  ClearOriginWorkspaceDropTarget();
+  if (space_id.empty() || !origin_workspace_service_) {
+    return;
+  }
+
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  const size_t count =
+      std::min(spaces.size(), origin_workspace_buttons_.size());
+  for (size_t index = 0; index < count; ++index) {
+    if (spaces[index].id != space_id) {
+      continue;
+    }
+    origin_workspace_drop_target_button_ = origin_workspace_buttons_[index];
+    origin_drag_destination_space_id_ = space_id;
+    views::AsViewClass<OriginWorkspaceButton>(
+        origin_workspace_drop_target_button_.get())
+        ->SetWorkspaceDropTarget(true);
+    return;
+  }
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ClearOriginWorkspaceDropTarget() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_workspace_drop_target_button_) {
+    views::AsViewClass<OriginWorkspaceButton>(
+        origin_workspace_drop_target_button_.get())
+        ->SetWorkspaceDropTarget(false);
+  }
+#endif
+  origin_workspace_drop_target_button_ = nullptr;
+  origin_drag_destination_space_id_.clear();
+}
+
+void BraveVerticalTabStripRegionView::CompleteOriginWorkspaceDrop() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  std::string destination = std::move(origin_pending_drop_space_id_);
+  origin_pending_drop_space_id_.clear();
+  std::vector<content::WebContents*> contents;
+  contents.reserve(origin_pending_drop_contents_.size());
+  for (content::WebContents* tab_contents : origin_pending_drop_contents_) {
+    if (tab_contents && browser_->tab_strip_model()->GetIndexOfWebContents(
+                            tab_contents) != TabStripModel::kNoTab) {
+      contents.push_back(tab_contents);
+    }
+  }
+  origin_pending_drop_contents_.clear();
+  if (destination.empty() || contents.empty() ||
+      !origin_workspace_service_->GetOriginSpace(destination)) {
+    return;
+  }
+
+  // Tree membership is independent of Space membership. Promote the selected
+  // subtree first so its parent cannot remain hidden in the source Space.
+  static_cast<BraveTabStripModel*>(browser_->tab_strip_model())
+      ->PromoteSelectedTreeTabsToRoot();
+  origin_space_controller_->MoveTabsToSpace(contents, destination);
+#endif
+}
+
 void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ClearOriginWorkspaceDropTarget();
   // Release the tracked raw_ptr references while their views are still alive.
   // Chromium's dangling-pointer detector intentionally rejects clearing these
   // references after RemoveAllChildViews() has destroyed the buttons.

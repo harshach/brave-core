@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 
+#include "base/containers/span.h"
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/observer_list.h"
@@ -61,10 +62,21 @@ class OriginSpaceController : public TabStripModelObserver,
   bool ActiveSpaceHasTabs() const;
   void MoveTabToSpace(content::WebContents* contents,
                       const std::string& space_id);
+  // Moves a dragged page selection as one transaction. Observers see the
+  // complete result, so a tree subtree never briefly renders split across two
+  // Spaces.
+  void MoveTabsToSpace(base::span<content::WebContents* const> contents,
+                       const std::string& space_id);
 
   // Selects the previous/next page in the active space, skipping all tabs
   // belonging to other spaces. Navigation wraps at the ends.
   bool SelectAdjacentTab(bool next);
+
+  // Selects the page that should replace the active page while
+  // `closing_indices` are closed. Prefers the next visible page, then the
+  // previous one, and only falls back to the Space's hidden New Tab canvas
+  // when no visible page survives.
+  bool SelectReplacementTabForClose(base::span<const int> closing_indices);
 
   // Selects the previous/next space in profile order. Navigation wraps at the
   // ends and restores the last selected page in the destination space.

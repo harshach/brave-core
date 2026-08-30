@@ -1,0 +1,13 @@
+diff --git a/components/services/quarantine/quarantine_impl.cc b/components/services/quarantine/quarantine_impl.cc
+index 002a9dd2af44efbab413b6a91a1450cb7b512055..d942538a1d35a98d6280e75c542dea9f6004b457 100644
+--- a/components/services/quarantine/quarantine_impl.cc
++++ b/components/services/quarantine/quarantine_impl.cc
+@@ -43,7 +43,7 @@ void QuarantineImpl::QuarantineFile(
+   // quarantine work.
+   scoped_refptr<base::TaskRunner> task_runner =
+       base::ThreadPool::CreateTaskRunner(
+-          {base::MayBlock(), base::TaskPriority::USER_VISIBLE});
++          {base::MayBlock(), base::TaskPriority::USER_BLOCKING});
+ #else   // BUILDFLAG(IS_MAC)
+   scoped_refptr<base::TaskRunner> task_runner =
+       base::SingleThreadTaskRunner::GetCurrentDefault();
