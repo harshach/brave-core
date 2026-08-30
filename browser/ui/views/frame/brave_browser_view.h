@@ -371,6 +371,7 @@ class BraveBrowserView : public BrowserView,
   void ShowOriginCommander();
   void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
                              OriginQuickOpenDisposition disposition);
+  void CloseActiveOriginTabTree();
 
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;

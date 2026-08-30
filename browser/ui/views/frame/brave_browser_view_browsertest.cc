@@ -320,7 +320,9 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   close_event.windows_key_code = ui::VKEY_D;
 
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
-            brave_browser_view()->PreHandleKeyboardEvent(close_event));
+            browser()->PreHandleKeyboardEvent(second, close_event));
+  EXPECT_EQ(model->count(), initial_tab_count + 2);
+  EXPECT_EQ(model->GetActiveWebContents(), second);
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return model->count() == initial_tab_count + 1; }));
   EXPECT_EQ(model->GetActiveWebContents(), third);

@@ -853,6 +853,26 @@ void BraveBrowserView::SubmitOriginQuickOpen(
   }
 }
 
+void BraveBrowserView::CloseActiveOriginTabTree() {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  if (!controller || !controller->ActiveSpaceHasTabs()) {
+    return;
+  }
+
+  auto* model =
+      static_cast<BraveTabStripModel*>(browser()->tab_strip_model());
+  const int active_index = model->active_index();
+  if (active_index == TabStripModel::kNoTab) {
+    return;
+  }
+
+  std::vector<int> indices =
+      model->GetTreeTabDescendantIndices(active_index);
+  indices.push_back(active_index);
+  controller->SelectReplacementTabForClose(indices);
+  model->CloseTabs(indices);
+}
+
 void BraveBrowserView::OnCompactModePrefChanged() {
   InvalidateLayout();
 }
@@ -2111,17 +2131,10 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           return content::KeyboardEventProcessingResult::HANDLED;
         }
         case ui::VKEY_D: {
-          auto* controller = browser()->GetFeatures().origin_space_controller();
-          if (!controller || !controller->ActiveSpaceHasTabs()) {
-            return content::KeyboardEventProcessingResult::HANDLED;
-          }
-          auto* model =
-              static_cast<BraveTabStripModel*>(browser()->tab_strip_model());
-          std::vector<int> indices =
-              model->GetTreeTabDescendantIndices(model->active_index());
-          indices.push_back(model->active_index());
-          controller->SelectReplacementTabForClose(indices);
-          model->CloseTabs(indices);
+          base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+              FROM_HERE,
+              base::BindOnce(&BraveBrowserView::CloseActiveOriginTabTree,
+                             weak_ptr_.GetWeakPtr()));
           return content::KeyboardEventProcessingResult::HANDLED;
         }
         case ui::VKEY_Z:
