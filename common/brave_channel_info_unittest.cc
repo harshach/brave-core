@@ -40,22 +40,25 @@ TEST(BraveChannelInfoTest, ChannelByNameTest) {
 TEST(BraveChannelInfoTest, ParentDirectoryOfUserDataDirectoryTest) {
   base::FilePath path;
   EXPECT_TRUE(chrome::GetDefaultUserDataDirectory(&path));
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  EXPECT_EQ("Socket", path.DirName().BaseName().AsUTF8Unsafe());
+#else
   EXPECT_EQ("BraveSoftware", path.DirName().BaseName().AsUTF8Unsafe());
+#endif
 }
 
 TEST(BraveChannelInfoTest, DefaultUserDataDirectoryAndChannelTest) {
   base::FilePath path;
 
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  constexpr char kProduct[] = "Brave-Browser";
-  constexpr bool kSharesStableProfile = true;
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  constexpr char kProduct[] = "Socket";
+#elif BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  constexpr char kProduct[] = "Brave-Origin";
 #else
   constexpr char kProduct[] = "Brave-Browser";
-  constexpr bool kSharesStableProfile = false;
 #endif
   const auto expected_product = [&](const char* channel_suffix) {
-    return std::string(kProduct) +
-           (kSharesStableProfile ? std::string() : channel_suffix);
+    return std::string(kProduct) + channel_suffix;
   };
 
 #if defined(OFFICIAL_BUILD)

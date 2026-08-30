@@ -70,22 +70,24 @@ a prerelease from the Actions page or with GitHub CLI:
 
 ```sh
 gh workflow run origin-release.yml \
-  --ref master \
+  --ref harshach/build-sigmaos-branch \
   -f tag=socket-v0.1.0-preview.1 \
   -f prerelease=true
 ```
 
-Pushing a tag matching `socket-v*` also starts the complete release pipeline.
-Tags containing a suffix such as `-preview.1` become prereleases; other tags
-become latest releases.
+The unsigned desktop workflow is manual-only so it cannot race the signed
+macOS workflow on `socket-v*` tags. Tags containing a suffix such as
+`-preview.1` become prereleases; other tags become latest releases.
 
 Use the individual build workflows when a temporary package for only one
 platform is sufficient:
 
 ```sh
-gh workflow run origin-build-linux.yml --ref master
-gh workflow run origin-build-windows.yml --ref master
-gh workflow run origin-build-macos.yml --ref master -f architecture=ARM64
+gh workflow run origin-build-linux.yml --ref harshach/build-sigmaos-branch
+gh workflow run origin-build-windows.yml --ref harshach/build-sigmaos-branch
+gh workflow run origin-build-macos.yml \
+  --ref harshach/build-sigmaos-branch \
+  -f architecture=ARM64
 ```
 
 Use `architecture=X64` for the Intel macOS package.

@@ -236,7 +236,8 @@ jobs:
           pnpm run build Release
           --target_os=mac
           --target_arch=x64
-          --gn=should_generate_symbols:false
+          --gn=enable_dsyms:true
+          --gn=should_generate_symbols:true
 
       - name: Build, sign, and notarize universal DMG
         working-directory: workspace/src/brave
@@ -250,7 +251,8 @@ jobs:
           --notarize
           --mac_signing_identifier="$SIGNING_IDENTITY"
           --mac_signing_keychain="$SOCKET_KEYCHAIN_NAME"
-          --gn=should_generate_symbols:false
+          --gn=enable_dsyms:true
+          --gn=should_generate_symbols:true
 
       - name: Verify and prepare release asset
         id: asset
@@ -289,17 +291,50 @@ jobs:
             exit 1
           fi
 
+          framework_binary="$(find \
+            "$app_path/Contents/Frameworks/Socket Framework.framework/Versions" \
+            -type f -name 'Socket Framework' -print -quit)"
+          arm64_dsym="$(find ../out/Release_arm64 -type d \
+            -name 'Socket Framework.framework.dSYM' -prune -print -quit)"
+          x64_dsym="$(find ../out/Release_x64 -type d \
+            -name 'Socket Framework.framework.dSYM' -prune -print -quit)"
+          if [[ -z "$framework_binary" || -z "$arm64_dsym" || -z "$x64_dsym" ]]; then
+            echo "Socket Framework binary or dSYM bundle is missing." >&2
+            exit 1
+          fi
+
+          arm64_binary_uuid="$(dwarfdump --uuid "$framework_binary" | \
+            awk '$3 == "(arm64)" {print $2}')"
+          x64_binary_uuid="$(dwarfdump --uuid "$framework_binary" | \
+            awk '$3 == "(x86_64)" {print $2}')"
+          arm64_dsym_uuid="$(dwarfdump --uuid "$arm64_dsym" | \
+            awk '$3 == "(arm64)" {print $2}')"
+          x64_dsym_uuid="$(dwarfdump --uuid "$x64_dsym" | \
+            awk '$3 == "(x86_64)" {print $2}')"
+          if [[ -z "$arm64_binary_uuid" || "$arm64_binary_uuid" != "$arm64_dsym_uuid" ]]; then
+            echo "ARM64 framework dSYM UUID does not match the release binary." >&2
+            exit 1
+          fi
+          if [[ -z "$x64_binary_uuid" || "$x64_binary_uuid" != "$x64_dsym_uuid" ]]; then
+            echo "Intel framework dSYM UUID does not match the release binary." >&2
+            exit 1
+          fi
+
           hdiutil detach "$mount_dir"
           trap - EXIT
 
           release_version="${RELEASE_TAG#socket-v}"
           mkdir -p release-assets
           asset_path="release-assets/Socket-$release_version-macOS-universal.dmg"
+          arm64_symbols="release-assets/Socket-$release_version-macOS-arm64-framework-dSYM.zip"
+          x64_symbols="release-assets/Socket-$release_version-macOS-x64-framework-dSYM.zip"
           cp "$dmg_path" "$asset_path"
-          shasum -a 256 "$asset_path" > "$asset_path.sha256"
-
-          echo "path=$asset_path" >> "$GITHUB_OUTPUT"
-          echo "checksum=$asset_path.sha256" >> "$GITHUB_OUTPUT"
+          ditto -c -k --sequesterRsrc --keepParent "$arm64_dsym" "$arm64_symbols"
+          ditto -c -k --sequesterRsrc --keepParent "$x64_dsym" "$x64_symbols"
+          (
+            cd release-assets
+            shasum -a 256 ./* > SHA256SUMS
+          )
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7.0.1
@@ -307,9 +342,7 @@ jobs:
           name: socket-macos-${{ steps.release.outputs.tag }}
           if-no-files-found: error
           retention-days: 14
-          path: |
-            workspace/src/brave/${{ steps.asset.outputs.path }}
-            workspace/src/brave/${{ steps.asset.outputs.checksum }}
+          path: workspace/src/brave/release-assets/*
 
       - name: Publish GitHub release
         working-directory: workspace/src/brave
@@ -320,7 +353,7 @@ jobs:
           RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           assets=(release-assets/*)
-          notes="Signed and notarized universal macOS build of Socket for Apple Silicon and Intel Macs. Socket is an independent browser and is not affiliated with Brave Software, Inc."
+          notes="Signed and notarized universal macOS build of Socket for Apple Silicon and Intel Macs. Matching framework dSYMs are included for crash symbolication. Socket is an independent browser and is not affiliated with Brave Software, Inc."
 
           if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" "${assets[@]}" \

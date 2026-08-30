@@ -12,10 +12,6 @@ on:
         required: true
         default: true
         type: boolean
-  push:
-    tags:
-      - "socket-v*"
-
 permissions:
   contents: read
 

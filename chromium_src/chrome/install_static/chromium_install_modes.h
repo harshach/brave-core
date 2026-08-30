@@ -23,18 +23,26 @@ namespace install_static {
 
 // The brand-specific company name to be included as a component of the install
 // and user data directory paths. May be empty if no such dir is to be used.
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+inline constexpr wchar_t kCompanyPathName[] = L"Socket";
+#else
 inline constexpr wchar_t kCompanyPathName[] = L"BraveSoftware";
+#endif
 
 // The brand-specific product name to be included as a component of the install
 // and user data directory paths.
+#if BUILDFLAG(IS_SOCKET_BRANDED)
 #if defined(OFFICIAL_BUILD)
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+inline constexpr wchar_t kProductPathName[] = L"Socket";
+#else
+inline constexpr wchar_t kProductPathName[] = L"Socket-Development";
+#endif
+#elif defined(OFFICIAL_BUILD) && BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 // Brave Origin uses "Brave-Origin" instead of "Brave-Browser" to allow
 // side-by-side installation with Brave Browser.
 inline constexpr wchar_t kProductPathName[] = L"Brave-Origin";
-#else
+#elif defined(OFFICIAL_BUILD)
 inline constexpr wchar_t kProductPathName[] = L"Brave-Browser";
-#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 #else
 // If you change this, then you also need to change occurrences of this string
 // in mini_installer_constants.cc.

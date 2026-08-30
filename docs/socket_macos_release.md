@@ -4,7 +4,8 @@ Socket macOS releases are universal DMGs built from the long-lived feature
 branch. The release workflow builds Intel and Apple Silicon applications on an
 Apple Silicon Mac, combines them, signs the result with Developer ID, submits
 it to Apple's notarization service, and uploads the verified DMG to GitHub
-Releases.
+Releases. It also publishes matching framework dSYMs for both architectures
+and verifies their UUIDs against the distributed universal binary.
 
 ## Build host
 
@@ -65,5 +66,5 @@ git push origin socket-v0.1.0-preview.1
 
 Tags with a suffix such as `-preview.1` create prereleases. Tags without a
 suffix create regular releases. The workflow verifies the bundle identifier,
-both CPU architectures, code signature, notarization ticket, and DMG before it
-creates or updates the GitHub Release.
+both CPU architectures, dSYM UUIDs, code signature, notarization ticket, and
+DMG before it creates or updates the GitHub Release.

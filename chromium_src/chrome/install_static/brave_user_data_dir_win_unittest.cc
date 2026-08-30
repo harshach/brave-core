@@ -21,15 +21,27 @@ inline bool EndsWith(const std::wstring& value, const std::wstring& ending) {
   return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+const wchar_t kPolicyRegistryKey[] = L"SOFTWARE\\Policies\\Socket\\Socket";
+#if defined(OFFICIAL_BUILD)
+const wchar_t kUserDataDirNameSuffix[] = L"\\Socket\\Socket\\User Data";
+#else
+const wchar_t kUserDataDirNameSuffix[] =
+    L"\\Socket\\Socket-Development\\User Data";
+#endif
+#elif BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 const wchar_t kPolicyRegistryKey[] =
     L"SOFTWARE\\Policies\\BraveSoftware\\Brave";
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 const wchar_t kUserDataDirNameSuffix[] =
-    L"\\BraveSoftware\\Brave-Browser\\User Data";
+    L"\\BraveSoftware\\Brave-Origin\\User Data";
 #elif defined(OFFICIAL_BUILD)
+const wchar_t kPolicyRegistryKey[] =
+    L"SOFTWARE\\Policies\\BraveSoftware\\Brave";
 const wchar_t kUserDataDirNameSuffix[] =
     L"\\BraveSoftware\\Brave-Browser\\User Data";
 #else
+const wchar_t kPolicyRegistryKey[] =
+    L"SOFTWARE\\Policies\\BraveSoftware\\Brave";
 const wchar_t kUserDataDirNameSuffix[] =
     L"\\BraveSoftware\\Brave-Browser-Development\\User Data";
 #endif
