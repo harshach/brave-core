@@ -134,7 +134,7 @@ export const AssetDetailsHeader = (props: Props) => {
       ? getRewardsTokenDescription(
           externalWalletProviderFromString(selectedAsset?.chainId ?? ''),
         )
-      : getLocale('braveWalletPortfolioAssetNetworkDescription')
+      : getLocale(S.BRAVE_WALLET_PORTFOLIO_ASSET_NETWORK_DESCRIPTION)
           .replace('$1', selectedAsset?.symbol ?? '')
           .replace('$2', selectedAssetsNetwork?.chainName ?? '')
 
@@ -210,12 +210,7 @@ export const AssetDetailsHeader = (props: Props) => {
                   variant='large.semibold'
                   textAlign='left'
                 >
-                  {isShieldedToken(selectedAsset)
-                    ? selectedAsset.zcashTokenType
-                      === BraveWallet.ZCashTokenType.kIronwood
-                      ? 'Zcash (Ironwood)'
-                      : 'Zcash'
-                    : (selectedAsset?.name ?? '')}
+                  {selectedAsset.name ?? ''}
                 </Text>
                 {isShieldedToken(selectedAsset) && <ShieldedLabel />}
               </Row>

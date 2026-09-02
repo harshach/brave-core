@@ -35,6 +35,7 @@ class ProfileNewTabMetrics;
 class ThemeMetrics;
 #endif
 class AutofillMetrics;
+class FingerprintFrequencyMetrics;
 class LanguageMetrics;
 class PageMetrics;
 
@@ -59,6 +60,8 @@ class ProfileMiscMetricsService : public KeyedService {
   void Shutdown() override;
 
   PageMetrics* GetPageMetrics();
+
+  FingerprintFrequencyMetrics* GetFingerprintFrequencyMetricsForTesting();
 #if BUILDFLAG(ENABLE_AI_CHAT)
   ai_chat::AIChatMetrics* GetAIChatMetrics();
 #endif  // BUILDFLAG(ENABLE_AI_CHAT)
@@ -72,6 +75,7 @@ class ProfileMiscMetricsService : public KeyedService {
   PrefChangeRegistrar pref_change_registrar_;
 
   std::unique_ptr<AutofillMetrics> autofill_metrics_;
+  std::unique_ptr<FingerprintFrequencyMetrics> fingerprint_frequency_metrics_;
   std::unique_ptr<LanguageMetrics> language_metrics_;
   std::unique_ptr<PageMetrics> page_metrics_;
 #if BUILDFLAG(ENABLE_AI_CHAT)

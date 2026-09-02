@@ -103,6 +103,7 @@ export function ConfirmSendTransaction() {
     isAccountSyncing,
     isShieldingFunds,
     isUnshieldingFunds,
+    isMigratingFunds,
     insufficientFundsForGasError,
     insufficientFundsError,
   } = usePendingTransactions()
@@ -176,15 +177,18 @@ export function ConfirmSendTransaction() {
         <ConfirmationHeader
           title={
             isShieldingFunds
-              ? getLocale('braveWalletConfirmShield')
+              ? getLocale(S.BRAVE_WALLET_CONFIRM_SHIELD)
               : isUnshieldingFunds
-                ? getLocale('braveWalletConfirmUnshield')
-                : getLocale('braveWalletConfirmSend')
+                ? getLocale(S.BRAVE_WALLET_CONFIRM_UNSHIELD)
+                : isMigratingFunds
+                  ? getLocale(S.BRAVE_WALLET_CONFIRM_MIGRATE)
+                  : getLocale(S.BRAVE_WALLET_CONFIRM_SEND)
           }
           transactionsQueueLength={transactionsQueueLength}
           queueNextTransaction={queueNextTransaction}
           queuePreviousTransaction={queuePreviousTransaction}
           rejectAllTransactions={rejectAllTransactions}
+          close={onReject}
         />
         <ScrollableColumn
           width='100%'
@@ -203,7 +207,7 @@ export function ConfirmSendTransaction() {
                   account={fromAccount}
                 />
                 <Title textColor='primary'>
-                  {getLocale('braveWalletPanelTitle')}
+                  {getLocale(S.BRAVE_WALLET_PANEL_TITLE)}
                 </Title>
               </>
             ) : (
@@ -222,7 +226,15 @@ export function ConfirmSendTransaction() {
                 {/* Send token and amount */}
                 <ConfirmationTokenInfo
                   token={transactionDetails.token}
-                  label={isShieldingFunds ? 'shield' : 'send'}
+                  label={
+                    isShieldingFunds
+                      ? 'shield'
+                      : isUnshieldingFunds
+                        ? 'unshield'
+                        : isMigratingFunds
+                          ? 'migrate'
+                          : 'send'
+                  }
                   valueExact={transactionDetails.valueExact}
                   fiatValue={transactionDetails.fiatValue}
                   network={transactionsNetwork}
@@ -275,7 +287,7 @@ export function ConfirmSendTransaction() {
                       textColor='secondary'
                       textAlign='left'
                     >
-                      {getLocale('braveWalletConfirmTransactionTotal')}
+                      {getLocale(S.BRAVE_WALLET_CONFIRM_TRANSACTION_TOTAL)}
                     </ConfirmationInfoLabel>
                     <ConfirmationInfoLabel
                       textColor='primary'
@@ -289,7 +301,7 @@ export function ConfirmSendTransaction() {
                       textColor='tertiary'
                       textAlign='left'
                     >
-                      {getLocale('braveWalletConfirmTransactionAmountFee')}
+                      {getLocale(S.BRAVE_WALLET_CONFIRM_TRANSACTION_AMOUNT_FEE)}
                     </ConfirmationInfoText>
                     <ConfirmationInfoText
                       textColor='tertiary'
@@ -312,7 +324,7 @@ export function ConfirmSendTransaction() {
                           textColor='secondary'
                           textAlign='left'
                         >
-                          {getLocale('braveWalletMemo')}
+                          {getLocale(S.BRAVE_WALLET_MEMO)}
                         </ConfirmationInfoLabel>
                       </Row>
                       <Row justifyContent='flex-start'>
@@ -360,13 +372,14 @@ export function ConfirmSendTransaction() {
           isAccountSyncing={isAccountSyncing}
           isShieldingFunds={isShieldingFunds}
           isUnshieldingFunds={isUnshieldingFunds}
+          isMigratingFunds={isMigratingFunds}
         />
       </StyledWrapper>
 
       {/* Transaction details */}
       <BottomSheet
         isOpen={showTransactionDetails}
-        title={getLocale('braveWalletDetails')}
+        title={getLocale(S.BRAVE_WALLET_DETAILS)}
         onClose={() => setShowTransactionDetails(false)}
       >
         <PendingTransactionDetails
@@ -378,7 +391,7 @@ export function ConfirmSendTransaction() {
       {/* Advanced transaction settings */}
       <BottomSheet
         isOpen={showAdvancedTransactionSettings}
-        title={getLocale('braveWalletAdvancedTransactionSettings')}
+        title={getLocale(S.BRAVE_WALLET_ADVANCED_TRANSACTION_SETTINGS)}
         onClose={() => setShowAdvancedTransactionSettings(false)}
       >
         <AdvancedTransactionSettings

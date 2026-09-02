@@ -45,12 +45,12 @@ class BraveTabStripCollection : public TabStripCollection {
   const ChildrenVector& GetChildrenForDelegate(
       const TabCollection& collection,
       base::PassKey<BraveTabStripCollectionDelegate> pass_key) const;
-  void AddTabRecursive(std::unique_ptr<TabInterface> tab,
+  void AddTabRecursive(ScopedTab tab,
                        size_t index,
                        std::optional<tab_groups::TabGroupId> new_group_id,
                        bool new_pinned_state,
                        base::PassKey<BraveTabStripCollectionDelegate> pass_key);
-  std::unique_ptr<TabInterface> RemoveTabAtIndexRecursive(
+  ScopedTab RemoveTabAtIndexRecursive(
       size_t index,
       base::PassKey<BraveTabStripCollectionDelegate> pass_key);
   void AddTabCollectionAtPosition(
@@ -79,7 +79,7 @@ class BraveTabStripCollection : public TabStripCollection {
   bool ReparentTreeTabNode(TabInterface* child, TabInterface* parent);
 
   // TabStripCollection:
-  void AddTabRecursive(std::unique_ptr<TabInterface> tab,
+  void AddTabRecursive(ScopedTab tab,
                        size_t index,
                        std::optional<tab_groups::TabGroupId> new_group_id,
                        bool new_pinned_state,
@@ -95,8 +95,7 @@ class BraveTabStripCollection : public TabStripCollection {
       std::optional<tab_groups::TabGroupId> new_group_id,
       bool new_pinned_state,
       const TabCollection::TypeEnumSet retain_collection_types) override;
-  std::unique_ptr<TabInterface> RemoveTabAtIndexRecursive(
-      size_t index) override;
+  ScopedTab RemoveTabAtIndexRecursive(size_t index) override;
   void CreateSplit(split_tabs::SplitTabId split_id,
                    const std::vector<TabInterface*>& tabs,
                    split_tabs::SplitTabVisualData visual_data) override;

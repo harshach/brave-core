@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/download/download_ui_model.cc b/chrome/browser/download/download_ui_model.cc
-index 4bc7f513e085db5da77082bc0ed91046f2c443b6..2f05c8d0df9f047c093dead773dafb61ca05d398 100644
+index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793a911f8cd 100644
 --- a/chrome/browser/download/download_ui_model.cc
 +++ b/chrome/browser/download/download_ui_model.cc
 @@ -28,6 +28,7 @@

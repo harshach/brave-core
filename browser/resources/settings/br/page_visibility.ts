@@ -20,6 +20,9 @@ declare module '../page_visibility.js' {
     // <if expr="enable_containers">
     containers?: boolean
     // </if>
+    // <if expr="enable_traffic_control">
+    trafficControl?: boolean
+    // </if>
     content?: boolean
     getStarted?: boolean
     leoAssistant?: boolean
@@ -35,10 +38,7 @@ declare module '../page_visibility.js' {
     // </if>
     surveyPanelist?: boolean,
     braveTor?: boolean,
-    emailAliases?: boolean,
-    // <if expr="enable_psst">
-    psst?: boolean,
-    // </if>
+    emailAliases?: boolean
   }
 }
 
@@ -60,6 +60,9 @@ function getPageVisibility () {
       // <if expr="enable_containers">
       containers: false,
       // </if>
+      // <if expr="enable_traffic_control">
+      trafficControl: false,
+      // </if>
       content: false,
       getStarted: false,
       leoAssistant: false,
@@ -76,9 +79,6 @@ function getPageVisibility () {
       surveyPanelist: false,
       braveTor: false,
       emailAliases: false,
-      // <if expr="enable_psst">
-      psst: false,
-      // </if>
     }
   }
   // We need to specify values for every attribute in pageVisibility instead of
@@ -113,6 +113,9 @@ function getPageVisibility () {
     // <if expr="enable_containers">
     containers: loadTimeData.getBoolean('isContainersEnabled'),
     // </if>
+    // <if expr="enable_traffic_control">
+    trafficControl: loadTimeData.getBoolean('isTrafficControlEnabled'),
+    // </if>
     content: alwaysTrueProxy,
     playlist: loadTimeData.getBoolean('isPlaylistFeatureEnabled') &&
               !loadTimeData.getBoolean('isPlaylistDisabledByPolicy'),
@@ -125,9 +128,6 @@ function getPageVisibility () {
     // </if>
     // <if expr="enable_email_aliases">
     emailAliases: loadTimeData.getBoolean('isEmailAliasesEnabled'),
-    // </if>
-    // <if expr="enable_psst">
-    psst: loadTimeData.getBoolean('isPsstEnabled'),
     // </if>
     origin: loadTimeData.getBoolean('isBraveOriginPurchased') &&
             !loadTimeData.getBoolean('isBraveOriginBrandedBuild'),

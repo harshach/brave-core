@@ -512,13 +512,12 @@ extension Strings.Shields {
       "Text for a button in a blocked page info screen that allows you to proceed regardless of the privacy warning"
   )
 
-  /// A description in the warning page that appears when a page was blocked
-  public static let domainBlockedGoBackAction = NSLocalizedString(
-    "DomainBlockedGoBackAction",
+  public static let backToSafetyButtonTitle = NSLocalizedString(
+    "BackToSafetyButtonTitle",
     bundle: .module,
-    value: "Go Back",
+    value: "Back to safety",
     comment:
-      "Text for a button in a blocked page info screen that takes you back where you came from"
+      "Text for a button in a blocked page or a page not secure info screen that takes you back where you came from or back to home screen"
   )
 }
 

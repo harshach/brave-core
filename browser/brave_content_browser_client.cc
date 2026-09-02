@@ -97,6 +97,7 @@
 #include "brave/components/skus/common/skus_utils.h"
 #include "brave/components/speedreader/common/buildflags/buildflags.h"
 #include "brave/components/tor/buildflags/buildflags.h"
+#include "brave/components/traffic_control/buildflags/buildflags.h"
 #include "brave/components/translate/core/common/brave_translate_switches.h"
 #include "brave/components/url_sanitizer/core/browser/url_sanitizer_service.h"
 #include "brave/grit/brave_generated_resources.h"
@@ -211,9 +212,6 @@
 
 using blink::web_pref::WebPreferences;
 using brave_shields::BraveShieldsWebContentsObserver;
-using brave_shields::ControlType;
-using brave_shields::GetFingerprintingControlType;
-using brave_shields::IsBraveShieldsEnabled;
 using content::BrowserThread;
 using content::ContentBrowserClient;
 using content::RenderFrameHost;
@@ -250,6 +248,10 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/components/containers/content/browser/storage_partition_utils.h"
 #include "brave/components/containers/core/common/features.h"
 #include "brave/components/containers/core/mojom/containers.mojom.h"
+#endif
+#if BUILDFLAG(ENABLE_TRAFFIC_CONTROL)
+#include "brave/components/traffic_control/core/common/features.h"
+#include "brave/components/traffic_control/core/mojom/traffic_control.mojom.h"
 #endif
 
 #if !BUILDFLAG(IS_ANDROID)
@@ -662,6 +664,13 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
         .Add<containers::mojom::ContainersSettingsHandler>();
   }
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
+#if BUILDFLAG(ENABLE_TRAFFIC_CONTROL)
+  if (base::FeatureList::IsEnabled(
+          traffic_control::features::kTrafficControl)) {
+    registry.ForWebUI<BraveSettingsUI>()
+        .Add<traffic_control::mojom::TrafficControlSettingsHandler>();
+  }
+#endif  // BUILDFLAG(ENABLE_TRAFFIC_CONTROL)
 #if !BUILDFLAG(IS_ANDROID)
 #if BUILDFLAG(ENABLE_AI_CHAT)
   registry.ForWebUI<BraveSettingsUI>()
@@ -1231,26 +1240,28 @@ void BraveContentBrowserClient::WillCreateURLLoaderFactory(
     bool* bypass_redirect_checks,
     bool* disable_secure_dns,
     network::mojom::URLLoaderFactoryOverridePtr* factory_override,
-    scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner) {
+    scoped_refptr<base::SequencedTaskRunner> navigation_response_task_runner,
+    bool is_for_network_service) {
   // TODO(iefremov): Skip proxying for certain requests?
   if (base::FeatureList::IsEnabled(features::kBraveRequestInfoUniquePtr)) {
     BraveProxyingURLLoaderFactory<base::WeakPtr>::MaybeProxyRequest(
         browser_context, frame, factory_builder, type, request_initiator,
-        isolation_info, navigation_response_task_runner);
+        isolation_info, navigation_id, navigation_response_task_runner);
   } else {
     // Ignore shared_ptr presubmit error, this is old code we are trying to
     // convert to unique_ptr/WeakPtr
     BraveProxyingURLLoaderFactory<
         std::shared_ptr>::MaybeProxyRequest(  // nocheck
         browser_context, frame, factory_builder, type, request_initiator,
-        isolation_info, navigation_response_task_runner);
+        isolation_info, navigation_id, navigation_response_task_runner);
   }
 
   ChromeContentBrowserClient::WillCreateURLLoaderFactory(
       browser_context, frame, render_process_id, type, request_initiator,
       isolation_info, std::move(navigation_id), ukm_source_id, factory_builder,
       header_client, bypass_redirect_checks, disable_secure_dns,
-      factory_override, navigation_response_task_runner);
+      factory_override, navigation_response_task_runner,
+      is_for_network_service);
 }
 
 bool BraveContentBrowserClient::WillInterceptWebSocket(
@@ -1515,37 +1526,6 @@ bool UpdateGlobalPrivacyControlWebPreference(WebContents* web_contents,
   return true;
 }
 
-bool PreventDarkModeFingerprinting(WebContents* web_contents,
-                                   content::SiteInstance& main_frame_site,
-                                   WebPreferences* prefs) {
-  Profile* profile =
-      Profile::FromBrowserContext(web_contents->GetBrowserContext());
-  // The HostContentSettingsMap might be null for some irregular profiles, e.g.
-  // the System Profile.
-  auto* host_content_settings_map =
-      HostContentSettingsMapFactory::GetForProfile(profile);
-  if (!host_content_settings_map) {
-    return false;
-  }
-  const GURL url =
-      main_frame_site.GetSecurityPrincipal().GetDeprecatedSiteURL();
-  const bool shields_up =
-      brave_shields::IsBraveShieldsEnabled(host_content_settings_map, url);
-  auto fingerprinting_type = brave_shields::GetFingerprintingControlType(
-      host_content_settings_map, url);
-  // https://github.com/brave/brave-browser/issues/15265
-  // Always use color scheme Light if fingerprinting mode strict
-  if (base::FeatureList::IsEnabled(
-          brave_shields::features::kBraveDarkModeBlock) &&
-      shields_up && fingerprinting_type == ControlType::BLOCK &&
-      prefs->preferred_color_scheme !=
-          blink::mojom::PreferredColorScheme::kLight) {
-    prefs->preferred_color_scheme = blink::mojom::PreferredColorScheme::kLight;
-    return true;
-  }
-  return false;
-}
-
 std::vector<url::Origin>
 BraveContentBrowserClient::GetOriginsRequiringDedicatedProcess() {
   std::vector<url::Origin> isolated_origin_list;
@@ -1577,8 +1557,7 @@ bool BraveContentBrowserClient::OverrideWebPreferencesAfterNavigation(
       ChromeContentBrowserClient::OverrideWebPreferencesAfterNavigation(
           web_contents, main_frame_site, prefs);
 
-  return PreventDarkModeFingerprinting(web_contents, main_frame_site, prefs) ||
-         UpdateGlobalPrivacyControlWebPreference(web_contents, prefs) ||
+  return UpdateGlobalPrivacyControlWebPreference(web_contents, prefs) ||
          changed;
 }
 
@@ -1588,7 +1567,6 @@ void BraveContentBrowserClient::OverrideWebPreferences(
     WebPreferences* web_prefs) {
   ChromeContentBrowserClient::OverrideWebPreferences(
       web_contents, main_frame_site, web_prefs);
-  PreventDarkModeFingerprinting(web_contents, main_frame_site, web_prefs);
   UpdateGlobalPrivacyControlWebPreference(web_contents, web_prefs);
 
 #if BUILDFLAG(ENABLE_PLAYLIST)

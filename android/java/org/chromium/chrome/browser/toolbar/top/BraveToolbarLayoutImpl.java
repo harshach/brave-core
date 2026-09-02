@@ -72,6 +72,7 @@ import org.chromium.chrome.browser.local_database.SavedBandwidthTable;
 import org.chromium.chrome.browser.media.PictureInPicture;
 import org.chromium.chrome.browser.ntp.NtpUtil;
 import org.chromium.chrome.browser.omnibox.BraveLocationBarCoordinator;
+import org.chromium.chrome.browser.omnibox.LocationBarBackgroundDrawable;
 import org.chromium.chrome.browser.omnibox.LocationBarCoordinator;
 import org.chromium.chrome.browser.onboarding.OnboardingPrefManager;
 import org.chromium.chrome.browser.playlist.PlaylistServiceFactoryAndroid;
@@ -118,8 +119,8 @@ import org.chromium.mojo.bindings.ConnectionErrorHandler;
 import org.chromium.mojo.system.MojoException;
 import org.chromium.playlist.mojom.PlaylistItem;
 import org.chromium.playlist.mojom.PlaylistService;
-import org.chromium.ui.UiUtils;
 import org.chromium.ui.base.DeviceFormFactor;
+import org.chromium.ui.base.LocalizationUtils;
 import org.chromium.ui.base.ViewUtils;
 import org.chromium.ui.base.WindowAndroid;
 import org.chromium.ui.interpolators.Interpolators;
@@ -254,18 +255,6 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
     protected void onFinishInflate() {
         super.onFinishInflate();
 
-        if (BraveReflectionUtil.equalTypes(this.getClass(), ToolbarTablet.class)) {
-            ImageButton forwardButton = findViewById(R.id.forward_button);
-            if (forwardButton != null) {
-                final Drawable forwardButtonDrawable =
-                        UiUtils.getTintedDrawable(
-                                getContext(),
-                                R.drawable.btn_right_tablet,
-                                R.color.default_icon_color_tint_list);
-                forwardButton.setImageDrawable(forwardButtonDrawable);
-            }
-        }
-
         mWalletLayout = findViewById(R.id.brave_wallet_button_layout);
         mShieldsLayout = findViewById(R.id.brave_shields_button_layout);
         mRewardsLayout = findViewById(R.id.brave_rewards_button_layout);
@@ -282,9 +271,10 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
             mWalletIcon = mWalletLayout.findViewById(R.id.brave_wallet_button);
         }
 
+        // Use the same tints as the omnibox status icon, so the icons Brave adds inside the URL
+        // bar match the ones upstream puts there.
         mDarkModeTint = ThemeUtils.getThemedToolbarIconTint(getContext(), false);
-        mLightModeTint =
-                ColorStateList.valueOf(ContextCompat.getColor(getContext(), R.color.brave_white));
+        mLightModeTint = ThemeUtils.getThemedToolbarIconTint(getContext(), true);
 
         if (mHomeButton != null) {
             mHomeButton.setOnLongClickListener(this);
@@ -317,6 +307,8 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
             mYouTubePipButton.setOnLongClickListener(this);
             BraveTouchUtils.ensureMinTouchTarget(mYouTubePipButton);
         }
+
+        maybeSquareLocationBarTrailingCorners();
 
         mUnifiedPanelHandler = new BraveUnifiedPanelHandler(getContext());
         mUnifiedPanelHandler.addObserver(
@@ -1302,11 +1294,14 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
         }
 
         if (tab == null) {
-            mBraveShieldsButton.setImageResource(R.drawable.btn_brave_off);
+            mBraveShieldsButton.setImageResource(
+                    R.drawable.ic_social_brave_monochrome_favicon_fullheight_color);
             return;
         }
         mBraveShieldsButton.setImageResource(
-                isShieldsOnForTab(tab) ? R.drawable.btn_brave : R.drawable.btn_brave_off);
+                isShieldsOnForTab(tab)
+                        ? R.drawable.ic_social_brave_release_favicon_fullheight_color
+                        : R.drawable.ic_social_brave_monochrome_favicon_fullheight_color);
 
         if (mRewardsLayout == null) return;
         if (isIncognito()) {
@@ -1458,10 +1453,16 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
 
     @Override
     public void onThemeColorChanged(int color, boolean shouldAnimate) {
+        // Shields and rewards are brand-colored and stay untinted.
+        ColorStateList tint =
+                ColorUtils.shouldUseLightForegroundOnBackground(color)
+                        ? mLightModeTint
+                        : mDarkModeTint;
         if (mWalletIcon != null) {
-            ImageViewCompat.setImageTintList(mWalletIcon,
-                    !ColorUtils.shouldUseLightForegroundOnBackground(color) ? mDarkModeTint
-                                                                            : mLightModeTint);
+            ImageViewCompat.setImageTintList(mWalletIcon, tint);
+        }
+        if (mYouTubePipButton != null) {
+            ImageViewCompat.setImageTintList(mYouTubePipButton, tint);
         }
 
         final int textBoxColor =
@@ -1504,6 +1505,13 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
 
     public void onBottomControlsVisibilityChanged(boolean isVisible) {
         mIsBottomControlsVisible = isVisible;
+        // The tab switcher and menu buttons are only Brave's to move between the top toolbar and
+        // the bottom while Brave's own bottom controls carry them. Upstream's bottom bar carries
+        // them instead, and ToolbarPhone hides the top ones for it, so showing them back here -
+        // which this does whenever the omnibox takes focus - would leave a second pair on top.
+        if (BottomToolbarConfiguration.isAndroidBottomBarEnabled()) {
+            return;
+        }
         if (BraveReflectionUtil.equalTypes(this.getClass(), ToolbarPhone.class)
                 && getMenuButtonCoordinator() != null) {
             getMenuButtonCoordinator().setVisibility(!isVisible);
@@ -1513,6 +1521,34 @@ public abstract class BraveToolbarLayoutImpl extends ToolbarLayout
                         isTabSwitcherOnBottomControls() ? GONE : VISIBLE);
             }
         }
+    }
+
+    /**
+     * Squares off the trailing corners of the tablet location bar background, so that the Brave
+     * button segments laid out right after it continue the same rounded rectangle. Upstream builds
+     * that background programmatically with a single corner radius, which leaves a notch at the
+     * junction with the segments.
+     */
+    private void maybeSquareLocationBarTrailingCorners() {
+        if (!BraveReflectionUtil.equalTypes(this.getClass(), ToolbarTablet.class)) {
+            return;
+        }
+
+        View locationBar = findViewById(R.id.location_bar);
+        Drawable background = locationBar != null ? locationBar.getBackground() : null;
+        if (!(background instanceof LocationBarBackgroundDrawable)) {
+            return;
+        }
+
+        float radius =
+                getResources()
+                        .getDimensionPixelSize(R.dimen.modern_toolbar_background_corner_radius);
+        // Radii are listed clockwise from the top left corner, as x/y pairs.
+        float[] radii =
+                LocalizationUtils.isLayoutRtl()
+                        ? new float[] {0, 0, radius, radius, radius, radius, 0, 0}
+                        : new float[] {radius, radius, 0, 0, 0, 0, radius, radius};
+        ((LocationBarBackgroundDrawable) background).getBackgroundGradient().setCornerRadii(radii);
     }
 
     private void updateShieldsLayoutBackground(boolean rounded) {

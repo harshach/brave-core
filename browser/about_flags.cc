@@ -39,6 +39,7 @@
 #include "brave/components/traffic_control/buildflags/buildflags.h"
 #include "brave/components/v8/buildflags/buildflags.h"
 #include "brave/components/webcompat/core/common/features.h"
+#include "brave/ui/webui/custom_profile_image/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/buildflags.h"
 #include "chrome/browser/ui/tabs/features.h"
@@ -63,6 +64,10 @@
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
 #include "brave/components/brave_news/common/features.h"
+#endif
+
+#if BUILDFLAG(ENABLE_CUSTOM_PROFILE_IMAGE)
+#include "brave/browser/ui/webui/custom_profile_image/features.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -143,6 +148,20 @@
 
 #define EXPAND_FEATURE_ENTRIES(...) __VA_ARGS__,
 
+#if BUILDFLAG(ENABLE_CUSTOM_PROFILE_IMAGE)
+#define BRAVE_CUSTOM_PROFILE_IMAGE_FEATURE_ENTRY                     \
+  EXPAND_FEATURE_ENTRIES({                                           \
+      "brave-custom-profile-image",                                  \
+      "Custom profile images",                                       \
+      "Enable custom profile images.",                               \
+      kOsWin | kOsLinux | kOsMac,                                    \
+      FEATURE_VALUE_TYPE(                                            \
+          custom_profile_image::features::kBraveCustomProfileImage), \
+  })
+#else
+#define BRAVE_CUSTOM_PROFILE_IMAGE_FEATURE_ENTRY
+#endif  // BUILDFLAG(ENABLE_CUSTOM_PROFILE_IMAGE)
+
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 const flags_ui::FeatureEntry::FeatureParam
     kZCashShieldedTransactionsDisabled[] = {
@@ -155,6 +174,16 @@ const flags_ui::FeatureEntry::FeatureVariation kZCashFeatureVariations[] = {
     {"- Shielded support disabled", kZCashShieldedTransactionsDisabled,
      nullptr},
     {"- Shielded support enabled", kZCashShieldedTransactionsEnabled, nullptr}};
+
+const flags_ui::FeatureEntry::FeatureParam kPolkadotAssetDiscoveryDisabled[] = {
+    {"polkadot_asset_discovery", "false"}};
+
+const flags_ui::FeatureEntry::FeatureParam kPolkadotAssetDiscoveryEnabled[] = {
+    {"polkadot_asset_discovery", "true"}};
+
+const flags_ui::FeatureEntry::FeatureVariation kPolkadotFeatureVariations[] = {
+    {"- Asset discovery disabled", kPolkadotAssetDiscoveryDisabled, nullptr},
+    {"- Asset discovery enabled", kPolkadotAssetDiscoveryEnabled, nullptr}};
 #endif  // BUILDFLAG(ENABLE_BRAVE_WALLET)
 
 #if defined(TOOLKIT_VIEWS)
@@ -234,13 +263,12 @@ const char* const kBraveSyncImplLink[1] = {"https://github.com/brave/go-sync"};
            kZCashFeatureVariations, "BraveWalletZCash")},                     \
       {                                                                       \
           "brave-wallet-polkadot",                                            \
-          "Enable experimental Brave Wallet Polkadot support",                \
-          "The Polkadot integration in Brave Wallet is currently in preview " \
-          "and under active development. This version should not be used "    \
-          "with real funds. Use at your own risk.",                           \
+          "Enable Brave Wallet Polkadot support",                             \
+          "Polkadot support for native Brave Wallet",                         \
           kOsDesktop,                                                         \
-          FEATURE_VALUE_TYPE(                                                 \
-              brave_wallet::features::kBraveWalletPolkadotFeature),           \
+          FEATURE_WITH_PARAMS_VALUE_TYPE(                                     \
+              brave_wallet::features::kBraveWalletPolkadotFeature,            \
+              kPolkadotFeatureVariations, "BraveWalletPolkadot"),             \
       },                                                                      \
       {                                                                       \
           "brave-wallet-bitcoin",                                             \
@@ -1132,14 +1160,6 @@ constexpr flags_ui::FeatureEntry::Choice kVerticalTabCollapseDelayChoices[] = {
               brave_shields::features::kBraveAdblockShowHiddenComponents),     \
       },                                                                       \
       {                                                                        \
-          "brave-dark-mode-block",                                             \
-          "Enable dark mode blocking fingerprinting protection",               \
-          "Always report light mode when fingerprinting protections set to "   \
-          "Strict",                                                            \
-          kOsAll,                                                              \
-          FEATURE_VALUE_TYPE(brave_shields::features::kBraveDarkModeBlock),    \
-      },                                                                       \
-      {                                                                        \
           "brave-domain-block",                                                \
           "Enable domain blocking",                                            \
           "Enable support for blocking domains with an interstitial page",     \
@@ -1458,13 +1478,13 @@ constexpr flags_ui::FeatureEntry::Choice kVerticalTabCollapseDelayChoices[] = {
           FEATURE_VALUE_TYPE(features::kBraveOverrideDownloadDangerLevel),     \
       },                                                                       \
       {                                                                        \
-          "brave-strip-downloaded-image-metadata",                             \
-          "Strip metadata from downloaded images",                             \
+          "brave-strip-image-metadata-v1",                                     \
+          "Strip tracking metadata from images",                               \
           "Removes tracking metadata, such as the Facebook IPTC identifiers, " \
-          "from JPEG and PNG images as they are downloaded.",                  \
+          "from images when they are downloaded/uploaded.",                    \
           kOsAll,                                                              \
-          FEATURE_VALUE_TYPE(image_metadata_stripper::features::               \
-                                 kStripDownloadedImageMetadata),               \
+          FEATURE_VALUE_TYPE(                                                  \
+              image_metadata_stripper::features::kStripImageMetadataV1),       \
       },                                                                       \
       {                                                                        \
           "brave-webcompat-exceptions-service",                                \
@@ -1553,6 +1573,7 @@ constexpr flags_ui::FeatureEntry::Choice kVerticalTabCollapseDelayChoices[] = {
   BRAVE_SAFE_BROWSING_ANDROID                                                  \
   BRAVE_ADAPTIVE_BUTTON_IN_TOOLBAR_ANDROID                                     \
   BRAVE_ANDROID_TAB_GROUPS_SETTINGS                                            \
+  BRAVE_CUSTOM_PROFILE_IMAGE_FEATURE_ENTRY                                     \
   BRAVE_CUSTOM_SEARCH_ENGINES                                                  \
   BRAVE_CHANGE_ACTIVE_TAB_ON_SCROLL_EVENT_FEATURE_ENTRIES                      \
   BRAVE_FFMPEG_SOFTWARE_HEVC_DECODER_FEATURE_ENTRIES                           \

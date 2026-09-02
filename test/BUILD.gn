@@ -191,7 +191,6 @@ test("brave_unit_tests") {
     "//brave/browser/ui/startup:unit_tests",
     "//brave/browser/ui/webui:unit_tests",
     "//brave/browser/web_discovery:unit_tests",
-    "//brave/chromium_src/components/privacy_sandbox:unit_tests",
     "//brave/chromium_src/components/webui/flags:unit_tests",
     "//brave/chromium_src/net/base:unit_tests",
     "//brave/components/brave_adaptive_captcha/test:brave_adaptive_captcha_unit_tests",
@@ -621,6 +620,7 @@ test("brave_unit_tests") {
       "//brave:brave_pak_assets",
       "//brave/browser/android/youtube_script_injector:unit_tests",
       "//brave/browser/password_manager/android:unit_tests",
+      "//brave/browser/ui/webui/new_tab_takeover/android:unit_tests",
       "//brave/components/brave_mobile_subscription/renderer/android:unit_tests",
       "//chrome/android:chrome_all_java",
       "//chrome/android:chrome_apk_paks",
@@ -827,6 +827,10 @@ if (!is_android) {
       "//ui/base/interaction",
       "//ui/compositor",
     ]
+
+    if (is_linux) {
+      deps += [ "//ui/linux:display_server_utils" ]
+    }
 
     if (is_win) {
       deps += [ "//chrome/installer/util:strings" ]
@@ -1220,7 +1224,10 @@ test("brave_browser_tests") {
       "//brave/browser/ui/commands/accelerator_menu_coordinator_mac_browsertest.mm",
     ]
 
-    deps += [ "//brave/components/commands/common" ]
+    deps += [
+      "//brave/components/commands/common",
+      "//chrome/browser/ui/browser_active_state_manager",
+    ]
   }
 
   if (is_win) {
@@ -1353,7 +1360,12 @@ test("brave_browser_tests") {
 
   if (enable_brave_wayback_machine) {
     sources += [ "//brave/components/brave_wayback_machine/brave_wayback_machine_browsertest.cc" ]
-    deps += [ "//brave/components/brave_wayback_machine" ]
+    deps += [
+      "//brave/components/brave_wayback_machine",
+      "//chrome/browser/ui/actions",
+      "//chrome/browser/ui/views/page_action:page_action_test_support",
+      "//ui/views:test_support",
+    ]
   }
 
   if (enable_speedreader) {
@@ -1379,6 +1391,10 @@ test("brave_browser_tests") {
       "//components/language/core/browser",
       "//components/spellcheck/common",
     ]
+  }
+
+  if (is_win || is_linux || is_mac) {
+    sources += [ "//brave/browser/renderer_context_menu/force_context_menu_on_shift_right_click_browsertest.cc" ]
   }
 
   if (is_linux) {
@@ -1426,6 +1442,7 @@ test("brave_browser_tests") {
       "//brave/components/sidebar/browser",
       "//brave/test/views/snapshot",
       "//chrome/browser/ui/views/bubble",
+      "//chrome/browser/ui/views/profiles:avatar_toolbar_button",
       "//chrome/browser/ui/web_applications",
       "//ui/base/clipboard:clipboard_test_support",
     ]
@@ -1653,6 +1670,8 @@ if (is_android) {
       "//brave/android/javatests/org/chromium/chrome/browser/settings/BraveTabsAndTabGroupsSettingsTest.java",
       "//brave/android/javatests/org/chromium/chrome/browser/settings/search/BraveAutofillOptionsSearchIndexTest.java",
       "//brave/android/javatests/org/chromium/chrome/browser/sync/BraveManageSyncSettingsTest.java",
+      "//brave/android/javatests/org/chromium/chrome/browser/toolbar/BraveBottomBarToolbarTest.java",
+      "//brave/android/javatests/org/chromium/chrome/browser/toolbar/BraveToolbarManagerTest.java",
     ]
 
     deps = [
@@ -1711,6 +1730,7 @@ if (is_android) {
       "//chrome/browser/ui/android/extensions:java",
       "//chrome/browser/ui/android/favicon:java",
       "//chrome/browser/ui/android/layouts:java",
+      "//chrome/browser/ui/android/layouts/test:java",
       "//chrome/browser/ui/android/logo:java",
       "//chrome/browser/ui/android/multiwindow:java",
       "//chrome/browser/ui/android/native_page:java",

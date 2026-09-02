@@ -159,6 +159,8 @@ public class BraveNewTabPageLayout extends NewTabPageLayout
     private long mNewsFeedLastViewTime;
     private ViewTreeObserver.@Nullable OnGlobalLayoutListener mBgImageViewOnGlobalLayoutListener;
 
+    private @Nullable NewTabTakeoverSafeAreaReporter mSafeAreaReporter;
+
     private static final int SHOW_BRAVE_RATE_ENTRY_AT = 10; // 10th row
 
     public BraveNewTabPageLayout(Context context, AttributeSet attrs) {
@@ -580,6 +582,8 @@ public class BraveNewTabPageLayout extends NewTabPageLayout
                         }
                     }
                 });
+
+        maybeCreateSafeAreaReporter();
     }
 
     private void keepPosition() {
@@ -737,6 +741,8 @@ public class BraveNewTabPageLayout extends NewTabPageLayout
             mBraveNewsController.close();
             mBraveNewsController = null;
         }
+
+        maybeResetSponsoredRichMediaBackground();
 
         // Removes preference listener.
         ContextUtils.getAppSharedPreferences()
@@ -1100,6 +1106,8 @@ public class BraveNewTabPageLayout extends NewTabPageLayout
 
         mSponsoredRichMediaWebView.maybeLoadSponsoredRichMedia(
                 wallpaper.getWallpaperId(), wallpaper.getCreativeInstanceId());
+
+        maybeCreateSafeAreaReporter();
     }
 
     private void maybeResetSponsoredRichMediaBackground() {
@@ -1107,9 +1115,41 @@ public class BraveNewTabPageLayout extends NewTabPageLayout
             return;
         }
 
+        destroySafeAreaReporter();
+
         mBackgroundSponsoredRichMediaView.setVisibility(View.GONE);
         mBackgroundSponsoredRichMediaView.removeAllViews();
+        mSponsoredRichMediaWebView.destroy();
         mSponsoredRichMediaWebView = null;
+    }
+
+    private void maybeCreateSafeAreaReporter() {
+        if (mRecyclerView == null
+                || mNtpAdapter == null
+                || mSponsoredRichMediaWebView == null
+                || mBackgroundSponsoredRichMediaView == null) {
+            return;
+        }
+
+        if (mSafeAreaReporter != null) {
+            mSafeAreaReporter.scheduleMeasurement();
+            return;
+        }
+
+        mSafeAreaReporter =
+                new NewTabTakeoverSafeAreaReporter(
+                        this,
+                        mRecyclerView,
+                        mNtpAdapter,
+                        mBackgroundSponsoredRichMediaView,
+                        mSponsoredRichMediaWebView);
+    }
+
+    private void destroySafeAreaReporter() {
+        if (mSafeAreaReporter != null) {
+            mSafeAreaReporter.destroy();
+            mSafeAreaReporter = null;
+        }
     }
 
     private void setBackgroundImage(NTPImage ntpImage) {

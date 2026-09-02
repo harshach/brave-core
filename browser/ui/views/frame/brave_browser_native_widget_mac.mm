@@ -12,6 +12,7 @@
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"

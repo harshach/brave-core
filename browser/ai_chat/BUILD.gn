@@ -177,6 +177,7 @@ if (enable_ai_chat_tab_management_tool) {
       "//chrome/browser/profiles:profile_util",
       "//chrome/browser/ui",
       "//chrome/browser/ui/browser_window",
+      "//chrome/browser/ui/browser_window:create_browser_window",
       "//chrome/browser/ui/tabs:tab_strip",
       "//components/tab_groups",
       "//components/tabs:public",
@@ -371,6 +372,7 @@ source_set("browser_tests") {
       "page_content_fetcher_browsertest.cc",
       "text_file_extractor_browsertest.cc",
       "web_mcp_browsertest.cc",
+      "workspace_associated_content_browsertest.cc",
     ]
 
     if (enable_pdf) {
@@ -475,7 +477,10 @@ source_set("browser_tests") {
         "//components/policy/core/common:common_constants",
       ]
 
-      data += [ "//chrome/test/data/actor/" ]
+      data += [
+        "//chrome/test/data/actor/",
+        "//components/test/data/actor/",
+      ]
     }
 
     if (enable_screen_ai_browsertests) {

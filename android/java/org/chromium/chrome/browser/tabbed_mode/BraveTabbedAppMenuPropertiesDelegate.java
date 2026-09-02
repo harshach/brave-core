@@ -23,8 +23,8 @@ import com.google.android.material.button.MaterialButton;
 import org.chromium.base.BraveFeatureList;
 import org.chromium.base.BravePreferenceKeys;
 import org.chromium.base.DeviceInfo;
-import org.chromium.base.library_loader.LibraryLoader;
 import org.chromium.base.supplier.MonotonicObservableSupplier;
+import org.chromium.base.supplier.NonNullObservableSupplier;
 import org.chromium.base.supplier.NullableObservableSupplier;
 import org.chromium.base.supplier.OneshotSupplier;
 import org.chromium.brave.browser.customize_menu.CustomizeBraveMenu;
@@ -64,6 +64,7 @@ import org.chromium.chrome.browser.ui.appmenu.AppMenuDelegate;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuHandler;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuHandler.AppMenuItemType;
 import org.chromium.chrome.browser.ui.appmenu.AppMenuItemProperties;
+import org.chromium.chrome.browser.ui.bottombar.BottomBarConfigUtils;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.chrome.browser.ui.side_ui.SideUiStateProvider;
 import org.chromium.chrome.browser.vpn.BraveVpnPolicy;
@@ -173,7 +174,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         this::buildBraveRewardsItem,
                         () -> {
                             // Native methods are not available in unit tests (Robolectric)
-                            if (!LibraryLoader.getInstance().isInitialized()) {
+                            if (mJunitIsTesting) {
                                 return false;
                             }
                             BraveRewardsNativeWorker worker =
@@ -248,7 +249,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
             @Nullable OpenInAppMenuItemProvider openInAppMenuItemProvider,
             Supplier<RecentlyClosedEntriesManager> recentlyClosedEntriesManagerSupplier,
             Supplier<SideUiStateProvider> sideUiStateProviderSupplier,
-            Supplier<Boolean> isXrFullSpaceModeSupplier,
+            NonNullObservableSupplier<Boolean> xrSpaceModeObservableSupplier,
             BooleanSupplier canActivateTabLayoutToggleMenu) {
         super(
                 context,
@@ -269,7 +270,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                 openInAppMenuItemProvider,
                 recentlyClosedEntriesManagerSupplier,
                 sideUiStateProviderSupplier,
-                isXrFullSpaceModeSupplier,
+                xrSpaceModeObservableSupplier,
                 canActivateTabLayoutToggleMenu);
 
         mBraveAppMenuDelegate = appMenuDelegate;
@@ -383,12 +384,15 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                             mBraveAppMenuDelegate);
         }
 
-        // Hide bookmark button if bottom toolbar is enabled and address bar is on top.
+        // Hide the bookmark button when the controls at the bottom already carry one - Brave's
+        // bottom toolbar with the address bar on top, or the bottom bar, which always has one.
+        boolean hasBookmarkButtonAtBottom =
+                (BottomToolbarConfiguration.isBraveBottomControlsEnabled()
+                                && BottomToolbarConfiguration.isToolbarTopAnchored())
+                        || BottomBarConfigUtils.isBottomBarEnabled(mBraveContext);
         View bookmarkWrapper = view.findViewById(R.id.button_wrapper_bookmark);
         MaterialButton bookmarkButton = view.findViewById(R.id.bookmark_this_page_id);
-        if (bookmarkButton != null
-                && BottomToolbarConfiguration.isBraveBottomControlsEnabled()
-                && BottomToolbarConfiguration.isToolbarTopAnchored()) {
+        if (bookmarkButton != null && hasBookmarkButtonAtBottom) {
             if (bookmarkWrapper != null) bookmarkWrapper.setVisibility(View.GONE);
         }
 
@@ -430,7 +434,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
 
     @Override
     public @Nullable View buildFooterView(AppMenuHandler appMenuHandler) {
-        if (isMenuButtonInBottomToolbar() && shouldShowPageMenu()) {
+        if (isMenuButtonAtBottom() && shouldShowPageMenu()) {
             View footer =
                     LayoutInflater.from(mBraveContext).inflate(R.layout.icon_row_menu_footer, null);
 
@@ -441,8 +445,18 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
         return null;
     }
 
-    private boolean isMenuButtonInBottomToolbar() {
-        return BraveMenuButtonCoordinator.isMenuFromBottom();
+    /**
+     * Whether the app menu opens from the bottom of the screen. The icon row then moves from the
+     * top of the menu into a footer at its bottom, next to the button that opened it.
+     */
+    private boolean isMenuButtonAtBottom() {
+        return BraveMenuButtonCoordinator.isMenuFromBottom() || isMenuButtonInBottomBar();
+    }
+
+    /** Whether the app menu button is the one upstream's bottom bar holds. */
+    private boolean isMenuButtonInBottomBar() {
+        return BottomBarConfigUtils.isBottomBarEnabled(mBraveContext)
+                && BottomBarConfigUtils.shouldIncludeAppMenuButton();
     }
 
     private void maybeReplaceIcons(MVCListAdapter.ModelList modelList) {
@@ -453,50 +467,33 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
             Integer itemId = item.model.get(AppMenuItemProperties.MENU_ITEM_ID);
             if (itemId == null) continue;
 
-            if (itemId == R.id.new_tab_menu_id) {
+            if (itemId == R.id.all_bookmarks_menu_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
                         AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.ic_window_tab_new));
-            } else if (itemId == R.id.new_incognito_tab_menu_id) {
-                item.model.set(
-                        AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_new_private_tab));
-            } else if (itemId == R.id.new_tab_group_menu_id
-                    || itemId == R.id.add_to_group_menu_id) {
-                item.model.set(
-                        AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(mBraveContext, R.drawable.browser_group));
-            } else if (itemId == R.id.all_bookmarks_menu_id) {
-                item.model.set(
-                        AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_bookmarks));
+                                mBraveContext, R.drawable.ic_product_bookmarks));
             } else if (itemId == R.id.recent_tabs_menu_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
                         AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_recent_tabs));
+                                mBraveContext, R.drawable.ic_browser_mobile_tabs));
             } else if (itemId == R.id.open_history_menu_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_history));
+                        AppCompatResources.getDrawable(mBraveContext, R.drawable.ic_history));
             } else if (itemId == R.id.downloads_menu_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_downloads));
+                        AppCompatResources.getDrawable(mBraveContext, R.drawable.ic_download));
             } else if (itemId == R.id.preferences_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(
-                                mBraveContext, R.drawable.brave_menu_settings));
+                        AppCompatResources.getDrawable(mBraveContext, R.drawable.ic_settings));
             } else if (itemId == R.id.download_page_id) {
                 item.model.set(
                         AppMenuItemProperties.ICON,
-                        AppCompatResources.getDrawable(mBraveContext, R.drawable.ic_download));
+                        AppCompatResources.getDrawable(
+                                mBraveContext, R.drawable.ic_arrow_circle_down));
             }
         }
     }
@@ -1105,7 +1102,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
 
     @Override
     public boolean shouldShowIconRow() {
-        if (isMenuButtonInBottomToolbar()) {
+        if (isMenuButtonAtBottom()) {
             return false;
         }
 
@@ -1120,7 +1117,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.set_default_browser,
                         R.string.menu_set_default_browser,
-                        shouldShowIconBeforeItem() ? R.drawable.brave_menu_set_as_default : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_set_as_default : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1147,7 +1144,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.exit_id,
                         R.string.menu_exit,
-                        shouldShowIconBeforeItem() ? R.drawable.brave_menu_exit : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_outside : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1159,7 +1156,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.brave_rewards_id,
                         R.string.menu_brave_rewards,
-                        shouldShowIconBeforeItem() ? R.drawable.brave_menu_rewards : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_product_bat_outline : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1183,7 +1180,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.brave_playlist_id,
                         R.string.brave_playlist,
-                        shouldShowIconBeforeItem() ? R.drawable.ic_open_playlist : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_product_playlist : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1195,7 +1192,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.add_to_playlist_id,
                         R.string.playlist_add_to_playlist,
-                        shouldShowIconBeforeItem() ? R.drawable.ic_baseline_add_24 : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_product_playlist_add : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1231,7 +1228,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         mAppMenuItemTheme,
                         R.id.brave_shred_id,
                         R.string.brave_menu_shred_text,
-                        shouldShowIconBeforeItem() ? R.drawable.ic_brave_shred : 0,
+                        shouldShowIconBeforeItem() ? R.drawable.ic_shred_data : 0,
                         isMenuIconAtStart()));
     }
 
@@ -1292,7 +1289,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         R.id.info_menu_id,
                         R.string.share,
                         R.string.share,
-                        R.drawable.share_icon);
+                        R.drawable.ic_share_white_24dp);
         shareButton.set(
                 AppMenuItemProperties.ENABLED,
                 (currentTab != null && !UrlUtilities.isNtpUrl(currentTab.getUrl().getSpec())));

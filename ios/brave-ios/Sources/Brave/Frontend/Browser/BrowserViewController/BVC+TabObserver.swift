@@ -71,8 +71,7 @@ extension BrowserViewController: TabObserver {
         }
         // dismiss wallet notification (e.g. after redirect to different origin)
         removeWalletNotificationAndClearOrigin()
-      } else if FeatureList.kBraveWalletWebUIIOS?.enabled == true,
-        profileController.braveWalletAPI.isAllowed,
+      } else if profileController.braveWalletAPI.isAllowed,
         let selectedTabVisibleURL = selectedTab.visibleURL,
         selectedTabVisibleURL.isWalletWebUIURL
       {
@@ -85,11 +84,18 @@ extension BrowserViewController: TabObserver {
     }
   }
 
+  public func tabWasShown(_ tab: some TabState) {
+    if #available(iOS 26.0, *) {
+      updateWebViewObscuredInsets()
+    }
+  }
+
   public func tabDidCommitNavigation(_ tab: some TabState) {
-    // Reset the stored http request now that load has committed.
-    tab.upgradedHTTPSRequest = nil
-    tab.upgradeHTTPSTimeoutTimer?.invalidate()
-    tab.upgradeHTTPSTimeoutTimer = nil
+    // Odd Chromium behaviour resets the web views obscured insets when a navigation starts due to
+    // a bug with their fullscreen support, so we must set this again after a commit
+    if #available(iOS 26.0, *) {
+      updateWebViewObscuredInsets()
+    }
 
     // Clear the current request url and the redirect source url
     // We don't need these values after the request has been comitted
@@ -128,7 +134,6 @@ extension BrowserViewController: TabObserver {
   }
 
   public func tabDidCommitSameDocumentNavigation(_ tab: some TabState) {
-    tab.browserData?.resetExternalAlertProperties()
 
     if !Preferences.Privacy.privateBrowsingOnly.value,
       !tab.isPrivate || Preferences.Privacy.persistentPrivateBrowsing.value
@@ -180,11 +185,6 @@ extension BrowserViewController: TabObserver {
   public func tab(_ tab: some TabState, didFailNavigationWithError error: any Error) {
     let error = error as NSError
     if error.code == Int(CFNetworkErrors.cfurlErrorCancelled.rawValue) {
-      // load cancelled / user stopped load. Cancel https upgrade fallback timer.
-      tab.upgradedHTTPSRequest = nil
-      tab.upgradeHTTPSTimeoutTimer?.invalidate()
-      tab.upgradeHTTPSTimeoutTimer = nil
-
       if tab === tabManager.selectedTab {
         if let displayURL = tab.visibleURL?.displayURL {
           updateToolbarCurrentURL(displayURL)
@@ -194,20 +194,6 @@ extension BrowserViewController: TabObserver {
         updateWebViewPageZoom(tab: tab)
       }
       return
-    }
-
-    if let url = error.userInfo[NSURLErrorFailingURLErrorKey] as? URL {
-      // Check for invalid upgrade to https
-      if url.scheme == "https",  // verify failing url was https
-        let response = handleInvalidHTTPSUpgrade(
-          tab: tab,
-          responseURL: url
-        )
-      {
-        // load original or strict mode interstitial
-        tab.loadRequest(response)
-        return
-      }
     }
   }
 

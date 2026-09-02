@@ -1105,9 +1105,6 @@ TEST_F(BraveWalletServiceUnitTest, GetUserAssetsAlwaysHasNativeTokensForZec) {
     feature_list.InitWithFeaturesAndParameters(
         {{features::kBraveWalletZCashFeature,
           {{"zcash_shielded_transactions_enabled", "true"}}},
-#if BUILDFLAG(IS_IOS)
-         {features::kBraveWalletWebUIFeature, {}}
-#endif
         },
         {}  // disabled features
     );
@@ -2728,7 +2725,7 @@ TEST_F(BraveWalletServiceUnitTest, GetSimpleHashSpamNFTs) {
   GURL url = GURL(
       "https://gate3.wallet.brave.com/simplehash/api/v0/nfts/"
       "owners?chains=ethereum&wallet_addresses="
-      "0x0000000000000000000000000000000000000000");
+      "0x0000000000000000000000000000000000000000&spam=only");
   std::map<GURL, std::string> responses;
   responses[url] = json;
 

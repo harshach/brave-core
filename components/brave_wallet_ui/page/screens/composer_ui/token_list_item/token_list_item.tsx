@@ -117,8 +117,8 @@ export const TokenListItem = React.forwardRef<HTMLDivElement, Props>(
       }
       if (isShieldedToken(token)) {
         return token.zcashTokenType === BraveWallet.ZCashTokenType.kIronwood
-          ? 'Zcash (Ironwood)'
-          : 'Zcash'
+          ? 'Zcash (Shielded)'
+          : 'Zcash (Shielded Legacy)'
       }
       return token.name || token.symbol
     }, [token])
@@ -159,14 +159,14 @@ export const TokenListItem = React.forwardRef<HTMLDivElement, Props>(
                 isBold={false}
                 textColor='secondary'
               >
-                {getLocale('braveWalletOwned')}
+                {getLocale(S.BRAVE_WALLET_OWNED)}
               </Text>
               <Text
                 textSize='12px'
                 isBold={false}
                 textColor='secondary'
               >
-                {getLocale('braveWalletAmount24H')}
+                {getLocale(S.BRAVE_WALLET_AMOUNT_24H)}
               </Text>
             </Row>
           ) : (
@@ -179,7 +179,7 @@ export const TokenListItem = React.forwardRef<HTMLDivElement, Props>(
                 isBold={false}
                 textColor='secondary'
               >
-                {getLocale('braveWalletNotOwned')}
+                {getLocale(S.BRAVE_WALLET_NOT_OWNED)}
               </Text>
             </Row>
           ))}

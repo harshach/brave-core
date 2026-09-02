@@ -27,6 +27,7 @@ bool IsBitcoinImportEnabled();
 bool IsBitcoinLedgerEnabled();
 bool IsZCashEnabled();
 bool IsPolkadotEnabled();
+bool IsPolkadotAssetDiscoveryEnabled();
 bool IsCardanoEnabled();
 bool IsCardanoDAppSupportEnabled();
 bool IsZCashShieldedTransactionsEnabled();
@@ -37,9 +38,6 @@ bool IsAccountHidingEnabled();
 bool IsWalletDebugEnabled();
 bool IsMojoForHardwareWalletEnabled();
 bool IsSnapsFeatureEnabled();
-#if BUILDFLAG(IS_IOS)
-bool IsWalletWebUIEnabled();
-#endif
 
 bool IsEthereumKeyring(mojom::KeyringId keyring_id);
 bool IsEthereumAccount(const mojom::AccountIdPtr& account_id);

@@ -5,24 +5,17 @@
 
 #include "brave/browser/ui/brave_browser.h"
 
-#include <memory>
 #include <optional>
-#include <utility>
 
 #include "base/check.h"
-#include "base/check_is_test.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/functional/callback_helpers.h"
-#include "base/memory/scoped_refptr.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/ui/brave_browser_window.h"
-#include "brave/browser/ui/brave_file_select_utils.h"
 #include "brave/browser/ui/sidebar/sidebar.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
-#include "brave/browser/ui/split_view/split_view_link_redirect_utils.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
-#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "chrome/browser/lifetime/browser_close_manager.h"
 #include "chrome/browser/profiles/profile.h"
@@ -40,20 +33,8 @@
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "chrome/browser/ui/webui_browser/webui_browser.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
-#include "components/input/native_web_keyboard_event.h"
 #include "components/prefs/pref_service.h"
 #include "components/tabs/public/tab_interface.h"
-#include "content/public/browser/file_select_listener.h"
-#include "content/public/browser/keyboard_event_processing_result.h"
-#include "content/public/browser/navigation_entry.h"
-#include "content/public/browser/page_navigator.h"
-#include "content/public/browser/web_contents.h"
-#include "content/public/browser/web_contents_delegate.h"
-#include "content/public/common/url_constants.h"
-#include "third_party/blink/public/common/input/web_input_event.h"
-#include "third_party/blink/public/mojom/choosers/file_chooser.mojom.h"
-#include "ui/base/window_open_disposition.h"
-#include "url/gurl.h"
 
 namespace {
 
@@ -66,7 +47,8 @@ void BraveBrowser::SuppressBrowserWindowClosingDialogForTesting(bool suppress) {
   g_suppress_dialog_for_testing = suppress;
 }
 
-BraveBrowser::BraveBrowser(const CreateParams& params) : Browser(params) {
+BraveBrowser::BraveBrowser(BrowserWindowCreateParams params)
+    : Browser(std::move(params)) {
   if (auto* sidebar_controller = GetFeatures().sidebar_controller()) {
     // TODO(https://github.com/brave/brave-browser/issues/45633): Cleanup this.
     // Below call order is important.
@@ -79,7 +61,8 @@ BraveBrowser::BraveBrowser(const CreateParams& params) : Browser(params) {
         BraveBrowserWindow::FromBrowser(this)->InitSidebar());
   }
 
-  if (webui_browser::IsWebUIBrowserEnabled() && is_type_normal()) {
+  if (webui_browser::IsWebUIBrowserEnabled() &&
+      GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
     // WebUIBrowserWindow was created in Browser's c'tor (in
     // BrowserWindow::CreateBrowserWindow), not a BraveBrowserWindow.
     return;
@@ -93,59 +76,6 @@ BraveBrowser::BraveBrowser(const CreateParams& params) : Browser(params) {
 }
 
 BraveBrowser::~BraveBrowser() = default;
-
-bool BraveBrowser::ShouldFocusLocationBarByDefault(
-    content::WebContents* source) {
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin starts in navigation mode. Keep automatic new-tab focus in the
-  // page so single-key commands such as `o` reach the browser view; explicit
-  // location-bar actions such as Command+L still focus the omnibox normally.
-  return false;
-#else
-  return Browser::ShouldFocusLocationBarByDefault(source);
-#endif
-}
-
-content::KeyboardEventProcessingResult BraveBrowser::PreHandleKeyboardEvent(
-    content::WebContents* source,
-    const input::NativeWebKeyboardEvent& event) {
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Extension popups share the browser window's keyboard pre-handler while
-  // their editable focus lives in a separate WebContents.
-  if (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown &&
-      event.GetModifiers() == blink::WebInputEvent::kNoModifiers && source &&
-      source != tab_strip_model()->GetActiveWebContents() &&
-      source->IsFocusedElementEditable()) {
-    return content::KeyboardEventProcessingResult::NOT_HANDLED;
-  }
-#endif
-
-  return Browser::PreHandleKeyboardEvent(source, event);
-}
-
-void BraveBrowser::ScheduleUIUpdate(content::WebContents* source,
-                                    unsigned changed_flags) {
-  Browser::ScheduleUIUpdate(source, changed_flags);
-
-  if (tab_strip_model_->GetIndexOfWebContents(source) ==
-      TabStripModel::kNoTab) {
-    return;
-  }
-
-  // We need to update sidebar UI only when current active tab state is changed.
-  if (changed_flags & content::INVALIDATE_TYPE_URL) {
-    if (source == tab_strip_model_->GetActiveWebContents()) {
-      // sidebar() can return a nullptr in unit tests.
-      if (auto* sidebar_controller = GetFeatures().sidebar_controller()) {
-        if (sidebar_controller->sidebar()) {
-          sidebar_controller->sidebar()->UpdateSidebarItemsState();
-        } else {
-          CHECK_IS_TEST();
-        }
-      }
-    }
-  }
-}
 
 void BraveBrowser::OnTabClosing(tabs::TabInterface* tab,
                                 bool* had_active_modal_dialog) {
@@ -184,7 +114,8 @@ void BraveBrowser::OnTabClosing(tabs::TabInterface* tab,
 
 void BraveBrowser::TabStripEmpty() {
   if (GetProfile()->GetPrefs()->GetBoolean(kEnableClosingLastTab) ||
-      !is_type_normal() || ignore_enable_closing_last_tab_pref_) {
+      GetType() != BrowserWindowInterface::Type::TYPE_NORMAL ||
+      ignore_enable_closing_last_tab_pref_) {
     Browser::TabStripEmpty();
     return;
   }
@@ -194,99 +125,13 @@ void BraveBrowser::TabStripEmpty() {
                      [](base::WeakPtr<BraveBrowser> browser) {
                        if (browser) {
                          chrome::AddTabAt(browser.get(),
-                                          browser->GetNewTabURL(),
+                                          chrome::GetNewTabURL(browser.get()),
                                           /*index=*/-1, /*foreground=*/true,
                                           /*group=*/std::nullopt,
                                           /*pinned=*/false);
                        }
                      },
                      weak_ptr_factory_.GetWeakPtr()));
-}
-
-void BraveBrowser::RunFileChooser(
-    content::RenderFrameHost* render_frame_host,
-    scoped_refptr<content::FileSelectListener> listener,
-    const blink::mojom::FileChooserParams& params) {
-#if BUILDFLAG(IS_ANDROID)
-  Browser::RunFileChooser(render_frame_host, listener, params);
-#else
-  auto new_params = params.Clone();
-  if (new_params->title.empty()) {
-    // Fill title of file chooser with origin of the frame.
-
-    // Note that save mode param is for PPAPI. 'Save As...' or downloading
-    // something doesn't reach here. They show 'select file dialog' from
-    // DownloadFilePicker::DownloadFilePicker directly.
-    // https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/choosers/file_chooser.mojom;l=27;drc=047c7dc4ee1ce908d7fea38ca063fa2f80f92c77
-    CHECK(render_frame_host);
-    const url::Origin& origin = render_frame_host->GetLastCommittedOrigin();
-    new_params->title = brave::GetFileSelectTitle(
-        content::WebContents::FromRenderFrameHost(render_frame_host), origin,
-        origin,
-        params.mode == blink::mojom::FileChooserParams::Mode::kSave
-            ? brave::FileSelectTitleType::kSave
-            : brave::FileSelectTitleType::kOpen);
-  }
-  Browser::RunFileChooser(render_frame_host, listener, *new_params);
-#endif
-}
-
-content::WebContents* BraveBrowser::AddNewContents(
-    content::WebContents* source,
-    std::unique_ptr<content::WebContents> new_contents,
-    const GURL& target_url,
-    WindowOpenDisposition disposition,
-    const blink::mojom::WindowFeatures& window_features,
-    bool user_gesture,
-    bool* was_blocked) {
-  // For NEW_FOREGROUND_TAB disposition (target="_blank" links) from a source
-  // in the left pane of a linked split view, set the split tab ID on the new
-  // contents so that SplitViewLinkNavigationThrottle can redirect it to the
-  // right pane. If the split tab ID was set, change the disposition to
-  // NEW_BACKGROUND_TAB to prevent the empty tab from becoming visible.
-  // It'll be closed immediately right after navigation is routed to right
-  // pane. By routing at SplitViewLinkNavigationThrottle, proper referrer/opener
-  // could be set. These are set after navigation starts. So, can't get it here.
-  if (disposition == WindowOpenDisposition::NEW_FOREGROUND_TAB && source &&
-      user_gesture && new_contents.get() && !target_url.is_empty()) {
-    if (split_view::SetSplitTabIdForRedirect(source, new_contents.get())) {
-      disposition = WindowOpenDisposition::NEW_BACKGROUND_TAB;
-    }
-  }
-
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin treats a page as the unit of navigation. A plain click therefore
-  // replaces the current page even when the site asks for target="_blank" or
-  // uses window.open(). Modified clicks arrive with a different disposition
-  // (Ctrl/Command-click is NEW_BACKGROUND_TAB), so they continue through the
-  // normal new-tab path and can be attached beneath their source page.
-  //
-  // Preserve the pending navigation's referrer when one is already available.
-  // Opener-suppressed windows are handed to us before their first navigation,
-  // in which case an empty referrer is safer than manufacturing one and
-  // accidentally defeating rel="noreferrer".
-  if (disposition == WindowOpenDisposition::NEW_FOREGROUND_TAB && source &&
-      user_gesture && new_contents && !target_url.is_empty()) {
-    content::Referrer referrer;
-    if (const content::NavigationEntry* pending_entry =
-            new_contents->GetController().GetPendingEntry()) {
-      referrer = pending_entry->GetReferrer();
-    }
-
-    content::OpenURLParams params(
-        target_url, referrer, WindowOpenDisposition::CURRENT_TAB,
-        ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false);
-    params.user_gesture = true;
-    if (was_blocked) {
-      *was_blocked = false;
-    }
-    return Browser::OpenURLFromTab(source, params, {});
-  }
-#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-
-  return Browser::AddNewContents(source, std::move(new_contents), target_url,
-                                 disposition, window_features, user_gesture,
-                                 was_blocked);
 }
 
 void BraveBrowser::OnTabStripModelChanged(
@@ -333,28 +178,6 @@ void BraveBrowser::OnTabStripModelChanged(
   }
 }
 
-void BraveBrowser::BeforeUnloadFired(content::WebContents* source,
-                                     bool proceed,
-                                     bool* proceed_to_fire_unload) {
-  // Clear user's choice when user cancelled window closing by beforeunload
-  // handler.
-  if (!proceed) {
-    UnloadController::From(this)->set_confirmed_to_close(false);
-  }
-  Browser::BeforeUnloadFired(source, proceed, proceed_to_fire_unload);
-}
-
-void BraveBrowser::UpdateTargetURL(content::WebContents* source,
-                                   const GURL& url) {
-  GURL target_url = url;
-  if (url.SchemeIs(content::kChromeUIScheme)) {
-    GURL::Replacements replacements;
-    replacements.SetSchemeStr(content::kBraveUIScheme);
-    target_url = target_url.ReplaceComponents(replacements);
-  }
-  Browser::UpdateTargetURL(source, target_url);
-}
-
 bool BraveBrowser::ShouldAskForBrowserClosingBeforeHandlers() {
   if (g_suppress_dialog_for_testing) {
     return false;
@@ -383,7 +206,7 @@ bool BraveBrowser::AreAllTabsSharedPinnedTabs() {
     return false;
   }
 
-  if (!is_type_normal()) {
+  if (GetType() != BrowserWindowInterface::Type::TYPE_NORMAL) {
     return false;
   }
 
@@ -401,9 +224,7 @@ void BraveBrowser::SetTabsToIgnoreBeforeUnloadHandlers(
   tabs_closing_with_onbeforeunload_ignore_ = for_contents;
 }
 
-bool BraveBrowser::ShouldSuppressDialogs(content::WebContents* source) {
-  auto* tab = tabs::TabInterface::MaybeGetFromContents(source);
-  return (tab && tabs_closing_with_onbeforeunload_ignore_.contains(
-                     tab->GetHandle())) ||
-         content::WebContentsDelegate::ShouldSuppressDialogs(source);
+bool BraveBrowser::ShouldIgnoreBeforeUnloadHandlerForTab(
+    tabs::TabHandle handle) const {
+  return tabs_closing_with_onbeforeunload_ignore_.contains(handle);
 }

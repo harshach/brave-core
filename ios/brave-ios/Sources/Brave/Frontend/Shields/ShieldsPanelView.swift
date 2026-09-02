@@ -7,6 +7,7 @@ import BraveCore
 import BraveShared
 import BraveShields
 import BraveUI
+import Combine
 import Data
 import DesignSystem
 import Favicon
@@ -31,7 +32,7 @@ struct ShieldsPanelView: View {
   private var tab: any TabState
   private let displayHost: String
   @AppStorage("advancedShieldsExpanded") private var advancedShieldsExpanded = false
-  @ObservedObject private var viewModel: ShieldsSettingsViewModel
+  @ObservedObject private var viewModel: ShieldsPanelViewModel
   private var actionCallback: (Action) -> Void
 
   @MainActor init(
@@ -43,8 +44,12 @@ struct ShieldsPanelView: View {
   ) {
     self.url = url
     self.tab = tab
-    self.viewModel = ShieldsSettingsViewModel(
+    self.viewModel = ShieldsPanelViewModel(
       tab: tab,
+      stats: tab.contentBlocker?.$stats.eraseToAnyPublisher()
+        ?? Just(.init()).eraseToAnyPublisher(),
+      blockedRequests: tab.contentBlocker?.$blockedRequests.map(Array.init)
+        .eraseToAnyPublisher() ?? Just([]).eraseToAnyPublisher(),
       isAdvancedControlsEnabled: isAdvancedControlsEnabled
     )
     self.actionCallback = callback
@@ -271,12 +276,12 @@ struct ShieldsPanelView: View {
         .padding(.vertical, 4)
       }
     }
-    if FeatureList.kBraveIOSDebugAdblock.enabled, let contentBlocker = tab.contentBlocker {
+    if FeatureList.kBraveIOSDebugAdblock.enabled {
       ShieldSettingRow {
         NavigationLink {
           AdblockBlockedRequestsView(
             url: url.baseDomain ?? url.absoluteDisplayString,
-            contentBlockerHelper: contentBlocker
+            blockedRequests: viewModel.blockedRequests
           )
         } label: {
           ShieldSettingsNavigationWrapper {

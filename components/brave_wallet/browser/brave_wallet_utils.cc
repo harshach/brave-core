@@ -105,6 +105,12 @@ std::optional<std::string> GetUserAssetAddress(const std::string& address,
     }
   }
 
+  if (coin == mojom::CoinType::DOT) {
+    // Polkadot assets are keyed by a numeric asset id, which acts as the
+    // contract address.
+    return address;
+  }
+
   return std::nullopt;
 }
 
@@ -1068,7 +1074,7 @@ mojom::BlockchainTokenPtr GetZcashNativeShieldedToken(
   result->logo = "zec.png";
   result->coingecko_id = "zec";
   result->zcash_token_type = mojom::ZCashTokenType::kOrchard;
-  result->name += "(Shielded)";
+  result->name += "(Shielded legacy)";
 
   return result;
 }
@@ -1082,7 +1088,7 @@ mojom::BlockchainTokenPtr GetZcashNativeIronwoodToken(
   result->logo = "zec.png";
   result->coingecko_id = "zec";
   result->zcash_token_type = mojom::ZCashTokenType::kIronwood;
-  result->name += "(Ironwood)";
+  result->name += "(Shielded)";
 
   return result;
 }

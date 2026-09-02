@@ -1023,6 +1023,7 @@ struct WalletInfo {
   bool is_ankr_balances_feature_enabled;
   bool is_transaction_simulations_feature_enabled;
   bool is_z_cash_shielded_transactions_enabled;
+  bool is_z_cash_ironwood_enabled;
   bool is_cardano_enabled;
   array<CoinType> enabled_coins;
   bool is_cardano_dapp_support_enabled;
@@ -2149,13 +2150,16 @@ struct ZCashAccountInfo {
   ZCashAddress next_transparent_receive_address;
   ZCashAddress next_transparent_change_address;
   ZCashAccountShieldBirthday? account_shield_birthday;
-  // Address that contains both transparent and orchard part
+  // Address that contains both transparent
+  // and orchard part/ironwood part
   // Could be null if orchard is not enabled.
   string? unified_address;
   // Address that contains orchard part only
   // Could be null if orchard is not enabled.
+  // Address is the same across orchard and ironwood pool.
   string? orchard_address;
   // Address can be used to shield funds internally.
+  // Address is the same across orchard and ironwood pool.
   string? orchard_internal_address;
 };
 
@@ -2175,6 +2179,8 @@ enum ZCashTxType {
   // Internal transfer to a same-keyring account's transparent address
   // (from Ironwood)
   kUnshieldingIronwood = 11,
+  // Transfer from orchard to ironwood internal account
+  kMigratingIronwood = 12,
 };
 
 enum ZCashAddressError {
@@ -2265,6 +2271,11 @@ interface ZCashWalletService {
 
   // `account_birthday_block` is 0 if account birthday shouldn't be changed.
   ResetSyncState(AccountId account_id, uint32 account_birthday_block)
+      => (string? error_message);
+
+  // Rewinds sync state to immediately before Ironwood activation so the
+  // activation block is rescanned. Does not change account birthday.
+  ResetSyncStateToIronwoodActivation(AccountId account_id)
       => (string? error_message);
 
   GetChainTipStatus(AccountId account_id)

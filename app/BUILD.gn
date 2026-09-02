@@ -10,9 +10,11 @@ import("//brave/components/playlist/core/common/buildflags/buildflags.gni")
 import("//brave/components/request_otr/common/buildflags/buildflags.gni")
 import("//brave/components/speedreader/common/buildflags/buildflags.gni")
 import("//brave/components/text_recognition/common/buildflags/buildflags.gni")
+import("//brave/components/traffic_control/buildflags/buildflags.gni")
 import("//brave/resources/brave_grit.gni")
 import("//build/config/features.gni")
 import("//build/config/locales.gni")
+import("//pdf/features.gni")
 
 action("generate_command_metadata") {
   command_files = [ "//brave/app/brave_command_ids.h" ]
@@ -64,6 +66,7 @@ brave_grit("brave_generated_resources_grit") {
     "enable_request_otr=$enable_request_otr",
     "enable_speedreader=$enable_speedreader",
     "enable_text_recognition=$enable_text_recognition",
+    "enable_traffic_control=$enable_traffic_control",
     "enable_psst=$enable_psst",
   ]
   source = "brave_generated_resources.grd"
@@ -140,7 +143,6 @@ source_set("unit_tests") {
     "//chrome/browser/ui",
     "//chrome/browser/ui:ui_features",
     "//chrome/browser/ui/omnibox",
-    "//components/aggregation_service",
     "//components/attribution_reporting:features",
     "//components/autofill/core/common",
     "//components/browser_actuator/internal:features",
@@ -163,7 +165,6 @@ source_set("unit_tests") {
     "//components/manta",
     "//components/metrics",
     "//components/metrics/private_metrics:private_metrics_features",
-    "//components/metrics/private_metrics/private_insights",
     "//components/metrics/structured:structured_metrics_features",
     "//components/multistep_filter/core:features",
     "//components/network_time",
@@ -181,6 +182,7 @@ source_set("unit_tests") {
     "//components/plus_addresses/core/common:features",
     "//components/privacy_sandbox",
     "//components/private_ai:features",
+    "//components/private_insights",
     "//components/safe_browsing/core/common",
     "//components/search",
     "//components/segmentation_platform/public",
@@ -192,6 +194,7 @@ source_set("unit_tests") {
     "//components/user_education/common",
     "//components/webapps/browser",
     "//gpu/config",
+    "//pdf:buildflags",
     "//services/device/public/cpp:device_features",
     "//services/network/public/cpp",
     "//testing/gtest",
@@ -222,13 +225,13 @@ source_set("unit_tests") {
     ]
   }
   if (is_win) {
-    deps += [
-      "//chrome/browser/startup",
-      "//chrome/browser/win:mica_titlebar",
-    ]
+    deps += [ "//chrome/browser/startup" ]
   }
   if (enable_brave_vpn_v2_apps) {
     deps += [ "//brave/components/brave_vpn/app/v2/shared" ]
+  }
+  if (enable_pdf) {
+    deps += [ "//pdf:features" ]
   }
 }
 

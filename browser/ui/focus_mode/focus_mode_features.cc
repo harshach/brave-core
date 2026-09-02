@@ -8,7 +8,6 @@
 #include <array>
 
 #include "base/metrics/field_trial_params.h"
-#include "brave/components/brave_origin/buildflags/buildflags.h"
 
 namespace features {
 
@@ -22,15 +21,12 @@ constexpr auto kFocusModeUrlDisplayOptions =
 
 }  // namespace
 
-BASE_FEATURE(kBraveFocusMode,
-             BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-                 ? base::FEATURE_ENABLED_BY_DEFAULT
-                 : base::FEATURE_DISABLED_BY_DEFAULT);
+BASE_FEATURE(kBraveFocusMode, base::FEATURE_ENABLED_BY_DEFAULT);
 
 BASE_FEATURE_ENUM_PARAM(FocusModeUrlDisplay,
                         kFocusModeUrlDisplay,
                         &kBraveFocusMode,
-                        FocusModeUrlDisplay::kTitleBar,
+                        FocusModeUrlDisplay::kMiniToolbar,
                         kFocusModeUrlDisplayOptions);
 
 FocusModeUrlDisplay GetFocusModeUrlDisplay() {
