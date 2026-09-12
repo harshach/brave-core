@@ -455,6 +455,49 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_FALSE(restoring_browser_weak);
 }
 
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTemporaryLinkStacksPages) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  TabStripModel* normal_model = browser()->tab_strip_model();
+  const int initial_tab_count = normal_model->count();
+
+  Browser* temporary_browser =
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  ASSERT_TRUE(origin_external_link::IsTemporaryLinkBrowser(temporary_browser));
+  TabStripModel* temporary_model = temporary_browser->tab_strip_model();
+  ASSERT_EQ(1, temporary_model->count());
+
+  // A second link from another application stacks onto the same window.
+  EXPECT_EQ(
+      temporary_browser,
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title2.html")));
+  EXPECT_EQ(2, temporary_model->count());
+  EXPECT_EQ(initial_tab_count, normal_model->count());
+
+  // So does a link the temporary page itself opens in a new tab.
+  content::WebContents* temporary_contents =
+      temporary_model->GetActiveWebContents();
+  ASSERT_TRUE(temporary_contents);
+  ASSERT_TRUE(content::WaitForLoadStop(temporary_contents));
+  content::WebContentsAddedObserver opened_observer;
+  ASSERT_TRUE(content::ExecJs(
+      temporary_contents,
+      content::JsReplace("const link = document.createElement('a');"
+                         "link.href = $1;"
+                         "link.target = '_blank';"
+                         "document.body.appendChild(link);"
+                         "link.click();",
+                         embedded_test_server()->GetURL("/title3.html"))));
+  content::WebContents* opened_contents = opened_observer.GetWebContents();
+  ASSERT_TRUE(opened_contents);
+  EXPECT_EQ(3, temporary_model->count());
+  EXPECT_NE(TabStripModel::kNoTab,
+            temporary_model->GetIndexOfWebContents(opened_contents));
+  EXPECT_EQ(initial_tab_count, normal_model->count());
+
+  CloseBrowserSynchronously(temporary_browser);
+}
+
 class OriginExtensionInputShortcutBrowserTest
     : public extensions::ExtensionApiTest {};
 

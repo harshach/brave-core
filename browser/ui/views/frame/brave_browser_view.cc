@@ -1424,12 +1424,15 @@ void BraveBrowserView::OnTabStripModelChanged(
       focus_mode_title_bar_view_->SetTab(
           browser()->tab_strip_model()->GetActiveTab());
     }
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    if (origin_temporary_link_view_) {
-      origin_temporary_link_view_->Update();
-    }
-#endif
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The header counts the pages stacked in the window, so it has to follow
+  // background inserts too, not just the active tab.
+  if (origin_temporary_link_view_) {
+    origin_temporary_link_view_->Update();
+  }
+#endif
 }
 
 views::CloseRequestResult BraveBrowserView::OnWindowCloseRequested() {

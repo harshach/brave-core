@@ -1,8 +1,16 @@
 diff --git a/chrome/browser/ui/navigator/browser_navigator.cc b/chrome/browser/ui/navigator/browser_navigator.cc
-index f8d51faf9020f0fd045b0e04718d12ff609c96f7..50c7aa174aa279e053f0edb8d0a312f6b85f673d 100644
+index f8d51faf9020f0fd045b0e04718d12ff609c96f7..00f9c03175b7d0904f96cdba9fda5f2523379043 100644
 --- a/chrome/browser/ui/navigator/browser_navigator.cc
 +++ b/chrome/browser/ui/navigator/browser_navigator.cc
-@@ -191,6 +191,7 @@ bool ShouldForceCaptivePortalSigninIntoCurrentTab(const NavigateParams& params,
+@@ -116,6 +116,7 @@ struct AdditionalParams {
+ // popups. TYPE_APP will open a new tab if the browser was launched from a
+ // template, otherwise only if the URL is within the app scope.
+ bool WindowCanOpenTabs(const NavigateParams& params) {
++  BRAVE_WINDOW_CAN_OPEN_TABS
+   if (!params.browser) {
+     return false;
+   }
+@@ -191,6 +192,7 @@ bool ShouldForceCaptivePortalSigninIntoCurrentTab(const NavigateParams& params,
  // Returns true on success. Otherwise, if changing params leads the browser
  // into an erroneous state, returns false.
  bool AdjustNavigateParamsForURL(NavigateParams* params) {
@@ -10,7 +18,7 @@ index f8d51faf9020f0fd045b0e04718d12ff609c96f7..50c7aa174aa279e053f0edb8d0a312f6
    // Check for some chrome:// pages which we always want to open in a
    // non-incognito window. Note that even though a ChromeOS guest session is
    // technically an incognito window, these URLs are allowed.
-@@ -485,7 +486,11 @@ std::unique_ptr<content::WebContents> CreateTargetContents(
+@@ -485,7 +487,11 @@ std::unique_ptr<content::WebContents> CreateTargetContents(
    scoped_refptr<content::SiteInstance> initial_site_instance_for_new_contents =
        params.opener ? params.opener->GetSiteInstance()
                      : tab_util::GetSiteInstanceForNewTab(
@@ -23,7 +31,7 @@ index f8d51faf9020f0fd045b0e04718d12ff609c96f7..50c7aa174aa279e053f0edb8d0a312f6
  
    WebContents::CreateParams create_params(
        params.browser->GetProfile(), initial_site_instance_for_new_contents);
-@@ -877,6 +882,13 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -877,6 +883,13 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
           params->user_gesture)) {
        tab_to_insert->set_opener(
            tabs::TabInterface::MaybeGetFromContents(params->source_contents));
@@ -37,7 +45,7 @@ index f8d51faf9020f0fd045b0e04718d12ff609c96f7..50c7aa174aa279e053f0edb8d0a312f6
      }
    }
  
-@@ -894,6 +906,11 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -894,6 +907,11 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
             params->user_gesture)) {
          tab_to_insert->set_opener(
              tabs::TabInterface::MaybeGetFromContents(params->source_contents));
