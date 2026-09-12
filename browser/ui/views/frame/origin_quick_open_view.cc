@@ -922,6 +922,27 @@ OriginQuickOpenView::OriginQuickOpenView(
       OriginQuickOpenFont(17, gfx::Font::Weight::NORMAL));
   search_layout->SetFlexForView(search_field_, 1);
 
+  // Replace and Split are persistent modes for the next result. They are
+  // buttons rather than footer hints alone so the choice is visible before the
+  // user types anything.
+  const auto add_mode_button = [this, search_row](
+                                   std::u16string text, std::u16string tooltip,
+                                   OriginQuickOpenDisposition disposition) {
+    auto* button =
+        search_row->AddChildView(std::make_unique<OriginQuickOpenTextButton>(
+            base::BindRepeating(&OriginQuickOpenView::SetDisposition,
+                                base::Unretained(this), disposition),
+            std::move(text)));
+    button->SetOriginFont(OriginQuickOpenFont(11, gfx::Font::Weight::SEMIBOLD));
+    button->SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(4, 9, 4, 9)));
+    button->SetTooltipText(std::move(tooltip));
+    return button;
+  };
+  replace_button_ = add_mode_button(u"Replace", u"Replace the current page",
+                                    OriginQuickOpenDisposition::kReplace);
+  split_button_ = add_mode_button(u"Split", u"Open beside the current page",
+                                  OriginQuickOpenDisposition::kSplit);
+
   current_space_chip_ =
       search_row->AddChildView(std::make_unique<OriginQuickOpenSpaceChip>(
           views::Button::PressedCallback(), /*current_space=*/true));
@@ -2331,7 +2352,9 @@ void OriginQuickOpenView::UpdateResultRows() {
   const bool show_space_actions = has_query && !send_to_space_ids_.empty();
   send_to_space_label_->SetVisible(show_space_actions);
   send_to_space_container_->SetVisible(show_space_actions);
-  shortcuts_footer_->SetVisible(has_query);
+  // Always visible: the shortcut legend is how Replace, Split and Send to
+  // space are discovered, and the zero state is where users look first.
+  shortcuts_footer_->SetVisible(true);
 
   if (visible_results_.empty()) {
     selected_result_ = 0;

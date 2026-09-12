@@ -2173,6 +2173,12 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }
+        case ui::VKEY_S:
+          // Splits the window and opens a new page beside the current one.
+          chrome::NewSplitTab(
+              browser(), split_tabs::SplitTabLayout::kSideBySide,
+              split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
+          return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_W:
           chrome::ExecuteCommand(browser(), IDC_CLOSE_TAB);
           return content::KeyboardEventProcessingResult::HANDLED;
