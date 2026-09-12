@@ -19,7 +19,6 @@
 #include "base/timer/timer.h"
 #include "base/types/pass_key.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
-#include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
@@ -60,7 +59,6 @@ class BraveVerticalTabStripRegionView : public views::View,
                                         public FocusModeController::Observer,
                                         public WorkspaceService::Observer,
                                         public OriginSpaceController::Observer,
-                                        public OriginMediaMonitor::Observer,
                                         public views::TextfieldController,
                                         public TabDragTarget {
   METADATA_HEADER(BraveVerticalTabStripRegionView, views::View)
@@ -212,9 +210,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   void OpenOriginSettingsPage(std::string url);
   void SetOriginThemeMode(int mode);
   void UpdateOriginWorkspaceMeta();
-  // Refreshes the rail's per-Space sound badges from the media monitor.
-  void UpdateOriginWorkspaceAudio();
-  void MuteOriginWorkspace(std::string space_id);
   void EnsureOriginSpaceHasPage();
   void ApplyOriginWorkspaceTabs();
 
@@ -223,9 +218,6 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   // OriginSpaceController::Observer:
   void OnOriginSpaceControllerChanged() override;
-
-  // OriginMediaMonitor::Observer:
-  void OnOriginMediaChanged() override;
 
   // views::TextfieldController:
   bool HandleKeyEvent(views::Textfield* sender,
@@ -336,7 +328,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   base::WeakPtr<views::Widget> origin_settings_widget_;
   raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
   raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
-  raw_ptr<OriginMediaMonitor> origin_media_monitor_ = nullptr;
   std::string origin_active_workspace_id_;
   bool origin_new_page_pending_ = false;
 

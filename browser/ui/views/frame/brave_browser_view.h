@@ -82,7 +82,6 @@ class BrowserWindowInterface;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
-class OriginWidgetPanelView;
 class OriginTemporaryLinkView;
 struct OriginQuickOpenSelection;
 class SidebarContainerView;
@@ -223,10 +222,6 @@ class BraveBrowserView : public BrowserView,
   // pages. Chromium always retains an active WebContents, but an empty space
   // must not leak a page from another space into the canvas.
   void SetOriginSpaceEmpty(bool empty);
-
-  // The widgets panel on the trailing edge. Null outside Origin builds and in
-  // temporary-link windows, which have no chrome to hang it from.
-  OriginWidgetPanelView* origin_widget_panel() { return origin_widget_panel_; }
 
   // Re-applies the side panel border so the content corner radii track the
   // sidebar control view's visibility. Wired as SidebarContainerView's
@@ -376,7 +371,6 @@ class BraveBrowserView : public BrowserView,
   void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
                              OriginQuickOpenDisposition disposition);
   void CloseActiveOriginTabTree();
-  void ToggleOriginWidgetPanel();
 
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
@@ -415,7 +409,6 @@ class BraveBrowserView : public BrowserView,
   raw_ptr<views::View> contents_background_view_ = nullptr;
   raw_ptr<views::View> origin_empty_space_view_ = nullptr;
   raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
-  raw_ptr<OriginWidgetPanelView> origin_widget_panel_ = nullptr;
   raw_ptr<OriginTemporaryLinkView> origin_temporary_link_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>

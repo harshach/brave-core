@@ -316,36 +316,9 @@ source_set("ui") {
       "startup/origin_external_link_router.h",
       "views/frame/origin_temporary_link_view.cc",
       "views/frame/origin_temporary_link_view.h",
-      "views/frame/origin_widgets/origin_calendar_service.cc",
-      "views/frame/origin_widgets/origin_calendar_service.h",
-      "views/frame/origin_widgets/origin_calendar_widget.cc",
-      "views/frame/origin_widgets/origin_calendar_widget.h",
-      "views/frame/origin_widgets/origin_media_widget.cc",
-      "views/frame/origin_widgets/origin_media_widget.h",
-      "views/frame/origin_widgets/origin_spotify_widget.cc",
-      "views/frame/origin_widgets/origin_spotify_widget.h",
-      "views/frame/origin_widgets/origin_video_preview_view.cc",
-      "views/frame/origin_widgets/origin_video_preview_view.h",
-      "views/frame/origin_widgets/origin_widget.cc",
-      "views/frame/origin_widgets/origin_widget.h",
-      "views/frame/origin_widgets/origin_widget_controls.cc",
-      "views/frame/origin_widgets/origin_widget_controls.h",
-      "views/frame/origin_widgets/origin_widget_panel_view.cc",
-      "views/frame/origin_widgets/origin_widget_panel_view.h",
-      "views/frame/origin_widgets/origin_widget_registry.cc",
-      "views/frame/origin_widgets/origin_widget_registry.h",
-      "views/frame/origin_widgets/origin_youtube_widget.cc",
-      "views/frame/origin_widgets/origin_youtube_widget.h",
     ]
     deps += [
-      "//brave/browser/ui/tabs:origin_media_monitor",
-      "//brave/browser/ui/views/frame/origin_widgets:origin_calendar_source",
-      "//brave/browser/ui/views/frame/origin_widgets:origin_widget_style",
-      "//components/os_crypt/async/browser",
-      "//components/os_crypt/async/common",
       "//components/split_tabs",
-      "//components/viz/host",
-      "//media/capture/mojom:video_capture",
       "//ui/display",
     ]
   }
@@ -1608,22 +1581,6 @@ source_set("unit_tests") {
       "//ui/base:test_support",
       "//ui/gfx",
     ]
-
-    if (is_brave_origin_branded) {
-      sources += [
-        "tabs/origin_media_monitor_unittest.cc",
-        "views/frame/origin_widgets/origin_calendar_service_unittest.cc",
-        "views/frame/origin_widgets/origin_calendar_widget_unittest.cc",
-        "views/frame/origin_widgets/origin_widget_panel_view_unittest.cc",
-      ]
-      deps += [
-        "//brave/browser/ui/tabs:origin_media_monitor",
-        "//components/os_crypt/async/browser:test_support",
-        "//components/prefs:test_support",
-        "//net:test_support",
-        "//services/network:test_support",
-      ]
-    }
 
     if (enable_brave_vpn) {
       sources += [ "views/toolbar/brave_vpn_button_unittest.cc" ]

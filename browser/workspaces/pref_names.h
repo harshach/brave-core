@@ -33,22 +33,4 @@ inline constexpr char kOriginTabSessionSpacesPref[] =
 inline constexpr char kOriginWindowSessionSpacesPref[] =
     "brave.origin.window_session_spaces";
 
-// Ordered list of widget ids shown in the right-hand widgets panel. Order is
-// the user's, so it is a list rather than a set of booleans.
-inline constexpr char kOriginWidgetsEnabledPref[] =
-    "brave.origin.widgets.enabled";
-
-// Whether the widgets panel is open. Profile-wide rather than window-local so
-// a new window opens the way the last one looked.
-inline constexpr char kOriginWidgetPanelVisiblePref[] =
-    "brave.origin.widgets.panel_visible";
-
-// iCalendar feed address backing the calendar widget.
-inline constexpr char kOriginCalendarFeedUrlPref[] =
-    "brave.origin.widgets.calendar_feed_url";
-
-// OS-encrypted Google refresh token; never synchronized between devices.
-inline constexpr char kOriginCalendarGoogleTokenPref[] =
-    "brave.origin.widgets.google_calendar_token";
-
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

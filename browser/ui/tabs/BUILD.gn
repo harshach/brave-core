@@ -222,28 +222,6 @@ if (!is_android) {
       "//content/public/browser",
     ]
   }
-
-  source_set("origin_media_monitor") {
-    sources = [
-      "origin_media_monitor.cc",
-      "origin_media_monitor.h",
-    ]
-
-    public_deps = [ "//brave/browser/ui/tabs:origin_space_controller" ]
-
-    deps = [
-      "//base",
-      "//brave/browser/workspaces",
-      "//chrome/browser/ui/tabs:tab_strip",
-      "//components/sessions",
-      "//components/sessions:session_id",
-      "//content/public/browser",
-      "//mojo/public/cpp/bindings",
-      "//services/media_session/public/cpp",
-      "//services/media_session/public/mojom",
-      "//url",
-    ]
-  }
 }
 
 source_set("browser_tests") {

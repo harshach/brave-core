@@ -17,9 +17,6 @@ aggregate_vector_icons("brave_components_vector_icons") {
     "app_menu_outline.icon",
     "autoplay_status.icon",
     "origin_incoming_link.icon",
-    "origin_widget_calendar.icon",
-    "origin_widget_spotify.icon",
-    "origin_widget_youtube.icon",
   ]
 
   # The Skia icon names are transformed to make them easier to use in Brave Core
@@ -44,7 +41,6 @@ aggregate_vector_icons("brave_components_vector_icons") {
     "leo_calendar_time.icon",
     "leo_carat_down.icon",
     "leo_carat_last.icon",
-    "leo_carat_left.icon",
     "leo_carat_right.icon",
     "leo_check_circle_filled.icon",
     "leo_check_circle_outline.icon",

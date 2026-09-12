@@ -23,7 +23,6 @@ class SidebarContainerView;
   raw_ptr<views::View> contents_background = nullptr;     \
   raw_ptr<views::View> vertical_tab_strip_host = nullptr; \
   raw_ptr<views::View> focus_mode_title_bar = nullptr;    \
-  raw_ptr<views::View> origin_widget_panel = nullptr;     \
   raw_ptr<SidebarContainerView> sidebar_container
 
 // Add setters for the new members to BrowserViewLayout.
@@ -36,9 +35,6 @@ class SidebarContainerView;
   }                                                                        \
   void set_focus_mode_title_bar(views::View* focus_mode_title_bar) {       \
     views_.focus_mode_title_bar = focus_mode_title_bar;                    \
-  }                                                                        \
-  void set_origin_widget_panel(views::View* origin_widget_panel) {         \
-    views_.origin_widget_panel = origin_widget_panel;                      \
   }                                                                        \
   void set_sidebar_container(SidebarContainerView* sidebar_container) {    \
     views_.sidebar_container = sidebar_container;                          \

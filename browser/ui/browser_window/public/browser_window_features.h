@@ -18,7 +18,6 @@ class BraveShieldsUIContentsCache;
 class BraveNonClientHitTestHelper;
 class BraveVPNController;
 class FocusModeController;
-class OriginMediaMonitor;
 class OriginSpaceController;
 class PlaylistSidePanelCoordinator;
 class TreeTabSessionManager;
@@ -117,12 +116,6 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
     return origin_space_controller_.get();
   }
 
-  // Available for normal Brave Origin windows. Tracks per-Space audio state
-  // and the media sessions the widgets present.
-  OriginMediaMonitor* origin_media_monitor() {
-    return origin_media_monitor_.get();
-  }
-
   screenshot::ScreenshotController* screenshot_controller() {
     return screenshot_controller_.get();
   }
@@ -165,7 +158,6 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
       brave_non_client_hit_test_helper_;
   std::unique_ptr<TreeTabSessionManager> tree_tab_session_manager_;
   std::unique_ptr<OriginSpaceController> origin_space_controller_;
-  std::unique_ptr<OriginMediaMonitor> origin_media_monitor_;
   std::unique_ptr<screenshot::ScreenshotController> screenshot_controller_;
   std::unique_ptr<VerticalTabController> vertical_tab_controller_;
   std::unique_ptr<WorkspacesBubbleController> workspaces_bubble_controller_;

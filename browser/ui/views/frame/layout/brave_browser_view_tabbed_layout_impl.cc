@@ -214,10 +214,6 @@ BraveBrowserViewTabbedLayoutImpl::CalculateProposedLayout(
     contents_layout->bounds.Inset(GetInsetsConsideringVerticalTabHost());
   }
 
-  // Reserve the widgets panel's column before the sidebar is placed, so the
-  // sidebar lands next to the panel rather than under it.
-  CalculateOriginWidgetPanelLayout(layout);
-
   // Handle sidebar and adjust contents container bounds. This should be done
   // BEFORE calling `InsetContentsContainerBounds()` so that the contents
   // container's final bounds is updated considering the sidebar's bounds.
@@ -416,35 +412,6 @@ void BraveBrowserViewTabbedLayoutImpl::CalculateBraveVerticalTabStripLayout(
   vertical_tab_strip_bounds.set_width(width);
 
   layout.AddChild(views().vertical_tab_strip_host, vertical_tab_strip_bounds);
-}
-
-void BraveBrowserViewTabbedLayoutImpl::CalculateOriginWidgetPanelLayout(
-    ProposedLayout& layout) const {
-  auto* panel = views().origin_widget_panel.get();
-  if (!panel) {
-    return;
-  }
-  if (!IsParentedToAndVisible(panel, views().browser_view)) {
-    // Still needs an entry, otherwise the proposed layout leaves the view at
-    // whatever bounds it last had.
-    layout.AddChild(panel, gfx::Rect(), false);
-    return;
-  }
-
-  auto* contents_layout = layout.GetLayoutFor(views().multi_contents_view);
-  CHECK(contents_layout);
-
-  gfx::Rect& contents = contents_layout->bounds;
-  const int width =
-      std::min(panel->GetPreferredSize().width(), contents.width());
-  // The panel takes the trailing edge in stored coordinates, which paint
-  // mirroring turns into the visual left in RTL, the same flip the spaces
-  // panel makes in the other direction.
-  const bool leading = base::i18n::IsRTL();
-  const int x = leading ? contents.x() : contents.right() - width;
-  layout.AddChild(panel, gfx::Rect(x, contents.y(), width, contents.height()));
-  contents.Inset(leading ? gfx::Insets::TLBR(0, width, 0, 0)
-                         : gfx::Insets::TLBR(0, 0, 0, width));
 }
 
 void BraveBrowserViewTabbedLayoutImpl::CalculateSideBarLayout(
