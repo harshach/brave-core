@@ -1,0 +1,57 @@
+# Copyright (c) 2026 The Brave Authors. All rights reserved.
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this file,
+# You can obtain one at https://mozilla.org/MPL/2.0/.
+
+# Styling shared with the spaces panel. Kept dependency-free so the vertical
+# tab strip can use it without depending on the widgets themselves.
+source_set("origin_widget_style") {
+  sources = [
+    "origin_widget_style.cc",
+    "origin_widget_style.h",
+  ]
+
+  deps = [
+    "//chrome/browser/ui/color:color_headers",
+    "//skia",
+    "//ui/color",
+    "//ui/gfx",
+    "//ui/views",
+  ]
+}
+
+# Google Calendar day queries and parsing, independent of sign-in and views.
+source_set("origin_calendar_source") {
+  sources = [
+    "origin_calendar_source.cc",
+    "origin_calendar_source.h",
+  ]
+
+  deps = [
+    "//base",
+    "//base:i18n",
+    "//google_apis/common",
+    "//net",
+    "//net/traffic_annotation",
+    "//services/network/public/cpp",
+    "//third_party/icu",
+    "//url",
+  ]
+}
+
+source_set("unit_tests") {
+  testonly = true
+
+  sources = [ "origin_calendar_source_unittest.cc" ]
+
+  deps = [
+    ":origin_calendar_source",
+    "//base",
+    "//base/test:test_support",
+    "//net",
+    "//services/network:test_support",
+    "//services/network/public/cpp",
+    "//testing/gtest",
+    "//url",
+  ]
+}

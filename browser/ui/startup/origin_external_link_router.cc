@@ -17,10 +17,12 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_init_state.h"
+#include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
+#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
@@ -65,7 +67,7 @@ Browser* FindNormalBrowser(Profile* profile,
   Browser* fallback = AsBrowser(fallback_browser);
   const bool fallback_is_eligible =
       fallback && fallback->GetProfile() == profile &&
-      fallback->is_type_normal() && !fallback->IsDeleteScheduled();
+      fallback->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL && !fallback->IsDeleteScheduled();
   if (fallback_is_eligible && !fallback->tab_strip_model()->empty()) {
     return fallback;
   }
@@ -81,18 +83,19 @@ Browser* GetOrCreateNormalBrowser(Profile* profile) {
   if (Browser* browser = FindNormalBrowser(profile, nullptr)) {
     return browser;
   }
-  Browser::CreateParams create_params(profile, /*user_gesture=*/false);
+  BrowserWindowCreateParams create_params(profile, /*user_gesture=*/false);
   create_params.should_trigger_session_restore = false;
-  return Browser::Create(create_params);
+  return AsBrowser(CreateBrowserWindow(std::move(create_params)));
 }
 
-base::WeakPtr<Browser> GetSyntheticFallback(
+base::WeakPtr<BrowserWindowInterface> GetSyntheticFallback(
     BrowserWindowInterface* fallback_browser,
     Profile* profile,
     Browser* routed_browser) {
   Browser* fallback = AsBrowser(fallback_browser);
   if (!fallback || fallback == routed_browser ||
-      fallback->GetProfile() != profile || !fallback->is_type_normal() ||
+      fallback->GetProfile() != profile ||
+      fallback->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL ||
       fallback->IsDeleteScheduled() || !fallback->tab_strip_model()->empty()) {
     return {};
   }
@@ -101,16 +104,17 @@ base::WeakPtr<Browser> GetSyntheticFallback(
   // It is not the disposable placeholder created for an external URL launch.
   const BrowserInitState* init_state = BrowserInitState::From(fallback);
   if (init_state && init_state->creation_source() ==
-                        Browser::CreationSource::kSessionRestore) {
+                        BrowserWindowCreateParams::CreationSource::
+                            kSessionRestore) {
     return {};
   }
-  return fallback->AsWeakPtr();
+  return fallback->GetWeakPtr();
 }
 
 Browser* CreateTemporaryBrowser(Profile* profile,
                                 BrowserWindowInterface* fallback_browser) {
-  Browser::CreateParams create_params =
-      Browser::CreateParams::CreateForAppPopup(
+  BrowserWindowCreateParams create_params =
+      BrowserWindowCreateParams::CreateForAppPopup(
           kTemporaryLinkAppName, /*trusted_source=*/true, gfx::Rect(), profile,
           /*user_gesture=*/false);
   create_params.omit_from_session_restore = true;
@@ -130,7 +134,7 @@ Browser* CreateTemporaryBrowser(Profile* profile,
         120, 100, kFallbackTemporaryWindowWidth,
         kFallbackTemporaryWindowHeight);
   }
-  return Browser::Create(create_params);
+  return AsBrowser(CreateBrowserWindow(std::move(create_params)));
 }
 
 bool IsOnlyPlaceholderTab(Browser* browser) {
@@ -142,23 +146,24 @@ bool IsOnlyPlaceholderTab(Browser* browser) {
   }
   const GURL& visible_url =
       browser->tab_strip_model()->GetWebContentsAt(0)->GetVisibleURL();
-  return visible_url.is_empty() || visible_url == browser->GetNewTabURL() ||
+  return visible_url.is_empty() || visible_url == chrome::GetNewTabURL(browser) ||
          visible_url == GURL(url::kAboutBlankURL);
 }
 
-void FinalizeRoutedBrowser(base::WeakPtr<Browser> browser,
-                           base::WeakPtr<Browser> synthetic_fallback) {
+void FinalizeRoutedBrowser(
+    base::WeakPtr<BrowserWindowInterface> browser,
+    base::WeakPtr<BrowserWindowInterface> synthetic_fallback) {
   if (synthetic_fallback && !synthetic_fallback->IsDeleteScheduled() &&
-      IsOnlyPlaceholderTab(synthetic_fallback.get())) {
+      IsOnlyPlaceholderTab(AsBrowser(synthetic_fallback.get()))) {
     if (BrowserWindow* window =
-            BrowserWindow::FromBrowser(synthetic_fallback.get())) {
+            BrowserWindow::FromBrowser(AsBrowser(synthetic_fallback.get()))) {
       window->Close();
     }
   }
   if (!browser || browser->IsDeleteScheduled()) {
     return;
   }
-  BrowserWindow* window = BrowserWindow::FromBrowser(browser.get());
+  BrowserWindow* window = BrowserWindow::FromBrowser(AsBrowser(browser.get()));
   if (!window) {
     return;
   }
@@ -203,7 +208,12 @@ bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser) {
     return false;
   }
   const Browser* concrete = browser->GetBrowserForMigrationOnly();
-  return concrete && concrete->app_name() == kTemporaryLinkAppName;
+  if (!concrete) {
+    return false;
+  }
+  const BrowserInitState* init_state = BrowserInitState::From(concrete);
+  return init_state &&
+         init_state->create_params().app_name == kTemporaryLinkAppName;
 }
 
 void ConfigureNavigation(const GURL& url,
@@ -238,12 +248,12 @@ void ConfigureNavigation(const GURL& url,
         params->disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
         params->tabstrip_add_types |= AddTabTypes::ADD_ACTIVE;
         params->window_action = NavigateParams::WindowAction::kShowWindow;
-        base::WeakPtr<Browser> synthetic_fallback =
+        base::WeakPtr<BrowserWindowInterface> synthetic_fallback =
             GetSyntheticFallback(fallback_browser, profile, target);
         if (synthetic_fallback) {
           base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
               FROM_HERE,
-              base::BindOnce(&FinalizeRoutedBrowser, target->AsWeakPtr(),
+              base::BindOnce(&FinalizeRoutedBrowser, target->GetWeakPtr(),
                              std::move(synthetic_fallback)));
         }
         return;
@@ -255,7 +265,7 @@ void ConfigureNavigation(const GURL& url,
   if (!temporary) {
     temporary = CreateTemporaryBrowser(profile, fallback_browser);
   }
-  base::WeakPtr<Browser> synthetic_fallback =
+  base::WeakPtr<BrowserWindowInterface> synthetic_fallback =
       GetSyntheticFallback(fallback_browser, profile, temporary);
   params->browser = temporary;
   params->disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
@@ -266,7 +276,7 @@ void ConfigureNavigation(const GURL& url,
   // command-line tabs. Remove that window when it was created solely as an
   // untouched placeholder, then re-activate the temporary frame.
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE, base::BindOnce(&FinalizeRoutedBrowser, temporary->AsWeakPtr(),
+      FROM_HERE, base::BindOnce(&FinalizeRoutedBrowser, temporary->GetWeakPtr(),
                                 std::move(synthetic_fallback)));
 }
 
@@ -295,7 +305,7 @@ std::string GetSuggestedSpaceId(Browser* temporary_browser, const GURL& url) {
       Browser* browser = AsBrowser(window);
       OriginSpaceController* controller = GetSpaceController(browser);
       if (!browser || browser->GetProfile() != profile ||
-          !browser->is_type_normal() || !controller) {
+          browser->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL || !controller) {
         continue;
       }
       for (int index = 0; index < browser->tab_strip_model()->count();
@@ -365,8 +375,9 @@ bool KeepActivePage(Browser* temporary_browser,
       source_model->DetachWebContentsAtForInsertion(source_index);
   int target_index = previous_active_index;
   if (disposition == KeepDisposition::kReplace && has_destination_page) {
-    target_model->DiscardWebContentsAt(previous_active_index,
-                                       std::move(contents));
+    target_model->DiscardWebContents(
+        target_model->GetWebContentsAt(previous_active_index),
+        std::move(contents));
   } else {
     target_index = target_model->InsertWebContentsAt(
         target_model->count(), std::move(contents), AddTabTypes::ADD_ACTIVE);

@@ -115,6 +115,9 @@ class BraveBrowserViewTabbedLayoutImpl : public BrowserViewTabbedLayoutImpl {
       const BrowserLayoutParams& params) const;
   void CalculateSideBarLayout(ProposedLayout& layout,
                               const BrowserLayoutParams& params) const;
+  // Places Origin's widgets panel on the trailing edge of the contents area
+  // and shrinks the contents bounds by its width.
+  void CalculateOriginWidgetPanelLayout(ProposedLayout& layout) const;
   void InsetContentsContainerBounds(ProposedLayout& layout) const;
   void AdjustInfobarLayout(ProposedLayout& layout,
                            const BrowserLayoutParams params) const;

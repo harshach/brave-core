@@ -222,7 +222,7 @@ TEST_F(OriginSpaceControllerTest,
   const std::string* saved_window_space =
       profile()->GetPrefs()
           ->GetDict(kOriginWindowSessionSpacesPref)
-          .FindString(base::NumberToString(browser()->session_id().id()));
+          .FindString(base::NumberToString(browser()->GetSessionID().id()));
   ASSERT_TRUE(saved_window_space);
   EXPECT_EQ(*saved_window_space, empty_id);
 

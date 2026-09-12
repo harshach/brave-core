@@ -23,6 +23,8 @@ source_set("vertical_tabs") {
   deps = [
     "//base",
     "//brave/browser/ui:brave_tab_prefs",
+    "//brave/browser/ui/tabs:origin_media_monitor",
+    "//brave/browser/ui/views/frame/origin_widgets:origin_widget_style",
     "//brave/browser/ui/tabs:origin_space_controller",
     "//brave/browser/ui/tabs:tabs_public",
     "//brave/browser/ui/views/frame",

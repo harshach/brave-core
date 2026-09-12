@@ -29,7 +29,7 @@ content::WebContents* MaybeRestoreTabTreeHierarchy(
         restored_web_contents, extra_data);
   }
   if (auto* origin_space_controller =
-          browser->browser_window_features()->origin_space_controller()) {
+          browser->GetFeatures().origin_space_controller()) {
     origin_space_controller->MaybeRestoreTabSpace(restored_web_contents,
                                                   extra_data);
   }

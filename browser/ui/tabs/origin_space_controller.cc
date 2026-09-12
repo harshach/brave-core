@@ -522,7 +522,6 @@ void OriginSpaceController::OnTabStripModelChanged(
 }
 
 void OriginSpaceController::OnTabChangedAt(tabs::TabInterface* tab,
-                                           int index,
                                            TabChangeType change_type) {
   // Navigation can turn the hidden New Tab renderer into a real page (or the
   // reverse) without changing TabStripModel membership. Refresh sidebar rows

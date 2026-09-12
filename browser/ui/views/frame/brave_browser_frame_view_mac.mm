@@ -156,7 +156,8 @@ BraveBrowserFrameViewMac::GetCaptionButtonBounds() const {
   auto bounds_and_margins = BrowserFrameViewMac::GetCaptionButtonBounds();
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!bounds_and_margins.bounds.IsEmpty() &&
-      GetBrowserView()->browser()->is_type_normal()) {
+      GetBrowserView()->browser()->GetType() ==
+          BrowserWindowInterface::Type::TYPE_NORMAL) {
     constexpr float kOriginTitlebarHeight = 44.0f;
     constexpr float kOriginTrafficLightInset = 20.0f;
     const bool on_leading_edge =

@@ -70,6 +70,10 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
                                std::string());
   registry->RegisterDictionaryPref(kOriginTabSessionSpacesPref);
   registry->RegisterDictionaryPref(kOriginWindowSessionSpacesPref);
+  registry->RegisterListPref(kOriginWidgetsEnabledPref);
+  registry->RegisterBooleanPref(kOriginWidgetPanelVisiblePref, true);
+  registry->RegisterStringPref(kOriginCalendarFeedUrlPref, std::string());
+  registry->RegisterStringPref(kOriginCalendarGoogleTokenPref, std::string());
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

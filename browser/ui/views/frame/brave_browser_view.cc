@@ -37,6 +37,7 @@
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
@@ -46,6 +47,7 @@
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
+#include "brave/browser/ui/views/frame/origin_widgets/origin_widget_panel_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/tab_strip_placement_coordinator.h"
@@ -597,6 +599,9 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
                                 base::Unretained(this)),
             base::BindRepeating(&BraveBrowserView::HideOriginQuickOpen,
                                 base::Unretained(this))));
+
+    origin_widget_panel_ = AddChildView(std::make_unique<OriginWidgetPanelView>(
+        browser_, browser_->GetFeatures().origin_media_monitor()));
   }
 #endif
 
@@ -853,6 +858,14 @@ void BraveBrowserView::SubmitOriginQuickOpen(
       break;
     }
   }
+}
+
+void BraveBrowserView::ToggleOriginWidgetPanel() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_widget_panel_) {
+    origin_widget_panel_->TogglePanel();
+  }
+#endif
 }
 
 void BraveBrowserView::CloseActiveOriginTabTree() {
@@ -1279,6 +1292,7 @@ void BraveBrowserView::AddedToWidget() {
 
   GetBrowserViewLayout()->set_contents_background(contents_background_view_);
   GetBrowserViewLayout()->set_sidebar_container(sidebar_container_view_);
+  GetBrowserViewLayout()->set_origin_widget_panel(origin_widget_panel_);
 
   if (vertical_tab_strip_host_view_) {
     vertical_tab_strip_container_view_ =
@@ -1679,7 +1693,7 @@ void BraveBrowserView::FinalizeOriginContentsResize() {
 
   InvalidateLayout();
   DeprecatedLayoutImmediately();
-  contents_container_->DeprecatedLayoutImmediately();
+  contents_container()->DeprecatedLayoutImmediately();
 
   // Make the destination viewport explicit to the renderer after the native
   // holder has reached its final bounds. This also guarantees a fresh local
@@ -2170,8 +2184,16 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }
+        case ui::VKEY_M: {
+          auto* controller = browser()->GetFeatures().origin_space_controller();
+          auto* monitor = browser()->GetFeatures().origin_media_monitor();
+          if (controller && monitor) {
+            monitor->ToggleSpaceMuted(controller->active_space_id());
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
         case ui::VKEY_W:
-          chrome::ExecuteCommand(browser(), IDC_CLOSE_TAB);
+          ToggleOriginWidgetPanel();
           return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_OEM_4:
           chrome::ExecuteCommand(browser(), IDC_BACK);
