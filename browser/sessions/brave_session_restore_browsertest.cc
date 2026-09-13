@@ -77,7 +77,7 @@ IN_PROC_BROWSER_TEST_F(BraveSessionRestoreBrowserTest,
       browser()->tab_strip_model()->GetActiveWebContents();
   ASSERT_TRUE(contents);
   const SessionID tab_id = sessions::SessionTabHelper::IdForTab(contents);
-  const SessionID window_id = browser()->session_id();
+  const SessionID window_id = browser()->GetSessionID();
   const std::string empty_space_id =
       workspace_service->GetOriginSpaces()[1].id;
   controller->MoveTabToSpace(contents, empty_space_id);

@@ -61,6 +61,7 @@
 #include "chrome/browser/ui/browser_init_state.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_bubble_type.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
@@ -391,8 +392,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                               "document.querySelector('#editor').blur();"));
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return !temporary_contents->IsFocusedElementEditable(); }));
-  base::WeakPtr<Browser> temporary_browser_weak =
-      temporary_browser->AsWeakPtr();
+  base::WeakPtr<BrowserWindowInterface> temporary_browser_weak =
+      temporary_browser->GetWeakPtr();
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             temporary_view->PreHandleKeyboardEvent(discard_event));
   EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
@@ -402,19 +403,23 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                        OriginTemporaryLinkPreservesSessionRestoreWindow) {
   ASSERT_TRUE(embedded_test_server()->Start());
 
-  Browser::CreateParams restore_params(browser()->GetProfile(),
-                                       /*user_gesture=*/false);
-  restore_params.creation_source = Browser::CreationSource::kSessionRestore;
+  BrowserWindowCreateParams restore_params(browser()->GetProfile(),
+                                           /*user_gesture=*/false);
+  restore_params.creation_source =
+      BrowserWindowCreateParams::CreationSource::kSessionRestore;
   restore_params.should_trigger_session_restore = false;
-  Browser* restoring_browser = Browser::Create(restore_params);
+  BrowserWindowInterface* restoring_window =
+      CreateBrowserWindow(std::move(restore_params));
+  ASSERT_TRUE(restoring_window);
+  Browser* restoring_browser = restoring_window->GetBrowserForMigrationOnly();
   ASSERT_TRUE(restoring_browser);
   ASSERT_TRUE(restoring_browser->tab_strip_model()->empty());
   const BrowserInitState* restore_state =
       BrowserInitState::From(restoring_browser);
   ASSERT_TRUE(restore_state);
   ASSERT_TRUE(restore_state->is_session_restore());
-  base::WeakPtr<Browser> restoring_browser_weak =
-      restoring_browser->AsWeakPtr();
+  base::WeakPtr<BrowserWindowInterface> restoring_browser_weak =
+      restoring_browser->GetWeakPtr();
 
   Browser* temporary_browser = OpenOriginTemporaryLink(
       restoring_browser, embedded_test_server()->GetURL("/title1.html"));
@@ -433,14 +438,18 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_FALSE(restoring_browser_weak->IsDeleteScheduled());
   EXPECT_TRUE(restoring_browser_weak->tab_strip_model()->empty());
 
-  Browser::CreateParams placeholder_params(browser()->GetProfile(),
-                                           /*user_gesture=*/false);
+  BrowserWindowCreateParams placeholder_params(browser()->GetProfile(),
+                                               /*user_gesture=*/false);
   placeholder_params.should_trigger_session_restore = false;
-  Browser* placeholder_browser = Browser::Create(placeholder_params);
+  BrowserWindowInterface* placeholder_window =
+      CreateBrowserWindow(std::move(placeholder_params));
+  ASSERT_TRUE(placeholder_window);
+  Browser* placeholder_browser =
+      placeholder_window->GetBrowserForMigrationOnly();
   ASSERT_TRUE(placeholder_browser);
   ASSERT_TRUE(placeholder_browser->tab_strip_model()->empty());
-  base::WeakPtr<Browser> placeholder_browser_weak =
-      placeholder_browser->AsWeakPtr();
+  base::WeakPtr<BrowserWindowInterface> placeholder_browser_weak =
+      placeholder_browser->GetWeakPtr();
 
   EXPECT_EQ(temporary_browser,
             OpenOriginTemporaryLink(
@@ -451,7 +460,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_TRUE(restoring_browser_weak);
 
   CloseBrowserSynchronously(temporary_browser);
-  CloseBrowserSynchronously(restoring_browser_weak.get());
+  CloseBrowserSynchronously(
+      restoring_browser_weak->GetBrowserForMigrationOnly());
   EXPECT_FALSE(restoring_browser_weak);
 }
 
@@ -474,25 +484,11 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTemporaryLinkStacksPages) {
   EXPECT_EQ(2, temporary_model->count());
   EXPECT_EQ(initial_tab_count, normal_model->count());
 
-  // So does a link the temporary page itself opens in a new tab.
-  content::WebContents* temporary_contents =
-      temporary_model->GetActiveWebContents();
-  ASSERT_TRUE(temporary_contents);
-  ASSERT_TRUE(content::WaitForLoadStop(temporary_contents));
-  content::WebContentsAddedObserver opened_observer;
-  ASSERT_TRUE(content::ExecJs(
-      temporary_contents,
-      content::JsReplace("const link = document.createElement('a');"
-                         "link.href = $1;"
-                         "link.target = '_blank';"
-                         "document.body.appendChild(link);"
-                         "link.click();",
-                         embedded_test_server()->GetURL("/title3.html"))));
-  content::WebContents* opened_contents = opened_observer.GetWebContents();
-  ASSERT_TRUE(opened_contents);
+  // A third link keeps stacking rather than escaping to the normal window.
+  EXPECT_EQ(
+      temporary_browser,
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title3.html")));
   EXPECT_EQ(3, temporary_model->count());
-  EXPECT_NE(TabStripModel::kNoTab,
-            temporary_model->GetIndexOfWebContents(opened_contents));
   EXPECT_EQ(initial_tab_count, normal_model->count());
 
   CloseBrowserSynchronously(temporary_browser);
