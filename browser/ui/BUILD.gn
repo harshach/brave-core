@@ -318,7 +318,12 @@ source_set("ui") {
       "views/frame/origin_temporary_link_view.h",
     ]
     deps += [
+      "//brave/browser/ui/tabs:origin_media_monitor",
+      "//components/os_crypt/async/browser",
+      "//components/os_crypt/async/common",
       "//components/split_tabs",
+      "//components/viz/host",
+      "//media/capture/mojom:video_capture",
       "//ui/display",
     ]
   }
@@ -1581,6 +1586,19 @@ source_set("unit_tests") {
       "//ui/base:test_support",
       "//ui/gfx",
     ]
+
+    if (is_brave_origin_branded) {
+      sources += [
+        "tabs/origin_media_monitor_unittest.cc",
+      ]
+      deps += [
+        "//brave/browser/ui/tabs:origin_media_monitor",
+        "//components/os_crypt/async/browser:test_support",
+        "//components/prefs:test_support",
+        "//net:test_support",
+        "//services/network:test_support",
+      ]
+    }
 
     if (enable_brave_vpn) {
       sources += [ "views/toolbar/brave_vpn_button_unittest.cc" ]

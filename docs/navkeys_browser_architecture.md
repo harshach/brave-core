@@ -49,15 +49,24 @@ primitives so Chromium security updates remain mergeable.
   pages, Command/Ctrl+Up and Command/Ctrl+Down to adjacent spaces, Space and
   `o` to the native Quick Open palette, `d` to close the selected branch, `z`
   to restore, `r` to reload the active page, `s` to split the window and open a
-  new page beside the current one, and `f` to focus mode. Command/Ctrl+K opens
-  Brave Commander and Command/Ctrl+Right closes the active split. `i` enters
-  edit mode and `Escape` returns to navigation mode. Editable page fields
-  continue to receive their original input.
+  new page beside the current one, `m` to mute or unmute every page in the
+  selected Space, and `f` to focus mode. Command/Ctrl+K opens Brave Commander
+  and Command/Ctrl+Right closes the active split. `i` enters edit mode and
+  `Escape` returns to navigation mode. Editable page fields continue to
+  receive their original input.
+- A Space carries an equalizer badge only while an unmuted page in it is
+  producing sound. Clicking the badge mutes the Space and hides it. Paused,
+  silent and muted pages have no rail status. `OriginMediaMonitor` supplies
+  the audible state; the badge paints itself rather than using a vector icon,
+  which loses its shape at 16px.
 - Quick Open classifies its input through Brave's native autocomplete stack.
   Replace and Split are persistent modes for the next result or `Enter`,
   selectable from the buttons beside the space chip or with Command/Ctrl+R and
   Command/Ctrl+S; Split creates a native split page before navigating its new
-  pane, and submitting it with no input splits to a new page. The shortcut
+  pane, and submitting it with no input splits to a new page. Choosing a
+  result that is already open while Split is armed pairs that existing page
+  with the current one rather than loading a second copy beside itself. The
+  shortcut
   legend stays visible so both modes are discoverable before typing. Empty
   input uses native zero-suggest history, and the footer enters Brave Commander.
 - Split pages use Brave's native split-tab commands and resizable

@@ -37,6 +37,7 @@
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
@@ -344,6 +345,41 @@ class ContentsBackground : public views::View {
 };
 BEGIN_METADATA(ContentsBackground)
 END_METADATA
+
+// Pairs an already-open page in this window with the active tab instead of
+// loading a second copy of it beside itself. Returns false when there is no
+// such page, or when either tab is already part of a split.
+bool SplitWithExistingOriginTab(Browser* browser, const GURL& url) {
+  if (!browser || !url.is_valid()) {
+    return false;
+  }
+  TabStripModel* model = browser->tab_strip_model();
+  const int active_index = model->active_index();
+  if (active_index == TabStripModel::kNoTab ||
+      model->GetSplitForTab(active_index).has_value()) {
+    return false;
+  }
+  for (int index = 0; index < model->count(); ++index) {
+    if (index == active_index) {
+      continue;
+    }
+    content::WebContents* contents = model->GetWebContentsAt(index);
+    if (!contents || (contents->GetVisibleURL() != url &&
+                      contents->GetLastCommittedURL() != url)) {
+      continue;
+    }
+    if (model->GetSplitForTab(index).has_value()) {
+      return false;
+    }
+    // AddToNewSplit implicitly includes the active tab.
+    model->AddToNewSplit(
+        {index},
+        split_tabs::SplitTabVisualData(split_tabs::SplitTabLayout::kSideBySide),
+        split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
+    return true;
+  }
+  return false;
+}
 
 bool ActivateOriginQuickOpenTab(Profile* profile, const GURL& url) {
   if (!profile || !url.is_valid()) {
@@ -844,6 +880,12 @@ void BraveBrowserView::SubmitOriginQuickOpen(
       break;
     }
     case OriginQuickOpenDisposition::kSplit: {
+      // A result that is already open splits with that page rather than
+      // opening a duplicate of it beside itself.
+      if (selection.switch_to_tab &&
+          SplitWithExistingOriginTab(browser(), destination_url)) {
+        break;
+      }
       chrome::NewSplitTab(browser(), split_tabs::SplitTabLayout::kSideBySide,
                           split_tabs::SplitTabCreatedSource::kKeyboardShortcut);
       NavigateParams params(browser(), destination_url,
@@ -2170,6 +2212,14 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           if (active_index != TabStripModel::kNoTab) {
             model->SetTabPinned(active_index,
                                 !model->IsTabPinned(active_index));
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        case ui::VKEY_M: {
+          auto* controller = browser()->GetFeatures().origin_space_controller();
+          auto* monitor = browser()->GetFeatures().origin_media_monitor();
+          if (controller && monitor) {
+            monitor->ToggleSpaceMuted(controller->active_space_id());
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }

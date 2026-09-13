@@ -32,6 +32,7 @@
 #include "brave/browser/ui/focus_mode/focus_mode_utils.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
@@ -75,6 +76,7 @@
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/mojom/dialog_button.mojom.h"
+#include "ui/color/color_provider.h"
 #include "ui/compositor/compositor.h"
 #include "ui/compositor/layer.h"
 #include "ui/display/screen.h"
@@ -89,6 +91,7 @@
 #include "ui/views/bubble/bubble_border.h"
 #include "ui/views/bubble/bubble_dialog_delegate_view.h"
 #include "ui/views/bubble/bubble_frame_view.h"
+#include "ui/views/controls/button/button.h"
 #include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/button/label_button.h"
 #include "ui/views/controls/focus_ring.h"
@@ -123,10 +126,8 @@ constexpr int kBorderThickness = 1;
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 constexpr int kOriginWorkspaceRailWidth = 56;
-constexpr int kOriginSidebarMinimumWidth =
-    kOriginWorkspaceRailWidth + 180;
-constexpr int kOriginSidebarMaximumWidth =
-    kOriginWorkspaceRailWidth + 360;
+constexpr int kOriginSidebarMinimumWidth = kOriginWorkspaceRailWidth + 180;
+constexpr int kOriginSidebarMaximumWidth = kOriginWorkspaceRailWidth + 360;
 constexpr int kOriginWorkspaceHeaderHeight = 58;
 constexpr int kOriginSearchFieldHeight = 30;
 constexpr int kOriginPageListTop = 66;
@@ -204,13 +205,92 @@ gfx::FontList OriginChromeFont(int size, gfx::Font::Weight weight) {
   return gfx::FontList({kFamily}, gfx::Font::NORMAL, size, weight);
 }
 
+// Accent and text colors for the audible badge. Inlined rather than shared so
+// the Spaces rail owns its own painting.
+constexpr SkColor kOriginAccent = SkColorSetRGB(0xFB, 0x54, 0x2B);
+
+bool IsOriginChromeDark(const views::View* view) {
+  const auto* provider = view ? view->GetColorProvider() : nullptr;
+  return !provider || color_utils::IsDark(provider->GetColor(
+                          kColorBraveVerticalTabInactiveBackground));
+}
+
+SkColor OriginPrimaryText(bool dark) {
+  return dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
+              : SkColorSetRGB(0x18, 0x1D, 0x27);
+}
+
+// Three static bars of uneven height. The design animates these; a static
+// silhouette reads the same at this size and costs no compositor frames.
+void PaintOriginEqualizerGlyph(gfx::Canvas* canvas,
+                               const gfx::RectF& bounds,
+                               SkColor color) {
+  const float scale = bounds.width() / 16.0f;
+  cc::PaintFlags flags;
+  flags.setAntiAlias(true);
+  flags.setStyle(cc::PaintFlags::kFill_Style);
+  flags.setColor(color);
+
+  constexpr float kHeights[] = {4.0f, 7.0f, 5.0f};
+  float x = bounds.x() + 4.5f * scale;
+  const float baseline = bounds.y() + 11.5f * scale;
+  for (float height : kHeights) {
+    const float h = height * scale;
+    canvas->DrawRoundRect(gfx::RectF(x, baseline - h, 1.6f * scale, h),
+                          0.8f * scale, flags);
+    x += 2.4f * scale;
+  }
+}
+
+// Visible only during audible playback; clicking mutes the Space.
+class OriginSpaceAudioBadge : public views::Button {
+  METADATA_HEADER(OriginSpaceAudioBadge, views::Button)
+ public:
+  static constexpr int kSize = 16;
+
+  explicit OriginSpaceAudioBadge(PressedCallback callback)
+      : Button(std::move(callback)) {
+    SetPreferredSize(gfx::Size(kSize, kSize));
+    views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+  }
+
+  void SetSpaceName(std::u16string space_name) {
+    const std::u16string text =
+        u"Playing in " + space_name + u" \u2014 click to mute";
+    SetTooltipText(text);
+    SetAccessibleName(text);
+  }
+
+  void PaintButtonContents(gfx::Canvas* canvas) override {
+    const bool dark = IsOriginChromeDark(this);
+    // The badge overlaps the rail button, so it carries the rail's own
+    // background to punch a hole in the icon underneath it.
+    cc::PaintFlags disc;
+    disc.setAntiAlias(true);
+    disc.setStyle(cc::PaintFlags::kFill_Style);
+    disc.setColor(
+        GetColorProvider()->GetColor(kColorBraveVerticalTabInactiveBackground));
+    canvas->DrawCircle(gfx::PointF(kSize / 2.0f, kSize / 2.0f), kSize / 2.0f,
+                       disc);
+
+    const bool hovered =
+        GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    const SkColor fg = hovered ? kOriginAccent : OriginPrimaryText(dark);
+    PaintOriginEqualizerGlyph(canvas, gfx::RectF(GetLocalBounds()), fg);
+  }
+};
+
+BEGIN_METADATA(OriginSpaceAudioBadge)
+END_METADATA
+
 class OriginWorkspaceButton : public views::LabelButton {
   METADATA_HEADER(OriginWorkspaceButton, views::LabelButton)
  public:
   OriginWorkspaceButton(PressedCallback callback,
                         std::string icon,
                         const std::u16string& accessible_name,
-                        bool selected)
+                        bool selected,
+                        PressedCallback audio_callback = PressedCallback())
       : LabelButton(std::move(callback), std::u16string()),
         icon_(std::move(icon)),
         selected_(selected) {
@@ -220,7 +300,33 @@ class OriginWorkspaceButton : public views::LabelButton {
     SetAccessibleName(accessible_name);
     SetTooltipText(accessible_name);
     views::InkDrop::Get(this)->SetMode(views::InkDropHost::InkDropMode::OFF);
+    if (audio_callback) {
+      audio_badge_ = AddChildView(
+          std::make_unique<OriginSpaceAudioBadge>(std::move(audio_callback)));
+      audio_badge_->SetSpaceName(accessible_name);
+      audio_badge_->SetVisible(false);
+    }
     UpdateWorkspaceIcon();
+  }
+
+  void SetAudible(bool audible) {
+    if (!audio_badge_) {
+      return;
+    }
+    if (audio_badge_->GetVisible() != audible) {
+      audio_badge_->SetVisible(audible);
+    }
+  }
+
+  void Layout(PassKey) override {
+    LayoutSuperclass<LabelButton>(this);
+    if (audio_badge_) {
+      // Kept fully inside the button's bounds: a badge that overhung the edge
+      // would sit outside the parent and stop receiving mouse events.
+      constexpr int kBadge = OriginSpaceAudioBadge::kSize;
+      audio_badge_->SetBounds(width() - kBadge, height() - kBadge, kBadge,
+                              kBadge);
+    }
   }
 
   void SetOriginIcon(std::string icon) {
@@ -319,6 +425,7 @@ class OriginWorkspaceButton : public views::LabelButton {
   std::string icon_;
   bool selected_;
   bool drop_targeted_ = false;
+  raw_ptr<OriginSpaceAudioBadge> audio_badge_ = nullptr;
 };
 
 BEGIN_METADATA(OriginWorkspaceButton)
@@ -915,6 +1022,10 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   origin_space_controller_ = browser_->GetFeatures().origin_space_controller();
   CHECK(origin_space_controller_);
   origin_space_controller_->AddObserver(this);
+  origin_media_monitor_ = browser_->GetFeatures().origin_media_monitor();
+  if (origin_media_monitor_) {
+    origin_media_monitor_->AddObserver(this);
+  }
   origin_active_workspace_id_ = origin_space_controller_->active_space_id();
 
   origin_workspace_rail_ = AddChildView(std::make_unique<views::View>());
@@ -1197,6 +1308,9 @@ BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
   if (origin_space_controller_) {
     origin_space_controller_->RemoveObserver(this);
   }
+  if (origin_media_monitor_) {
+    origin_media_monitor_->RemoveObserver(this);
+  }
 #endif
   auto* container =
       views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_);
@@ -1410,7 +1524,10 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
                 &BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected,
                 base::Unretained(this), space.id),
             space.icon, base::UTF8ToUTF16(space.name),
-            space.id == origin_active_workspace_id_));
+            space.id == origin_active_workspace_id_,
+            base::BindRepeating(
+                &BraveVerticalTabStripRegionView::MuteOriginWorkspace,
+                base::Unretained(this), space.id)));
     origin_workspace_buttons_.push_back(button);
   }
   origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
@@ -1433,6 +1550,7 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
     origin_workspace_icon_button_->SetTooltipText(u"Change Space icon");
   }
   UpdateOriginWorkspaceMeta();
+  UpdateOriginWorkspaceAudio();
   origin_workspace_rail_->InvalidateLayout();
   origin_workspace_header_->InvalidateLayout();
 #endif
@@ -1565,12 +1683,14 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     std::u16string_view key;
     std::u16string_view description;
   };
-  constexpr std::array<ShortcutEntry, 15> kShortcuts = {{
-      {u"O / N", u"Search or open a page"},
+  constexpr std::array<ShortcutEntry, 17> kShortcuts = {{
+      {u"Space / O / N", u"Search or open a page"},
       {u"J / K", u"Next / previous page"},
       {u"1–5", u"Switch Space"},
+      {u"S", u"Split with a new page"},
       {u"P", u"Pin / unpin page"},
       {u"W", u"Close page"},
+      {u"M", u"Mute / unmute this Space"},
       {u"D", u"Close page tree"},
       {u"Z", u"Reopen closed page"},
       {u"R", u"Reload page"},
@@ -1883,6 +2003,42 @@ void BraveVerticalTabStripRegionView::UpdateOriginWorkspaceMeta() {
   std::u16string meta = base::NumberToString16(page_count);
   meta.append(page_count == 1 ? u" page" : u" pages");
   origin_workspace_meta_->SetText(meta);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::UpdateOriginWorkspaceAudio() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_media_monitor_) {
+    return;
+  }
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  // The rail holds one extra button for "New Space"; only the leading buttons
+  // map to real Spaces.
+  const size_t count = std::min(spaces.size(), origin_workspace_buttons_.size());
+  for (size_t index = 0; index < count; ++index) {
+    auto* button = views::AsViewClass<OriginWorkspaceButton>(
+        origin_workspace_buttons_[index]);
+    if (!button) {
+      continue;
+    }
+    const std::string& space_id = spaces[index].id;
+    button->SetAudible(origin_media_monitor_->IsSpaceAudible(space_id));
+  }
+#endif
+}
+
+void BraveVerticalTabStripRegionView::MuteOriginWorkspace(
+    std::string space_id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_media_monitor_) {
+    origin_media_monitor_->SetSpaceMuted(space_id, true);
+  }
+#endif
+}
+
+void BraveVerticalTabStripRegionView::OnOriginMediaChanged() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  UpdateOriginWorkspaceAudio();
 #endif
 }
 
