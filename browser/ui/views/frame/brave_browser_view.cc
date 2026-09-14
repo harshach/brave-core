@@ -2217,10 +2217,10 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           return content::KeyboardEventProcessingResult::HANDLED;
         }
         case ui::VKEY_M: {
-          auto* controller = browser()->GetFeatures().origin_space_controller();
-          auto* monitor = browser()->GetFeatures().origin_media_monitor();
-          if (controller && monitor) {
-            monitor->ToggleSpaceMuted(controller->active_space_id());
+          // Window-wide rather than Space-scoped: the page making noise is
+          // often not the one being read.
+          if (auto* monitor = browser()->GetFeatures().origin_media_monitor()) {
+            monitor->ToggleAudibleTabsMuted();
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }

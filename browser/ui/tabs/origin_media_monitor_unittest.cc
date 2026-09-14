@@ -182,4 +182,44 @@ TEST_F(OriginMediaMonitorTest, PlayPauseWorksWithoutSiteActionHandlers) {
   session->RemovePlayer(&player, 0);
 }
 
+TEST_F(OriginMediaMonitorTest, MuteReachesPlaybackInAnotherSpace) {
+  const std::string home = controller_->active_space_id();
+  auto* page = AddPage();
+  content::WebContentsTester::For(page)->SetIsCurrentlyAudible(true);
+  const auto& spaces =
+      WorkspaceServiceFactory::GetForProfile(profile())->GetOriginSpaces();
+  ASSERT_GT(spaces.size(), 1u);
+  const std::string other = spaces[1].id;
+
+  // Park the noisy page somewhere the user is not looking.
+  controller_->MoveTabToSpace(page, other);
+  controller_->SelectSpace(home);
+  ASSERT_FALSE(monitor_->IsSpaceAudible(home));
+  ASSERT_TRUE(monitor_->HasAudibleTabs());
+
+  // Muting the selected Space cannot reach it, but the window-wide toggle can.
+  monitor_->ToggleSpaceMuted(home);
+  EXPECT_FALSE(page->IsAudioMuted());
+
+  monitor_->ToggleAudibleTabsMuted();
+  EXPECT_TRUE(page->IsAudioMuted());
+  EXPECT_FALSE(monitor_->HasAudibleTabs());
+
+  // A second press gives the sound back.
+  monitor_->ToggleAudibleTabsMuted();
+  EXPECT_FALSE(page->IsAudioMuted());
+  EXPECT_TRUE(monitor_->HasAudibleTabs());
+}
+
+TEST_F(OriginMediaMonitorTest, MuteLeavesSilentPagesAlone) {
+  auto* noisy = AddPage();
+  auto* quiet = AddPage();
+  content::WebContentsTester::For(noisy)->SetIsCurrentlyAudible(true);
+
+  monitor_->ToggleAudibleTabsMuted();
+  EXPECT_TRUE(noisy->IsAudioMuted());
+  // A page that never made a sound should not be silenced by the shortcut.
+  EXPECT_FALSE(quiet->IsAudioMuted());
+}
+
 }  // namespace

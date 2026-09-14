@@ -93,6 +93,12 @@ class OriginMediaMonitor : public TabStripModelObserver,
   void SetSpaceMuted(const std::string& space_id, bool muted);
   void ToggleSpaceMuted(const std::string& space_id);
 
+  // Window-wide, so sound can be silenced without first finding the page
+  // making it. Mutes every audible page when anything is playing, and
+  // otherwise restores the pages this muted.
+  bool HasAudibleTabs() const;
+  void ToggleAudibleTabsMuted();
+
   // Returns the most relevant media item for `source`, preferring one that is
   // currently playing over one that is merely paused. Media deliberately
   // outlives a Space switch, so the returned item may belong to a Space other

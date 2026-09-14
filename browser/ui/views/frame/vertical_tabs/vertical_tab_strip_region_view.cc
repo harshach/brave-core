@@ -1528,6 +1528,8 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
             base::BindRepeating(
                 &BraveVerticalTabStripRegionView::MuteOriginWorkspace,
                 base::Unretained(this), space.id)));
+    // Right-click targets the Space itself rather than the window.
+    button->set_context_menu_controller(this);
     origin_workspace_buttons_.push_back(button);
   }
   origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
@@ -1690,7 +1692,7 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
       {u"S", u"Split with a new page"},
       {u"P", u"Pin / unpin page"},
       {u"W", u"Close page"},
-      {u"M", u"Mute / unmute this Space"},
+      {u"M", u"Mute / unmute whatever is playing"},
       {u"D", u"Close page tree"},
       {u"Z", u"Reopen closed page"},
       {u"R", u"Reload page"},
@@ -3225,6 +3227,18 @@ void BraveVerticalTabStripRegionView::ShowContextMenuForViewImpl(
     views::View* source,
     const gfx::Point& p,
     ui::mojom::MenuSourceType source_type) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A right-click on a Space in the rail is about that Space, not the window.
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  for (size_t index = 0;
+       index < origin_workspace_buttons_.size() && index < spaces.size();
+       ++index) {
+    if (origin_workspace_buttons_[index] == source) {
+      ShowOriginWorkspaceMenu(spaces[index].id, source, p, source_type);
+      return;
+    }
+  }
+#endif
 #if BUILDFLAG(IS_WIN)
   // Use same context menu of horizontal tab's titlebar.
   views::ShowSystemMenuAtScreenPixelLocation(views::HWNDForView(browser_view_),
@@ -3242,6 +3256,81 @@ void BraveVerticalTabStripRegionView::ShowContextMenuForViewImpl(
   menu_runner_->RunMenuAt(source->GetWidget(), nullptr,
                           gfx::Rect(p, gfx::Size(0, 0)),
                           views::MenuAnchorPosition::kTopLeft, source_type);
+#endif
+}
+
+BraveVerticalTabStripRegionView::OriginWorkspaceMenuDelegate::
+    OriginWorkspaceMenuDelegate(
+        base::WeakPtr<BraveVerticalTabStripRegionView> view,
+        std::string space_id,
+        bool can_delete)
+    : view_(std::move(view)),
+      space_id_(std::move(space_id)),
+      can_delete_(can_delete) {}
+
+BraveVerticalTabStripRegionView::OriginWorkspaceMenuDelegate::
+    ~OriginWorkspaceMenuDelegate() = default;
+
+bool BraveVerticalTabStripRegionView::OriginWorkspaceMenuDelegate::
+    IsCommandIdEnabled(int command_id) const {
+  return command_id == kDelete ? can_delete_ : true;
+}
+
+void BraveVerticalTabStripRegionView::OriginWorkspaceMenuDelegate::
+    ExecuteCommand(int command_id, int event_flags) {
+  if (!view_) {
+    return;
+  }
+  switch (command_id) {
+    case kRename:
+      view_->OnOriginWorkspaceSelected(space_id_);
+      view_->BeginOriginWorkspaceRename();
+      break;
+    case kDelete:
+      view_->DeleteOriginWorkspace(space_id_);
+      break;
+  }
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginWorkspaceMenu(
+    const std::string& space_id,
+    views::View* source,
+    const gfx::Point& point,
+    ui::mojom::MenuSourceType source_type) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (IsMenuShowing()) {
+    return;
+  }
+  // The last Space cannot go: the window always shows one.
+  const bool can_delete =
+      origin_workspace_service_->GetOriginSpaces().size() > 1u;
+  origin_workspace_menu_delegate_ =
+      std::make_unique<OriginWorkspaceMenuDelegate>(
+          weak_factory_.GetWeakPtr(), space_id, can_delete);
+  origin_workspace_menu_model_ = std::make_unique<ui::SimpleMenuModel>(
+      origin_workspace_menu_delegate_.get());
+  origin_workspace_menu_model_->AddItem(
+      OriginWorkspaceMenuDelegate::kRename, u"Rename Space");
+  origin_workspace_menu_model_->AddItem(
+      OriginWorkspaceMenuDelegate::kDelete, u"Delete Space");
+
+  menu_runner_ = std::make_unique<views::MenuRunner>(
+      origin_workspace_menu_model_.get(),
+      views::MenuRunner::HAS_MNEMONICS | views::MenuRunner::CONTEXT_MENU,
+      base::BindRepeating(&BraveVerticalTabStripRegionView::OnMenuClosed,
+                          base::Unretained(this)));
+  menu_runner_->RunMenuAt(source->GetWidget(), nullptr,
+                          gfx::Rect(point, gfx::Size(0, 0)),
+                          views::MenuAnchorPosition::kTopLeft, source_type);
+#endif
+}
+
+void BraveVerticalTabStripRegionView::DeleteOriginWorkspace(
+    std::string space_id) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Pages in this Space are not closed: OriginSpaceController moves them to
+  // the first Space when the one they belong to disappears.
+  origin_workspace_service_->DeleteOriginSpace(space_id);
 #endif
 }
 

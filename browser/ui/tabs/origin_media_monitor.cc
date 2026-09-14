@@ -159,6 +159,35 @@ void OriginMediaMonitor::ToggleSpaceMuted(const std::string& space_id) {
   SetSpaceMuted(space_id, !IsSpaceMuted(space_id));
 }
 
+bool OriginMediaMonitor::HasAudibleTabs() const {
+  for (int i = 0; i < tab_strip_model_->count(); ++i) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(i);
+    if (contents->IsCurrentlyAudible() && !contents->IsAudioMuted()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void OriginMediaMonitor::ToggleAudibleTabsMuted() {
+  // Silencing only what is actually playing keeps the shortcut predictable:
+  // it never mutes pages the user has not heard from. Nothing playing means
+  // the previous press silenced something, so give it back.
+  const bool mute = HasAudibleTabs();
+  for (int i = 0; i < tab_strip_model_->count(); ++i) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(i);
+    const bool affected =
+        mute ? contents->IsCurrentlyAudible() && !contents->IsAudioMuted()
+             : contents->IsAudioMuted() && contents->WasEverAudible();
+    if (!affected) {
+      continue;
+    }
+    SetTabAudioMuted(contents, mute, TabMutedReason::kAudioIndicator,
+                     /*extension_id=*/std::string());
+  }
+  NotifyChanged();
+}
+
 std::optional<OriginMediaMonitor::MediaItem> OriginMediaMonitor::GetActiveMedia(
     MediaSource source) const {
   std::optional<MediaItem> best;
