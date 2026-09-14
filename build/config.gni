@@ -186,7 +186,10 @@ if (is_win) {
   }
 
   if (is_socket_branded) {
-    brave_product_dir_name = "Socket/Socket$brave_product_dir_name_suffix"
+    # Keep the directory earlier previews shipped with so an upgrade finds the
+    # user's existing Spaces and pages instead of starting empty.
+    brave_product_dir_name =
+        "BraveSoftware/Brave-Browser$brave_product_dir_name_suffix"
   } else {
     brave_product_dir_name =
         "BraveSoftware/Brave-$_product_brand$brave_product_dir_name_suffix"
