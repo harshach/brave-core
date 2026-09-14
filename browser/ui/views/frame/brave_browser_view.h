@@ -335,7 +335,9 @@ class BraveBrowserView : public BrowserView,
   void OnPreferenceChanged(const std::string& pref_name);
   void UpdateOriginPageChromeColor(content::WebContents* contents);
   void ScheduleOriginPageHeaderColorSample(content::WebContents* contents);
-  void SampleOriginPageHeaderColor(content::WebContents* contents,
+  // Held weakly: the sample is posted behind a timer and a surface copy, so
+  // the page can be closed long before the result arrives.
+  void SampleOriginPageHeaderColor(base::WeakPtr<content::WebContents> contents,
                                    const GURL& url);
   void OnWindowClosingConfirmResponse(bool allowed_to_close);
   BraveBrowser* GetBraveBrowser() const;

@@ -1958,15 +1958,15 @@ void BraveBrowserView::ScheduleOriginPageHeaderColorSample(
   origin_page_header_sample_timer_.Start(
       FROM_HERE, base::Milliseconds(350),
       base::BindOnce(&BraveBrowserView::SampleOriginPageHeaderColor,
-                     weak_ptr_.GetWeakPtr(), contents, url));
+                     weak_ptr_.GetWeakPtr(), contents->GetWeakPtr(), url));
 #endif
 }
 
 void BraveBrowserView::SampleOriginPageHeaderColor(
-    content::WebContents* contents,
+    base::WeakPtr<content::WebContents> contents,
     const GURL& url) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (!contents || contents != GetActiveWebContents() ||
+  if (!contents || contents.get() != GetActiveWebContents() ||
       contents->GetVisibleURL() != url) {
     if (origin_page_header_sample_pending_url_ == url) {
       origin_page_header_sample_pending_url_ = GURL();
@@ -1998,15 +1998,16 @@ void BraveBrowserView::SampleOriginPageHeaderColor(
 
   auto on_copied = base::BindPostTaskToCurrentDefault(base::BindOnce(
       [](base::WeakPtr<BraveBrowserView> browser_view,
-         content::WebContents* sampled_contents, GURL sampled_url,
-         const content::CopyFromSurfaceResult& result) {
+         base::WeakPtr<content::WebContents> sampled_contents,
+         GURL sampled_url, const content::CopyFromSurfaceResult& result) {
         if (!browser_view ||
             browser_view->origin_page_header_sample_pending_url_ !=
                 sampled_url) {
           return;
         }
         browser_view->origin_page_header_sample_pending_url_ = GURL();
-        if (sampled_contents != browser_view->GetActiveWebContents() ||
+        if (!sampled_contents ||
+            sampled_contents.get() != browser_view->GetActiveWebContents() ||
             sampled_contents->GetVisibleURL() != sampled_url) {
           return;
         }
@@ -2014,7 +2015,7 @@ void BraveBrowserView::SampleOriginPageHeaderColor(
         browser_view->origin_page_header_color_ =
             result.has_value() ? GetDominantOriginHeaderColor(result->bitmap)
                                : std::nullopt;
-        browser_view->UpdateOriginPageChromeColor(sampled_contents);
+        browser_view->UpdateOriginPageChromeColor(sampled_contents.get());
       },
       weak_ptr_.GetWeakPtr(), contents, url));
   render_view->CopyFromSurface(source_rect, output_size, base::Seconds(2),
