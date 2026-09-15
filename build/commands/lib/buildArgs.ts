@@ -35,6 +35,7 @@ const FORWARD_ENV_CONFIG_VARS_TO_GN_ARGS = [
   'is_brave_origin_branded',
   'is_socket_branded',
   'mac_notary_keychain_profile',
+  'origin_adblock_components_dir',
 ]
 
 export function getBuildArgs(config: Config) {
