@@ -85,6 +85,9 @@ def Main():
     parser.add_argument('--skip_signing',
                         dest='skip_signing',
                         action='store_true')
+    parser.add_argument('--socket_profile_import',
+                        dest='socket_profile_import',
+                        action='store_true')
     parser.add_argument('--enable_updater',
                         dest='enable_updater',
                         action='store_true')
@@ -121,6 +124,12 @@ def Main():
 
     if args.brave_product_dir_name:
         plist['CrProductDirName'] = args.brave_product_dir_name
+
+    if args.socket_profile_import:
+        plist['NSAppDataUsageDescription'] = (
+            'Socket needs access to your Brave Browser data so it can copy '
+            'your profiles, tabs, cookies, passwords, history, extensions, '
+            'and settings into Socket.')
 
     if args.brave_eddsa_key:
         plist['SUPublicEDKey'] = args.brave_eddsa_key

@@ -766,6 +766,10 @@ if (is_mac) {
       args += [ "--skip_signing" ]
     }
 
+    if (is_socket_branded) {
+      args += [ "--socket_profile_import" ]
+    }
+
     if (enable_updater) {
       args += [
         "--enable_updater",

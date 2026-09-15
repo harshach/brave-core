@@ -8,6 +8,7 @@ include_rules += [
   "+brave/common",
   "+brave/components/brave_component_updater/browser/features.h",
   "+brave/components/brave_component_updater/browser/switches.h",
+  "+brave/components/brave_origin/buildflags/buildflags.h",
   "+brave/components/brave_sync/buildflags.h",
   "+brave/components/commands/common/features.h",
   "+brave/components/constants/brave_switches.h",

@@ -35,6 +35,22 @@ action("generate_command_metadata") {
          ]
 }
 
+if (is_mac) {
+  source_set("socket_profile_migration") {
+    sources = [
+      "socket_profile_migration.h",
+      "socket_profile_migration_mac.mm",
+    ]
+
+    deps = [
+      "//base",
+      "//chrome/common",
+    ]
+
+    frameworks = [ "AppKit.framework" ]
+  }
+}
+
 source_set("command_ids") {
   sources = [ "brave_command_ids.h" ]
 
@@ -125,6 +141,9 @@ source_set("unit_tests") {
   ]
   if (!is_android) {
     sources += [ "command_utils_unittest.cc" ]
+  }
+  if (is_mac) {
+    sources += [ "socket_profile_migration_unittest.cc" ]
   }
   if (enable_brave_vpn_v2_apps) {
     sources += [ "vpn_apps_branding_unittest.cc" ]
@@ -226,6 +245,9 @@ source_set("unit_tests") {
   }
   if (is_win) {
     deps += [ "//chrome/browser/startup" ]
+  }
+  if (is_mac) {
+    deps += [ ":socket_profile_migration" ]
   }
   if (enable_brave_vpn_v2_apps) {
     deps += [ "//brave/components/brave_vpn/app/v2/shared" ]

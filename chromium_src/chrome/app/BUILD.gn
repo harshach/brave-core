@@ -3,11 +3,18 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import("//brave/components/brave_origin/buildflags/buildflags.gni")
+
 group("app") {
   deps = [
+    "//brave/components/brave_origin/buildflags",
     "//brave/components/update_client:buildflags",
     "//components/dom_distiller/content/browser",
     "//google_apis",
     "//media",
   ]
+
+  if (is_mac && is_socket_branded) {
+    deps += [ "//brave/app:socket_profile_migration" ]
+  }
 }
