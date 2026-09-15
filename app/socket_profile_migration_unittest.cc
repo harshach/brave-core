@@ -57,6 +57,21 @@ TEST_F(SocketProfileMigrationTest, RemovesSingletonArtifacts) {
   EXPECT_FALSE(base::PathExists(destination.AppendASCII("SingletonCookie")));
 }
 
+TEST_F(SocketProfileMigrationTest, ImportsOverStartupScaffolding) {
+  // Chromium creates directories such as BrowserMetrics in the user data
+  // directory before the import runs, so the destination is never empty.
+  const base::FilePath source = temp_dir_.GetPath().AppendASCII("brave");
+  const base::FilePath destination = temp_dir_.GetPath().AppendASCII("socket");
+  ASSERT_TRUE(base::CreateDirectory(source.AppendASCII("Default")));
+  ASSERT_TRUE(base::WriteFile(source.AppendASCII("Local State"), "{}"));
+  ASSERT_TRUE(base::WriteFile(
+      source.AppendASCII("Default").AppendASCII("Preferences"), "{}"));
+  ASSERT_TRUE(base::CreateDirectory(destination.AppendASCII("BrowserMetrics")));
+
+  EXPECT_TRUE(internal::CopyProfileData(source, destination));
+  EXPECT_TRUE(base::PathExists(destination.AppendASCII("Local State")));
+}
+
 TEST_F(SocketProfileMigrationTest, PreservesExistingSocketProfile) {
   const base::FilePath source = CreateBraveProfile();
   const base::FilePath destination = temp_dir_.GetPath().AppendASCII("Socket");

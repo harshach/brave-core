@@ -18,8 +18,8 @@
 #include "base/functional/bind.h"
 #include "base/logging.h"
 #include "base/path_service.h"
-#include "base/run_loop.h"
 #include "base/strings/string_util.h"
+#include "base/synchronization/waitable_event.h"
 #include "base/threading/thread.h"
 #include "chrome/common/chrome_paths.h"
 #include "chrome/common/chrome_switches.h"
@@ -87,9 +87,15 @@ std::optional<base::FilePath> ChooseBraveProfile(
   panel.canChooseDirectories = YES;
   panel.allowsMultipleSelection = NO;
   panel.canCreateDirectories = NO;
-  panel.directoryURL = [NSURL fileURLWithPath:base::apple::FilePathToNSString(
-                                                  suggested_profile.DirName())
-                                  isDirectory:YES];
+  // Open on the profile itself rather than its parent: NSOpenPanel returns the
+  // directory being shown when nothing is selected, and the parent has no
+  // Local State, so clicking straight through used to be rejected.
+  const base::FilePath start = base::PathExists(suggested_profile)
+                                   ? suggested_profile
+                                   : suggested_profile.DirName();
+  panel.directoryURL =
+      [NSURL fileURLWithPath:base::apple::FilePathToNSString(start)
+                 isDirectory:YES];
 
   if ([panel runModal] != NSModalResponseOK || panel.URL == nil) {
     return std::nullopt;
@@ -108,6 +114,17 @@ bool ShouldImportProfile() {
   [alert addButtonWithTitle:@"Import from Brave"];
   [alert addButtonWithTitle:@"Start Fresh"];
   return [alert runModal] == NSAlertFirstButtonReturn;
+}
+
+void ShowUnreadableProfileAlert() {
+  NSAlert* alert = [[NSAlert alloc] init];
+  alert.alertStyle = NSAlertStyleWarning;
+  alert.messageText = @"Socket Can't Read That Folder";
+  alert.informativeText =
+      @"macOS is blocking access to another app's data. Grant Socket access "
+       "when prompted, or allow it under Privacy & Security, then try again.";
+  [alert addButtonWithTitle:@"OK"];
+  [alert runModal];
 }
 
 void ShowInvalidProfileAlert() {
@@ -157,25 +174,41 @@ bool CopyProfileWithProgress(const base::FilePath& source,
   [progress_window center];
   [progress_window makeKeyAndOrderFront:nil];
 
+  // This runs from PostEarlyInitialization, before the browser's ThreadPool
+  // and main-thread task executor exist, so base::RunLoop and
+  // PostTaskAndReplyWithResult are both unavailable here. Wait on an event and
+  // pump AppKit by hand so the spinner keeps moving.
   bool succeeded = false;
-  base::RunLoop run_loop;
+  base::WaitableEvent done;
   base::Thread migration_thread("SocketProfileMigration");
   if (!migration_thread.Start() ||
-      !migration_thread.task_runner()->PostTaskAndReplyWithResult(
-          FROM_HERE,
-          base::BindOnce(&internal::CopyProfileData, source, destination),
-          base::BindOnce(
-              [](NSPanel* window, bool* succeeded,
-                 base::OnceClosure quit_closure, bool result) {
-                *succeeded = result;
-                [window orderOut:nil];
-                std::move(quit_closure).Run();
-              },
-              progress_window, &succeeded, run_loop.QuitClosure()))) {
+      !migration_thread.task_runner()->PostTask(
+          FROM_HERE, base::BindOnce(
+                         [](base::FilePath source, base::FilePath destination,
+                            bool* succeeded, base::WaitableEvent* done) {
+                           *succeeded =
+                               internal::CopyProfileData(source, destination);
+                           done->Signal();
+                         },
+                         source, destination, &succeeded, &done))) {
     [progress_window orderOut:nil];
     return false;
   }
-  run_loop.Run();
+
+  while (!done.IsSignaled()) {
+    @autoreleasepool {
+      NSEvent* event = [NSApp
+          nextEventMatchingMask:NSEventMaskAny
+                      untilDate:[NSDate dateWithTimeIntervalSinceNow:0.05]
+                         inMode:NSDefaultRunLoopMode
+                        dequeue:YES];
+      if (event) {
+        [NSApp sendEvent:event];
+      }
+    }
+  }
+  migration_thread.Stop();
+  [progress_window orderOut:nil];
   return succeeded;
 }
 
@@ -220,9 +253,10 @@ bool CopyProfileData(const base::FilePath& source,
 
   base::FilePath previous_destination;
   if (base::DirectoryExists(destination)) {
-    if (!base::IsDirectoryEmpty(destination)) {
-      return false;
-    }
+    // Chromium creates scaffolding such as BrowserMetrics in the user data
+    // directory before this runs, so the destination is never strictly empty.
+    // HasProfileData above is what protects a real profile; requiring an empty
+    // directory here only ever refused a valid import.
     previous_destination =
         staging_root.GetPath().Append(FILE_PATH_LITERAL("empty-destination"));
     if (!base::Move(destination, previous_destination)) {
@@ -248,14 +282,38 @@ bool CopyProfileData(const base::FilePath& source,
 StartupDisposition MaybeMigrateBraveProfile() {
   const base::CommandLine& command_line =
       *base::CommandLine::ForCurrentProcess();
-  if (command_line.HasSwitch(switches::kUserDataDir)) {
+
+  // Once Socket has a profile the import is skipped forever, which makes a
+  // failed first run unrecoverable and untestable. The switch forces the
+  // prompt, including into a throwaway --user-data-dir, so the flow can be
+  // exercised without touching the real profile. The copy itself still
+  // refuses to overwrite existing data.
+  const bool forced = command_line.HasSwitch("socket-force-profile-import");
+
+  if (command_line.HasSwitch(switches::kUserDataDir) && !forced) {
     return StartupDisposition::kContinue;
   }
 
   base::FilePath destination;
   if (!base::PathService::Get(chrome::DIR_USER_DATA, &destination) ||
-      internal::HasProfileData(destination)) {
+      (!forced && internal::HasProfileData(destination))) {
     return StartupDisposition::kContinue;
+  }
+
+  // A source given on the command line skips every prompt, so the import can
+  // be driven end to end without a person clicking through modal panels.
+  const base::FilePath supplied =
+      command_line.GetSwitchValuePath("socket-profile-import-source");
+  if (!supplied.empty()) {
+    if (!base::PathExists(supplied.Append(kLocalState))) {
+      LOG(ERROR) << "No Brave profile at " << supplied;
+      return StartupDisposition::kExit;
+    }
+    // Deliberately the same wrapper the interactive path uses, so this
+    // exercises the progress window and its waiting, not just the copy.
+    const bool copied = CopyProfileWithProgress(supplied, destination);
+    LOG(ERROR) << "Profile import " << (copied ? "succeeded" : "failed");
+    return copied ? StartupDisposition::kContinue : StartupDisposition::kExit;
   }
 
   [NSApp activateIgnoringOtherApps:YES];
@@ -282,7 +340,13 @@ StartupDisposition MaybeMigrateBraveProfile() {
       return StartupDisposition::kExit;
     }
     if (!base::PathExists(source->Append(kLocalState))) {
-      ShowInvalidProfileAlert();
+      // A profile that exists but cannot be read is a permission problem, not
+      // a wrong folder, and needs different advice.
+      if (base::DirectoryExists(*source) && !base::IsDirectoryEmpty(*source)) {
+        ShowUnreadableProfileAlert();
+      } else {
+        ShowInvalidProfileAlert();
+      }
       source.reset();
     }
   }
