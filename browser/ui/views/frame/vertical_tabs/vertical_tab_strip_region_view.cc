@@ -125,9 +125,11 @@ constexpr int kBorderThickness = 1;
 #endif
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-constexpr int kOriginWorkspaceRailWidth = 56;
-constexpr int kOriginSidebarMinimumWidth = kOriginWorkspaceRailWidth + 180;
-constexpr int kOriginSidebarMaximumWidth = kOriginWorkspaceRailWidth + 360;
+// Spaces live along the bottom of the sidebar rather than in a column of
+// their own, so the sidebar's width is all page list.
+constexpr int kOriginWorkspaceBarHeight = 48;
+constexpr int kOriginSidebarMinimumWidth = 236;
+constexpr int kOriginSidebarMaximumWidth = 416;
 constexpr int kOriginWorkspaceHeaderHeight = 58;
 constexpr int kOriginSearchFieldHeight = 30;
 constexpr int kOriginPageListTop = 66;
@@ -1028,10 +1030,16 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
   }
   origin_active_workspace_id_ = origin_space_controller_->active_space_id();
 
-  origin_workspace_rail_ = AddChildView(std::make_unique<views::View>());
-  origin_workspace_rail_->SetLayoutManager(std::make_unique<views::BoxLayout>(
-      views::BoxLayout::Orientation::kVertical, gfx::Insets::TLBR(8, 10, 8, 10),
-      kOriginWorkspaceGap));
+  origin_workspace_rail_ =
+      origin_page_column_->AddChildView(std::make_unique<views::View>());
+  auto* workspace_bar_layout = origin_workspace_rail_->SetLayoutManager(
+      std::make_unique<views::BoxLayout>(
+          views::BoxLayout::Orientation::kHorizontal,
+          gfx::Insets::TLBR(6, 10, 6, 10), kOriginWorkspaceGap));
+  workspace_bar_layout->set_main_axis_alignment(
+      views::BoxLayout::MainAxisAlignment::kCenter);
+  workspace_bar_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
   origin_workspace_rail_->SetBackground(
       views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
 
@@ -1155,8 +1163,8 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       views::BoxLayout::CrossAxisAlignment::kCenter);
   status_layout->set_main_axis_alignment(
       views::BoxLayout::MainAxisAlignment::kEnd);
-  auto shortcut_button = std::make_unique<views::ImageButton>(
-      base::BindRepeating(
+  auto shortcut_button =
+      std::make_unique<views::ImageButton>(base::BindRepeating(
           &BraveVerticalTabStripRegionView::ShowOriginShortcutHelp,
           base::Unretained(this)));
   shortcut_button->SetImageModel(
@@ -1673,8 +1681,8 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
   content->SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kVertical, gfx::Insets(), 6));
 
-  auto* title =
-      content->AddChildView(std::make_unique<views::Label>(u"Keyboard shortcuts"));
+  auto* title = content->AddChildView(
+      std::make_unique<views::Label>(u"Keyboard shortcuts"));
   title->SetSubpixelRenderingEnabled(false);
   title->SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_LEFT);
   title->SetFontList(OriginChromeFont(15, gfx::Font::Weight::SEMIBOLD));
@@ -1685,10 +1693,9 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     std::u16string_view key;
     std::u16string_view description;
   };
-  constexpr std::array<ShortcutEntry, 17> kShortcuts = {{
+  constexpr std::array<ShortcutEntry, 15> kShortcuts = {{
       {u"Space / O / N", u"Search or open a page"},
-      {u"J / K", u"Next / previous page"},
-      {u"1–5", u"Switch Space"},
+      {u"↑ / ↓", u"Next / previous page"},
       {u"S", u"Split with a new page"},
       {u"P", u"Pin / unpin page"},
       {u"W", u"Close page"},
@@ -1699,7 +1706,6 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
       {u"[ / ]", u"Back / forward"},
       {u"I", u"Enter insert mode"},
       {u"Esc", u"Leave insert mode"},
-      {u"⌘ 1–5", u"Switch Space directly"},
       {u"⌘ ↑ / ↓", u"Previous / next Space"},
       {u"⌘ ←", u"Show / hide sidebar"},
       {u"⌘ →", u"Exit split view"},
@@ -1707,10 +1713,9 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
 
   for (const ShortcutEntry& entry : kShortcuts) {
     auto* row = content->AddChildView(std::make_unique<views::View>());
-    auto* row_layout =
-        row->SetLayoutManager(std::make_unique<views::BoxLayout>(
-            views::BoxLayout::Orientation::kHorizontal,
-            gfx::Insets::TLBR(2, 2, 2, 2), 10));
+    auto* row_layout = row->SetLayoutManager(std::make_unique<views::BoxLayout>(
+        views::BoxLayout::Orientation::kHorizontal,
+        gfx::Insets::TLBR(2, 2, 2, 2), 10));
     row_layout->set_cross_axis_alignment(
         views::BoxLayout::CrossAxisAlignment::kCenter);
 
@@ -1730,16 +1735,14 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     key->SetEnabledColor(SkColorSetRGB(0xD7, 0xD8, 0xDB));
     key->SetBackground(views::CreateRoundedRectBackground(
         SkColorSetARGB(0x19, 0xFF, 0xFF, 0xFF), 5));
-    key->SetBorder(
-        views::CreateEmptyBorder(gfx::Insets::TLBR(2, 7, 2, 7)));
+    key->SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(2, 7, 2, 7)));
   }
 
   auto bubble_delegate = std::make_unique<views::BubbleDialogDelegate>(
       origin_shortcut_button_, views::BubbleBorder::BOTTOM_RIGHT,
       views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
   auto* bubble_delegate_ptr = bubble_delegate.get();
-  bubble_delegate->SetButtons(
-      static_cast<int>(ui::mojom::DialogButton::kNone));
+  bubble_delegate->SetButtons(static_cast<int>(ui::mojom::DialogButton::kNone));
   bubble_delegate->SetShowTitle(false);
   bubble_delegate->SetShowCloseButton(false);
   bubble_delegate->SetAccessibleTitle(u"Keyboard shortcuts");
@@ -1896,8 +1899,7 @@ void BraveVerticalTabStripRegionView::ShowOriginSettingsMenu() {
       origin_settings_button_, views::BubbleBorder::BOTTOM_RIGHT,
       views::BubbleBorder::STANDARD_SHADOW, /*autosize=*/true);
   auto* bubble_delegate_ptr = bubble_delegate.get();
-  bubble_delegate->SetButtons(
-      static_cast<int>(ui::mojom::DialogButton::kNone));
+  bubble_delegate->SetButtons(static_cast<int>(ui::mojom::DialogButton::kNone));
   bubble_delegate->SetShowTitle(false);
   bubble_delegate->SetShowCloseButton(false);
   bubble_delegate->SetAccessibleTitle(u"Settings");
@@ -1961,23 +1963,23 @@ void BraveVerticalTabStripRegionView::SetOriginThemeMode(int mode) {
   base::WeakPtr<views::Widget> picker = origin_settings_widget_;
   origin_settings_widget_.reset();
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-      FROM_HERE,
-      base::BindOnce(
-          [](base::WeakPtr<views::Widget> picker_widget) {
-            if (picker_widget) {
-              // BubbleDialogDelegate observes its anchor widget and forwards
-              // OnWidgetThemeChanged() to the bubble. Detach that observation
-              // while both widgets are still fully alive; otherwise a closed
-              // native bubble can be reached during the browser's synchronous
-              // theme walk with its RootView already torn down.
-              if (auto* bubble = picker_widget->widget_delegate()
-                                     ->AsBubbleDialogDelegate()) {
-                bubble->SetAnchorView(nullptr);
-              }
-              picker_widget->CloseNow();
-            }
-          },
-          std::move(picker)));
+      FROM_HERE, base::BindOnce(
+                     [](base::WeakPtr<views::Widget> picker_widget) {
+                       if (picker_widget) {
+                         // BubbleDialogDelegate observes its anchor widget and
+                         // forwards OnWidgetThemeChanged() to the bubble.
+                         // Detach that observation while both widgets are still
+                         // fully alive; otherwise a closed native bubble can be
+                         // reached during the browser's synchronous theme walk
+                         // with its RootView already torn down.
+                         if (auto* bubble = picker_widget->widget_delegate()
+                                                ->AsBubbleDialogDelegate()) {
+                           bubble->SetAnchorView(nullptr);
+                         }
+                         picker_widget->CloseNow();
+                       }
+                     },
+                     std::move(picker)));
   base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE,
       base::BindOnce(
@@ -2016,7 +2018,8 @@ void BraveVerticalTabStripRegionView::UpdateOriginWorkspaceAudio() {
   const auto& spaces = origin_workspace_service_->GetOriginSpaces();
   // The rail holds one extra button for "New Space"; only the leading buttons
   // map to real Spaces.
-  const size_t count = std::min(spaces.size(), origin_workspace_buttons_.size());
+  const size_t count =
+      std::min(spaces.size(), origin_workspace_buttons_.size());
   for (size_t index = 0; index < count; ++index) {
     auto* button = views::AsViewClass<OriginWorkspaceButton>(
         origin_workspace_buttons_[index]);
@@ -2379,7 +2382,7 @@ int BraveVerticalTabStripRegionView::GetAvailableWidthForTabContainer() {
   // The tab strip is hosted in the fixed 250 px page column, not across the
   // complete sidebar. During the collapse animation this naturally shrinks to
   // zero while the rail retains its full width.
-  width -= std::min(kOriginWorkspaceRailWidth, width);
+
 #endif
   return std::max(0, width);
 }
@@ -2468,25 +2471,23 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
   const auto contents_bounds = GetContentsBounds();
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  const int rail_width =
-      std::min(kOriginWorkspaceRailWidth, contents_bounds.width());
-  origin_workspace_rail_->SetBounds(contents_bounds.x(), contents_bounds.y(),
-                                    rail_width, contents_bounds.height());
-
   const int workspace_x = 0;
-  const int workspace_width =
-      std::max(0, contents_bounds.width() - rail_width);
+  const int workspace_width = contents_bounds.width();
   const int contents_view_width = workspace_width;
   origin_page_column_->SetVisible(workspace_width > 0);
-  origin_page_column_->SetBounds(contents_bounds.x() + rail_width,
-                                 contents_bounds.y(), workspace_width,
-                                 contents_bounds.height());
+  origin_page_column_->SetBounds(contents_bounds.x(), contents_bounds.y(),
+                                 workspace_width, contents_bounds.height());
   origin_workspace_header_->SetBounds(workspace_x, 0, contents_view_width,
                                       kOriginWorkspaceHeaderHeight);
   origin_search_button_->SetBoundsRect(gfx::Rect());
 
+  const int workspace_bar_y =
+      std::max(0, contents_bounds.height() - kOriginWorkspaceBarHeight);
+  origin_workspace_rail_->SetBounds(0, workspace_bar_y, workspace_width,
+                                    kOriginWorkspaceBarHeight);
+
   origin_status_row_->SetBounds(
-      0, std::max(0, contents_bounds.height() - kOriginStatusRowHeight - 4),
+      0, std::max(0, workspace_bar_y - kOriginStatusRowHeight - 4),
       workspace_width, kOriginStatusRowHeight);
   origin_pages_header_->SetBoundsRect(gfx::Rect());
 #else
@@ -2549,12 +2550,12 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
   // Put the resize area over the inside edge. Lay it out even during the first
   // pass, before the side preference is initialized, so it can never remain
   // at empty bounds for the lifetime of a newly-created window.
-  const bool tabs_on_right = !vertical_tab_on_right_.GetPrefName().empty() &&
-                             *vertical_tab_on_right_;
+  const bool tabs_on_right =
+      !vertical_tab_on_right_.GetPrefName().empty() && *vertical_tab_on_right_;
   constexpr int kResizeAreaWidth = 12;
-  resize_area_->SetBounds(
-      tabs_on_right ? 0 : width() - kResizeAreaWidth,
-      contents_bounds.y(), kResizeAreaWidth, contents_bounds.height());
+  resize_area_->SetBounds(tabs_on_right ? 0 : width() - kResizeAreaWidth,
+                          contents_bounds.y(), kResizeAreaWidth,
+                          contents_bounds.height());
 }
 
 void BraveVerticalTabStripRegionView::OnShowVerticalTabsPrefChanged() {
@@ -2750,13 +2751,12 @@ void BraveVerticalTabStripRegionView::OnResize(int resize_amount,
       *resize_offset_ - GetInsets().width();
   // Passed |true| but it doesn't have any meaning becuase we always use same
   // width.
-  dest_width = std::clamp(
-      dest_width,
+  dest_width = std::clamp(dest_width,
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-      kOriginSidebarMinimumWidth, kOriginSidebarMaximumWidth
+                          kOriginSidebarMinimumWidth, kOriginSidebarMaximumWidth
 #else
-      tab_style_->GetPinnedWidth(/*is_split*/ true) * 3,
-      tab_style_->GetStandardWidth(/*is_split*/ true) * 2
+                          tab_style_->GetPinnedWidth(/*is_split*/ true) * 3,
+                          tab_style_->GetStandardWidth(/*is_split*/ true) * 2
 #endif
   );
   if (done_resizing) {
@@ -3004,8 +3004,9 @@ int BraveVerticalTabStripRegionView::GetPreferredWidthForState(
 
   auto calculate_collapsed_width = [&]() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    return kOriginWorkspaceRailWidth +
-           (include_border ? GetInsets().width() : 0);
+    // Spaces moved to the bottom bar, so a collapsed sidebar has nothing left
+    // to show and hides completely.
+    return include_border ? GetInsets().width() : 0;
 #else
     if (IsFloatingEnabledForBrowserMode()) {
       // In this case, vertical tab strip should be invisible but show up when
@@ -3305,14 +3306,14 @@ void BraveVerticalTabStripRegionView::ShowOriginWorkspaceMenu(
   const bool can_delete =
       origin_workspace_service_->GetOriginSpaces().size() > 1u;
   origin_workspace_menu_delegate_ =
-      std::make_unique<OriginWorkspaceMenuDelegate>(
-          weak_factory_.GetWeakPtr(), space_id, can_delete);
+      std::make_unique<OriginWorkspaceMenuDelegate>(weak_factory_.GetWeakPtr(),
+                                                    space_id, can_delete);
   origin_workspace_menu_model_ = std::make_unique<ui::SimpleMenuModel>(
       origin_workspace_menu_delegate_.get());
-  origin_workspace_menu_model_->AddItem(
-      OriginWorkspaceMenuDelegate::kRename, u"Rename Space");
-  origin_workspace_menu_model_->AddItem(
-      OriginWorkspaceMenuDelegate::kDelete, u"Delete Space");
+  origin_workspace_menu_model_->AddItem(OriginWorkspaceMenuDelegate::kRename,
+                                        u"Rename Space");
+  origin_workspace_menu_model_->AddItem(OriginWorkspaceMenuDelegate::kDelete,
+                                        u"Delete Space");
 
   menu_runner_ = std::make_unique<views::MenuRunner>(
       origin_workspace_menu_model_.get(),

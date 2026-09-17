@@ -194,9 +194,8 @@ BraveTabContainer::BraveTabContainer(
   pages_section_layout->SetFlexForView(pages_section_label, 1);
   auto* pages_navigation_hint = origin_pages_section_header_->AddChildView(
       std::make_unique<views::Label>(u"J  K"));
-  pages_navigation_hint->SetFontList(
-      views::Label::GetDefaultFontList().Derive(
-          -2, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
+  pages_navigation_hint->SetFontList(views::Label::GetDefaultFontList().Derive(
+      -2, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
   pages_navigation_hint->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
   origin_pages_count_ = origin_pages_section_header_->AddChildView(
       std::make_unique<views::Label>());
@@ -924,10 +923,9 @@ void BraveTabContainer::PaintOriginHierarchyMarkers(gfx::Canvas& canvas) {
               ? visible_tabs[index + 1]->GetTabNestingInfo().level
               : 0;
       for (int level = 1; level <= nesting.level; ++level) {
-        const float guide_x =
-            tabs::kMarginForVerticalTabContainers +
-            level * tabs::kBaseOffsetPerLevel -
-            tabs::kBaseOffsetPerLevel / 2.0f + 0.5f;
+        const float guide_x = tabs::kMarginForVerticalTabContainers +
+                              level * tabs::kBaseOffsetPerLevel -
+                              tabs::kBaseOffsetPerLevel / 2.0f + 0.5f;
         float guide_bottom = brave_tab->bounds().bottom() + 1.0f;
         if (next_level < level) {
           guide_bottom = center_y;
@@ -1284,8 +1282,8 @@ views::View* BraveTabContainer::TargetForRect(views::View* root,
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (origin_new_page_button_ && origin_new_page_button_->GetVisible() &&
       origin_new_page_button_->bounds().Intersects(rect)) {
-    const gfx::Rect local_rect = views::View::ConvertRectToTarget(
-        this, origin_new_page_button_, rect);
+    const gfx::Rect local_rect =
+        views::View::ConvertRectToTarget(this, origin_new_page_button_, rect);
     return origin_new_page_button_->GetEventHandlerForRect(local_rect);
   }
 #endif
@@ -1418,24 +1416,36 @@ void BraveTabContainer::UpdateIdealBounds() {
       }
     }
 
+    // Pinned pages sit at the very top as icon tiles, two to a row, with no
+    // section label: at this size the favicon is the whole affordance.
     const bool show_pinned_section = !visible_pinned_tab_indices.empty();
-    origin_pinned_section_header_->SetVisible(show_pinned_section);
+    origin_pinned_section_header_->SetVisible(false);
+    origin_pinned_section_header_->SetBoundsRect(gfx::Rect());
     if (show_pinned_section) {
-      origin_pinned_section_header_->SetBounds(0, compact_y, width(),
-                                               kOriginSectionHeaderHeight);
-      compact_y += kOriginSectionHeaderHeight;
+      constexpr int kPinnedColumns = 2;
+      constexpr int kPinnedTileHeight = 44;
+      constexpr int kPinnedTileGap = 8;
+      const int margin = tabs::kMarginForVerticalTabContainers;
+      const int row_width = std::max(0, width() - 2 * margin);
+      const int tile_width =
+          std::max(0, (row_width - (kPinnedColumns - 1) * kPinnedTileGap) /
+                          kPinnedColumns);
+      int column = 0;
       for (const size_t index : visible_pinned_tab_indices) {
         gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
-        bounds.set_x(tabs::kMarginForVerticalTabContainers);
-        bounds.set_width(
-            std::max(0, width() - 2 * tabs::kMarginForVerticalTabContainers));
-        bounds.set_height(tabs::kVerticalTabHeight);
+        bounds.set_x(margin + column * (tile_width + kPinnedTileGap));
+        bounds.set_width(tile_width);
+        bounds.set_height(kPinnedTileHeight);
         bounds.set_y(compact_y);
-        compact_y += bounds.height();
         tabs_view_model_.set_ideal_bounds(index, bounds);
+        if (++column == kPinnedColumns) {
+          column = 0;
+          compact_y += kPinnedTileHeight + kPinnedTileGap;
+        }
       }
-    } else {
-      origin_pinned_section_header_->SetBoundsRect(gfx::Rect());
+      if (column != 0) {
+        compact_y += kPinnedTileHeight + kPinnedTileGap;
+      }
     }
 
     const bool show_pages_section = !visible_page_tab_indices.empty();
@@ -1443,8 +1453,8 @@ void BraveTabContainer::UpdateIdealBounds() {
     if (show_pages_section) {
       origin_pages_count_->SetText(base::NumberToString16(
           visible_page_tab_indices.size() + visible_side_tab_indices.size()));
-      origin_pages_section_header_->SetBounds(
-          0, compact_y, width(), kOriginSectionHeaderHeight);
+      origin_pages_section_header_->SetBounds(0, compact_y, width(),
+                                              kOriginSectionHeaderHeight);
       compact_y += kOriginSectionHeaderHeight;
     } else {
       origin_pages_section_header_->SetBoundsRect(gfx::Rect());
@@ -2124,8 +2134,8 @@ int BraveTabContainer::GetUnpinnedTabsTotalHeight() const {
 
     if (origin_new_page_button_ && origin_new_page_button_->GetVisible()) {
       const gfx::Rect action_bounds = origin_new_page_button_->bounds();
-      first_y = first_y ? std::min(*first_y, action_bounds.y())
-                        : action_bounds.y();
+      first_y =
+          first_y ? std::min(*first_y, action_bounds.y()) : action_bounds.y();
       last_bottom = std::max(last_bottom, action_bounds.bottom());
     }
 

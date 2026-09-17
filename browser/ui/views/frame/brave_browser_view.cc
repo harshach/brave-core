@@ -2116,18 +2116,6 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
 
     if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR && contents &&
         !contents->IsFocusedElementEditable() &&
-        accelerator.key_code() >= ui::VKEY_1 &&
-        accelerator.key_code() <= ui::VKEY_9) {
-      if (auto* controller =
-              browser()->GetFeatures().origin_space_controller()) {
-        controller->SelectSpaceAtIndex(
-            static_cast<size_t>(accelerator.key_code() - ui::VKEY_1));
-      }
-      return content::KeyboardEventProcessingResult::HANDLED;
-    }
-
-    if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR && contents &&
-        !contents->IsFocusedElementEditable() &&
         (accelerator.key_code() == ui::VKEY_UP ||
          accelerator.key_code() == ui::VKEY_DOWN)) {
       if (auto* controller =
@@ -2155,21 +2143,10 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
 
     if (!origin_insert_mode_ && !has_modifiers && contents &&
         !contents->IsFocusedElementEditable()) {
-      if (accelerator.key_code() >= ui::VKEY_1 &&
-          accelerator.key_code() <= ui::VKEY_9) {
-        if (auto* controller =
-                browser()->GetFeatures().origin_space_controller()) {
-          controller->SelectSpaceAtIndex(
-              static_cast<size_t>(accelerator.key_code() - ui::VKEY_1));
-        }
-        return content::KeyboardEventProcessingResult::HANDLED;
-      }
-
       switch (accelerator.key_code()) {
         case ui::VKEY_I:
           origin_insert_mode_ = true;
           return content::KeyboardEventProcessingResult::HANDLED;
-        case ui::VKEY_J:
         case ui::VKEY_DOWN: {
           auto* controller = browser()->GetFeatures().origin_space_controller();
           if (controller) {
@@ -2177,7 +2154,6 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }
-        case ui::VKEY_K:
         case ui::VKEY_UP: {
           auto* controller = browser()->GetFeatures().origin_space_controller();
           if (controller) {
@@ -2282,15 +2258,6 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
     }
     if (accelerator.key_code() == ui::VKEY_K && origin_quick_open_view_) {
       ShowOriginCommander();
-      return true;
-    }
-    if (accelerator.key_code() >= ui::VKEY_1 &&
-        accelerator.key_code() <= ui::VKEY_9) {
-      if (auto* controller =
-              browser()->GetFeatures().origin_space_controller()) {
-        controller->SelectSpaceAtIndex(
-            static_cast<size_t>(accelerator.key_code() - ui::VKEY_1));
-      }
       return true;
     }
   }
