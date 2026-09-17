@@ -58,6 +58,7 @@
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
+#include "components/viz/common/vertical_scroll_direction.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
 #include "brave/browser/ui/views/window_closing_confirm_dialog_view.h"
 #include "brave/common/pref_names.h"
@@ -1866,6 +1867,30 @@ void BraveBrowserView::OnActiveTabChanged(content::WebContents* old_contents,
   }
 }
 
+void BraveBrowserView::DidChangeVerticalScrollDirection(
+    viz::VerticalScrollDirection scroll_direction) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (scroll_direction == viz::VerticalScrollDirection::kNull) {
+    return;
+  }
+  if (auto* brave_toolbar = static_cast<BraveToolbarView*>(toolbar())) {
+    brave_toolbar->OnOriginPageScrolled(scroll_direction ==
+                                        viz::VerticalScrollDirection::kDown);
+  }
+#endif
+}
+
+void BraveBrowserView::SetFocusToLocationBar(bool is_user_initiated) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's address field is hidden until wanted, and a hidden view cannot
+  // take focus, so bring the page chrome back before asking for it.
+  if (auto* brave_toolbar = static_cast<BraveToolbarView*>(toolbar())) {
+    brave_toolbar->RevealOriginPageChrome();
+  }
+#endif
+  BrowserView::SetFocusToLocationBar(is_user_initiated);
+}
+
 void BraveBrowserView::UpdateToolbar(content::WebContents* contents) {
   BrowserView::UpdateToolbar(contents);
 
@@ -2143,6 +2168,17 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
 
     if (!origin_insert_mode_ && !has_modifiers && contents &&
         !contents->IsFocusedElementEditable()) {
+      // Number keys address the Space row at the bottom of the sidebar, in the
+      // order the icons are drawn.
+      if (accelerator.key_code() >= ui::VKEY_1 &&
+          accelerator.key_code() <= ui::VKEY_9) {
+        if (auto* controller =
+                browser()->GetFeatures().origin_space_controller()) {
+          controller->SelectSpaceAtIndex(
+              static_cast<size_t>(accelerator.key_code() - ui::VKEY_1));
+        }
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
       switch (accelerator.key_code()) {
         case ui::VKEY_I:
           origin_insert_mode_ = true;

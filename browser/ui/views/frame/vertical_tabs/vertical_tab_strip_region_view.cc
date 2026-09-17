@@ -132,7 +132,7 @@ constexpr int kOriginSidebarMinimumWidth = 236;
 constexpr int kOriginSidebarMaximumWidth = 416;
 constexpr int kOriginWorkspaceHeaderHeight = 58;
 constexpr int kOriginSearchFieldHeight = 30;
-constexpr int kOriginPageListTop = 66;
+constexpr int kOriginPageListTopPadding = 8;
 constexpr int kOriginNewPageRowHeight = 32;
 constexpr int kOriginStatusRowHeight = 26;
 constexpr int kOriginPageListFooterHeight = 34;
@@ -1636,9 +1636,27 @@ void BraveVerticalTabStripRegionView::CancelOriginWorkspaceRename() {
 #endif
 }
 
+int BraveVerticalTabStripRegionView::GetOriginWorkspaceHeaderHeight() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return origin_workspace_renaming_ ? kOriginWorkspaceHeaderHeight : 0;
+#else
+  return 0;
+#endif
+}
+
+int BraveVerticalTabStripRegionView::GetOriginPageListTop() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return GetOriginWorkspaceHeaderHeight() + kOriginPageListTopPadding;
+#else
+  return 0;
+#endif
+}
+
 void BraveVerticalTabStripRegionView::SetOriginWorkspaceRenameMode(
     bool editing) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_workspace_renaming_ = editing;
+  origin_workspace_header_->SetVisible(editing);
   origin_workspace_title_->SetVisible(!editing);
   origin_workspace_name_editor_->SetVisible(editing);
   origin_workspace_save_button_->SetVisible(editing);
@@ -1652,6 +1670,7 @@ void BraveVerticalTabStripRegionView::SetOriginWorkspaceRenameMode(
                     kColorBraveVerticalTabInactiveBackground));
   origin_workspace_header_->InvalidateLayout();
   origin_workspace_header_->SchedulePaint();
+  InvalidateLayout();
 #endif
 }
 
@@ -1693,9 +1712,10 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     std::u16string_view key;
     std::u16string_view description;
   };
-  constexpr std::array<ShortcutEntry, 15> kShortcuts = {{
+  constexpr std::array<ShortcutEntry, 16> kShortcuts = {{
       {u"Space / O / N", u"Search or open a page"},
       {u"↑ / ↓", u"Next / previous page"},
+      {u"1 – 9", u"Jump to Space"},
       {u"S", u"Split with a new page"},
       {u"P", u"Pin / unpin page"},
       {u"W", u"Close page"},
@@ -2092,8 +2112,20 @@ void BraveVerticalTabStripRegionView::ShowOriginWorkspaceIconPicker() {
   if (!active) {
     return;
   }
+  // Anchor on the Space's own icon in the bottom row; the header that used to
+  // host the icon button is collapsed except while renaming.
+  views::View* anchor = origin_workspace_rail_;
+  const auto& spaces = origin_workspace_service_->GetOriginSpaces();
+  for (size_t i = 0; i < spaces.size() && i < origin_workspace_buttons_.size();
+       ++i) {
+    if (spaces[i].id == origin_active_workspace_id_ &&
+        origin_workspace_buttons_[i]) {
+      anchor = origin_workspace_buttons_[i];
+      break;
+    }
+  }
   origin_workspace_icon_picker_widget_ = OriginWorkspaceIconPickerBubble::Show(
-      origin_workspace_icon_button_, active->icon,
+      anchor, active->icon,
       base::BindRepeating(
           &BraveVerticalTabStripRegionView::SetOriginWorkspaceIcon,
           weak_factory_.GetWeakPtr()));
@@ -2478,7 +2510,7 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
   origin_page_column_->SetBounds(contents_bounds.x(), contents_bounds.y(),
                                  workspace_width, contents_bounds.height());
   origin_workspace_header_->SetBounds(workspace_x, 0, contents_view_width,
-                                      kOriginWorkspaceHeaderHeight);
+                                      GetOriginWorkspaceHeaderHeight());
   origin_search_button_->SetBoundsRect(gfx::Rect());
 
   const int workspace_bar_y =
@@ -2498,7 +2530,7 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   const int contents_view_max_height =
-      std::max(0, contents_bounds.height() - kOriginPageListTop -
+      std::max(0, contents_bounds.height() - GetOriginPageListTop() -
                       kOriginPageListFooterHeight);
 #else
   constexpr int kNewTabButtonHeight = tabs::kVerticalTabHeight;
@@ -2521,7 +2553,7 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
   region_view_container_->SetBoundsRect(
       gfx::Rect(gfx::Point(workspace_x,
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-                           kOriginPageListTop
+                           GetOriginPageListTop()
 #else
                            contents_bounds.y()
 #endif
@@ -2818,7 +2850,7 @@ int BraveVerticalTabStripRegionView::GetTabStripViewportMaxHeight() const {
   // Don't depend on |contents_view_|'s current height. It could be bigger than
   // the actual viewport height.
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return std::max(0, GetContentsBounds().height() - kOriginPageListTop -
+  return std::max(0, GetContentsBounds().height() - GetOriginPageListTop() -
                          kOriginPageListFooterHeight);
 #else
   return GetContentsBounds().height() -
@@ -3287,6 +3319,10 @@ void BraveVerticalTabStripRegionView::OriginWorkspaceMenuDelegate::
       view_->OnOriginWorkspaceSelected(space_id_);
       view_->BeginOriginWorkspaceRename();
       break;
+    case kChangeIcon:
+      view_->OnOriginWorkspaceSelected(space_id_);
+      view_->ShowOriginWorkspaceIconPicker();
+      break;
     case kDelete:
       view_->DeleteOriginWorkspace(space_id_);
       break;
@@ -3312,6 +3348,8 @@ void BraveVerticalTabStripRegionView::ShowOriginWorkspaceMenu(
       origin_workspace_menu_delegate_.get());
   origin_workspace_menu_model_->AddItem(OriginWorkspaceMenuDelegate::kRename,
                                         u"Rename Space");
+  origin_workspace_menu_model_->AddItem(
+      OriginWorkspaceMenuDelegate::kChangeIcon, u"Change Space icon");
   origin_workspace_menu_model_->AddItem(OriginWorkspaceMenuDelegate::kDelete,
                                         u"Delete Space");
 

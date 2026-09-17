@@ -464,10 +464,9 @@ void BraveTab::UpdateIconVisibility() {
     }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    // Sigma treats pinned pages as full rows in an expanded Space, not as a
-    // favicon grid. Keep the conventional compact form only when the entire
-    // vertical strip has collapsed to icon width.
-    center_icon_ = false;
+    // Origin draws pinned pages as a favicon grid above the page list, so the
+    // icon is the whole tile regardless of how wide the sidebar is.
+    center_icon_ = true;
     showing_icon_ = !showing_alert_indicator_;
     showing_close_button_ = false;
     return;
@@ -775,7 +774,7 @@ void BraveTab::Layout(PassKey) {
         controller()->GetBrowserWindowInterface());
     const bool show_drag_handle = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                                   !IsAtMinWidthForVerticalTabStrip() &&
-                                  ShouldRenderAsNormalTab() &&
+                                  !data().pinned && ShouldRenderAsNormalTab() &&
                                   (mouse_hovered_ || dragging());
     origin_drag_handle_->SetVisible(show_drag_handle);
     if (show_drag_handle) {
@@ -804,8 +803,8 @@ void BraveTab::Layout(PassKey) {
         controller()->GetBrowserWindowInterface());
     const bool show_pin = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                           !IsAtMinWidthForVerticalTabStrip() &&
-                          ShouldRenderAsNormalTab() &&
-                          (data().pinned || IsActive());
+                          !data().pinned && ShouldRenderAsNormalTab() &&
+                          IsActive();
     origin_pin_button_->SetVisible(show_pin);
     if (show_pin) {
       constexpr int kPinButtonSize = 20;
@@ -821,6 +820,12 @@ void BraveTab::Layout(PassKey) {
     title_bounds.set_width(
         std::max(0, origin_trailing_x - 2 - title_bounds.x()));
     title_->SetBoundsRect(title_bounds);
+  }
+  if (data().pinned && center_icon_) {
+    // BraveVerticalTabStyle paints a larger favicon for the tile; TabIcon is
+    // fixed at 16dp and would draw a second, smaller copy underneath it.
+    title_->SetVisible(false);
+    icon_->SetVisible(false);
   }
 #endif
 

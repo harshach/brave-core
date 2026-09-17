@@ -72,7 +72,11 @@
 #include "ui/events/event.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/color_utils.h"
+#include "ui/events/event_observer.h"
 #include "ui/views/bubble/bubble_anchor.h"
+#include "ui/views/event_monitor.h"
+#include "ui/views/view_targeter.h"
+#include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
@@ -228,6 +232,32 @@ class BraveToolbarView::LayoutGuard {
   raw_ptr<BraveLocationBarView> bar_ = nullptr;
 };
 
+// Views deliver enter/exit only to the deepest view under the pointer, so
+// hovering a button inside the bar would read as leaving it. Watch the window
+// instead and decide from the pointer's position.
+class BraveToolbarView::OriginPointerWatcher : public ui::EventObserver {
+ public:
+  OriginPointerWatcher(BraveToolbarView* toolbar, gfx::NativeWindow window)
+      : toolbar_(toolbar),
+        monitor_(views::EventMonitor::CreateWindowMonitor(
+            this,
+            window,
+            {ui::EventType::kMouseMoved, ui::EventType::kMouseExited,
+             ui::EventType::kMouseDragged})) {}
+  ~OriginPointerWatcher() override = default;
+
+  // ui::EventObserver:
+  void OnEvent(const ui::Event& event) override {
+    // Moving into the bar makes the view below it emit a mouse-exit, so the
+    // event type says nothing useful here; only the position does.
+    toolbar_->OnOriginPointerMoved(monitor_->GetLastMouseLocation());
+  }
+
+ private:
+  const raw_ptr<BraveToolbarView> toolbar_;
+  std::unique_ptr<views::EventMonitor> monitor_;
+};
+
 BraveToolbarView::BraveToolbarView(Browser* browser, BrowserView* browser_view)
     : ToolbarView(browser, browser_view) {}
 
@@ -242,6 +272,10 @@ void BraveToolbarView::Init() {
       .GetFeatures()
       .brave_non_client_hit_test_helper()
       ->RegisterCaptionArea(this);
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+#endif
 
   // For non-normal mode, we don't have to do any more work.
   if (display_mode_ != DisplayMode::kNormal) {
@@ -682,6 +716,191 @@ void BraveToolbarView::VisibilityChanged(views::View* starting_from,
     // Ink drop highlight is cleared whenever visibility changes, so re-apply.
     UpdateVerticalTabToggleState();
   }
+}
+
+void BraveToolbarView::AddedToWidget() {
+  ToolbarView::AddedToWidget();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (display_mode_ != DisplayMode::kNormal) {
+    return;
+  }
+  SetEventTargeter(std::make_unique<views::ViewTargeter>(this));
+  origin_page_chrome_pointer_watcher_ =
+      std::make_unique<OriginPointerWatcher>(this, GetWidget()->GetNativeWindow());
+  SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+#endif
+}
+
+void BraveToolbarView::RemovedFromWidget() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_page_chrome_pointer_watcher_.reset();
+  origin_page_chrome_reveal_timer_.Stop();
+  origin_scroll_settle_timer_.Stop();
+#endif
+  ToolbarView::RemovedFromWidget();
+}
+
+void BraveToolbarView::OnOriginPointerMoved(const gfx::Point& screen_point) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  gfx::Rect zone = GetBoundsInScreen();
+  if (origin_page_chrome_revealed_) {
+    // Showing the bar pushes the page down by the bar's height, so whatever
+    // the pointer was reaching for moves down with it. Hold the bar open
+    // across that distance; otherwise the page content runs away from the
+    // cursor and the bar oscillates as the two chase each other.
+    zone.set_height(zone.height() * 2);
+  }
+  origin_pointer_in_page_chrome_ = zone.Contains(screen_point);
+  ScheduleOriginPageChromeReveal(origin_pointer_in_page_chrome_);
+#endif
+}
+
+void BraveToolbarView::RevealOriginPageChrome() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_page_chrome_reveal_timer_.Stop();
+  SetOriginPageChromeRevealed(true);
+#endif
+}
+
+void BraveToolbarView::OnOriginPageScrolled(bool scrolled_down) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A scroll ending in momentum or a rubber-band reverses direction several
+  // times in quick succession. Acting on each one flashes the bar, so wait
+  // for the direction to settle and apply only the last one.
+  origin_scroll_settle_timer_.Start(
+      FROM_HERE, base::Milliseconds(200),
+      base::BindOnce(&BraveToolbarView::ApplyOriginScrollState,
+                     base::Unretained(this), scrolled_down));
+#endif
+}
+
+void BraveToolbarView::ApplyOriginScrollState(bool scrolled_down) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_scroll_wants_page_chrome_ = !scrolled_down;
+  origin_page_chrome_reveal_timer_.Stop();
+  SetOriginPageChromeRevealed(!scrolled_down);
+#endif
+}
+
+int BraveToolbarView::GetOriginWindowControlsStripWidth() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* brave_browser_view = BraveBrowserView::From(browser_view_);
+  auto* vertical_tabs = VerticalTabController::FromBrowser(browser_);
+  if (!brave_browser_view || !vertical_tabs ||
+      !vertical_tabs->ShouldShowBraveVerticalTabs()) {
+    return 0;
+  }
+  auto* sidebar = brave_browser_view->vertical_tab_strip_container_view();
+  return sidebar && sidebar->GetVisible() ? std::min(sidebar->width(), width())
+                                          : 0;
+#else
+  return 0;
+#endif
+}
+
+bool BraveToolbarView::DoesIntersectRect(const views::View* target,
+                                         const gfx::Rect& rect) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The page reaches the top of the window and the bar floats over it, so a
+  // faded-out bar must let clicks through to the page underneath. The leading
+  // strip still belongs to the bar: that is where the window controls are.
+  if (target == this && !origin_page_chrome_revealed_) {
+    const int strip_width = GetOriginWindowControlsStripWidth();
+    if (strip_width <= 0) {
+      return false;
+    }
+    gfx::Rect strip = GetLocalBounds();
+    auto* vertical_tabs = VerticalTabController::FromBrowser(browser_);
+    if (vertical_tabs && vertical_tabs->IsVerticalTabOnRight()) {
+      strip.set_x(strip.right() - strip_width);
+    }
+    strip.set_width(strip_width);
+    return strip.Intersects(rect);
+  }
+#endif
+  return views::ViewTargeterDelegate::DoesIntersectRect(target, rect);
+}
+
+bool BraveToolbarView::ShouldHoldOriginPageChromeOpen() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!location_bar_view_) {
+    return false;
+  }
+  // The pointer sits over the page while reading, so letting it close the bar
+  // would undo a scroll-up within the hover delay. Only a scroll back down
+  // takes the bar away again.
+  if (origin_scroll_wants_page_chrome_ || origin_pointer_in_page_chrome_) {
+    return true;
+  }
+  const views::FocusManager* focus_manager = GetFocusManager();
+  const views::View* focused =
+      focus_manager ? focus_manager->GetFocusedView() : nullptr;
+  return focused && location_bar_view_->Contains(focused);
+#else
+  return false;
+#endif
+}
+
+void BraveToolbarView::ScheduleOriginPageChromeReveal(bool revealed) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!revealed && ShouldHoldOriginPageChromeOpen()) {
+    // Something wants the bar up; don't queue a hide that would only be
+    // refused, which would leave a timer rearming itself forever.
+    origin_page_chrome_reveal_timer_.Stop();
+    return;
+  }
+  if (revealed == origin_page_chrome_revealed_) {
+    // Already where we want to be; drop any pending change.
+    origin_page_chrome_reveal_timer_.Stop();
+    return;
+  }
+  if (origin_page_chrome_reveal_timer_.IsRunning()) {
+    // This same change is already pending; measure the dwell from its start.
+    return;
+  }
+  // A short dwell on the way in keeps the bar from flashing as the pointer
+  // crosses it; a longer one on the way out survives a slip off an edge.
+  origin_page_chrome_reveal_timer_.Start(
+      FROM_HERE, base::Milliseconds(revealed ? 120 : 450),
+      base::BindOnce(&BraveToolbarView::SetOriginPageChromeRevealed,
+                     base::Unretained(this), revealed));
+#endif
+}
+
+void BraveToolbarView::SetOriginPageChromeRevealed(bool revealed) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (display_mode_ != DisplayMode::kNormal) {
+    return;
+  }
+  if (!revealed && ShouldHoldOriginPageChromeOpen()) {
+    return;
+  }
+  origin_page_chrome_revealed_ = revealed;
+  // Fade rather than hide. SetVisible() would collapse these out of the flex
+  // layout, changing the bar's height and shifting the sidebar and page below
+  // it every time the bar came and went.
+  for (views::View* view : {static_cast<views::View*>(location_bar_view_),
+                            static_cast<views::View*>(extensions_container()),
+                            static_cast<views::View*>(bookmark_.get()),
+                            static_cast<views::View*>(
+                                origin_shields_button_.get())}) {
+    if (!view) {
+      continue;
+    }
+    if (!view->layer()) {
+      view->SetPaintToLayer();
+      view->layer()->SetFillsBoundsOpaquely(false);
+    }
+    view->layer()->SetOpacity(revealed ? 1.0f : 0.0f);
+    view->SetCanProcessEventsWithinSubtree(revealed);
+  }
+  // The page claims the bar's strip while the bar is hidden, so the browser
+  // layout has to re-run to hand it over or take it back.
+  if (browser_view_) {
+    browser_view_->InvalidateLayout();
+  }
+  SchedulePaint();
+#endif
 }
 
 void BraveToolbarView::Layout(PassKey) {

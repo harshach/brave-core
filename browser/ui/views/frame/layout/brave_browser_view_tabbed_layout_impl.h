@@ -118,6 +118,10 @@ class BraveBrowserViewTabbedLayoutImpl : public BrowserViewTabbedLayoutImpl {
   void InsetContentsContainerBounds(ProposedLayout& layout) const;
   void AdjustInfobarLayout(ProposedLayout& layout,
                            const BrowserLayoutParams params) const;
+  // Origin lets the page occupy the full window height and floats the top bar
+  // over it, so hiding the bar costs the renderer no resize.
+  void ApplyOriginFloatingTopBarLayout(ProposedLayout& layout,
+                                       const BrowserLayoutParams& params) const;
 
   void UpdateInsetsForVerticalTabStrip();
 

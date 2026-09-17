@@ -206,6 +206,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   void CancelOriginWorkspaceRename();
   void SetOriginWorkspaceRenameMode(bool editing);
   void ShowOriginWorkspaceIconPicker();
+  int GetOriginWorkspaceHeaderHeight() const;
+  int GetOriginPageListTop() const;
   void SetOriginWorkspaceIcon(std::string icon);
   void ShowOriginQuickOpen();
   void ShowOriginShortcutHelp();
@@ -228,7 +230,7 @@ class BraveVerticalTabStripRegionView : public views::View,
   // the selection changing underneath them.
   class OriginWorkspaceMenuDelegate : public ui::SimpleMenuModel::Delegate {
    public:
-    enum : int { kRename = 1, kDelete };
+    enum : int { kRename = 1, kChangeIcon, kDelete };
 
     OriginWorkspaceMenuDelegate(
         base::WeakPtr<BraveVerticalTabStripRegionView> view,
@@ -369,6 +371,7 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<OriginMediaMonitor> origin_media_monitor_ = nullptr;
   std::string origin_active_workspace_id_;
   bool origin_new_page_pending_ = false;
+  bool origin_workspace_renaming_ = false;
 
   // Separator between tabs and new tab button.
   raw_ptr<views::View> separator_ = nullptr;

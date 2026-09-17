@@ -83,6 +83,10 @@ constexpr int kOriginSplitSectionTopInset = 8;
 constexpr int kOriginSplitSectionBottomInset = 2;
 constexpr int kOriginNewPageHorizontalInset = 8;
 constexpr int kOriginNewPageTopInset = 4;
+constexpr int kOriginPinnedColumns = 3;
+constexpr int kOriginPinnedTileHeight = 52;
+constexpr int kOriginPinnedTileGap = 8;
+constexpr int kOriginPinnedSectionBottomInset = 6;
 
 constexpr int GetOriginSplitSectionExtraHeight() {
   return kOriginSplitSectionTopInset + kOriginSectionHeaderHeight +
@@ -193,7 +197,7 @@ BraveTabContainer::BraveTabContainer(
   pages_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
   pages_section_layout->SetFlexForView(pages_section_label, 1);
   auto* pages_navigation_hint = origin_pages_section_header_->AddChildView(
-      std::make_unique<views::Label>(u"J  K"));
+      std::make_unique<views::Label>(u"↑  ↓"));
   pages_navigation_hint->SetFontList(views::Label::GetDefaultFontList().Derive(
       -2, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
   pages_navigation_hint->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
@@ -1416,36 +1420,36 @@ void BraveTabContainer::UpdateIdealBounds() {
       }
     }
 
-    // Pinned pages sit at the very top as icon tiles, two to a row, with no
-    // section label: at this size the favicon is the whole affordance.
+    // Pinned pages sit at the very top as square favicon tiles with no label
+    // and no section header: the icon is the whole affordance.
     const bool show_pinned_section = !visible_pinned_tab_indices.empty();
     origin_pinned_section_header_->SetVisible(false);
     origin_pinned_section_header_->SetBoundsRect(gfx::Rect());
     if (show_pinned_section) {
-      constexpr int kPinnedColumns = 2;
-      constexpr int kPinnedTileHeight = 44;
-      constexpr int kPinnedTileGap = 8;
       const int margin = tabs::kMarginForVerticalTabContainers;
       const int row_width = std::max(0, width() - 2 * margin);
-      const int tile_width =
-          std::max(0, (row_width - (kPinnedColumns - 1) * kPinnedTileGap) /
-                          kPinnedColumns);
+      // Fixed columns so the tiles grow with the sidebar rather than reflowing.
+      const int tile_width = std::max(
+          0, (row_width - (kOriginPinnedColumns - 1) * kOriginPinnedTileGap) /
+                 kOriginPinnedColumns);
+      const int stride = tile_width + kOriginPinnedTileGap;
       int column = 0;
       for (const size_t index : visible_pinned_tab_indices) {
         gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
-        bounds.set_x(margin + column * (tile_width + kPinnedTileGap));
+        bounds.set_x(margin + column * stride);
         bounds.set_width(tile_width);
-        bounds.set_height(kPinnedTileHeight);
+        bounds.set_height(kOriginPinnedTileHeight);
         bounds.set_y(compact_y);
         tabs_view_model_.set_ideal_bounds(index, bounds);
-        if (++column == kPinnedColumns) {
+        if (++column == kOriginPinnedColumns) {
           column = 0;
-          compact_y += kPinnedTileHeight + kPinnedTileGap;
+          compact_y += kOriginPinnedTileHeight + kOriginPinnedTileGap;
         }
       }
       if (column != 0) {
-        compact_y += kPinnedTileHeight + kPinnedTileGap;
+        compact_y += kOriginPinnedTileHeight + kOriginPinnedTileGap;
       }
+      compact_y += kOriginPinnedSectionBottomInset;
     }
 
     const bool show_pages_section = !visible_page_tab_indices.empty();

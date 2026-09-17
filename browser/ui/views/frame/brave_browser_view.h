@@ -158,11 +158,14 @@ class BraveBrowserView : public BrowserView,
                           int index,
                           int reason) override;
   void UpdateToolbar(content::WebContents* contents) override;
+  void SetFocusToLocationBar(bool is_user_initiated) override;
   bool UpdateToolbarSecurityState() override;
   void OnThemeChanged() override;
   void DidChangeThemeColor() override;
   void OnBackgroundColorChanged() override;
   void DidStopLoading() override;
+  void DidChangeVerticalScrollDirection(
+      viz::VerticalScrollDirection scroll_direction) override;
   content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
       const input::NativeWebKeyboardEvent& event) override;
   bool AcceleratorPressed(const ui::Accelerator& accelerator) override;

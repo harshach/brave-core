@@ -14,6 +14,7 @@
 #include "base/i18n/rtl.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
@@ -25,6 +26,7 @@
 #include "chrome/browser/ui/views/bookmarks/bookmark_bar_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/custom_corners_background.h"
+#include "ui/views/view_utils.h"
 #include "chrome/browser/ui/views/frame/layout/browser_view_layout_delegate.h"
 #include "chrome/browser/ui/views/frame/multi_contents_view.h"
 #include "chrome/browser/ui/views/infobars/infobar_container_view.h"
@@ -236,7 +238,46 @@ BraveBrowserViewTabbedLayoutImpl::CalculateProposedLayout(
 
   AdjustInfobarLayout(layout, params);
 
+  ApplyOriginFloatingTopBarLayout(layout, params);
+
   return layout;
+}
+
+void BraveBrowserViewTabbedLayoutImpl::ApplyOriginFloatingTopBarLayout(
+    ProposedLayout& layout,
+    const BrowserLayoutParams& params) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!delegate().ShouldShowVerticalTabs() ||
+      delegate().IsFullscreenForBrowser() || delegate().IsFullscreenForTab()) {
+    return;
+  }
+  auto* contents_layout = layout.GetLayoutFor(views().multi_contents_view);
+  if (!contents_layout) {
+    return;
+  }
+
+  // macOS draws web contents in a native view that always composites above the
+  // Views hierarchy, so the bar cannot simply float over the page: whatever is
+  // underneath the contents is invisible. Give the page the strip only while
+  // the bar is hidden, and hand it back when the bar returns. The sidebar's
+  // own strip is untouched either way, so the window controls never move.
+  auto* brave_toolbar =
+      views::AsViewClass<BraveToolbarView>(views().toolbar.get());
+  if (!brave_toolbar || brave_toolbar->origin_page_chrome_revealed()) {
+    return;
+  }
+
+  const int client_top = params.visual_client_area.y();
+  if (contents_layout->bounds.y() > client_top) {
+    const int bottom = contents_layout->bounds.bottom();
+    contents_layout->bounds.set_y(client_top);
+    contents_layout->bounds.set_height(std::max(0, bottom - client_top));
+    if (auto* background_layout =
+            layout.GetLayoutFor(views().contents_background)) {
+      background_layout->bounds = contents_layout->bounds;
+    }
+  }
+#endif
 }
 
 void BraveBrowserViewTabbedLayoutImpl::AdjustInfobarLayout(
