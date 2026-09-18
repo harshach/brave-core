@@ -724,11 +724,10 @@ void BraveBrowserView::Layout(PassKey) {
   if (origin_temporary_link_view_) {
     origin_temporary_link_view_->SetBounds(0, 0, width(),
                                            OriginTemporaryLinkView::kBarHeight);
-    const gfx::Rect contents_bounds = contents_container()->bounds();
-    contents_background_view_->SetBoundsRect(contents_bounds);
-    if (auto* multi_contents = GetBraveMultiContentsView()) {
-      multi_contents->SetBoundsRect(contents_container()->GetLocalBounds());
-    }
+    // contents_container() is the multi-contents view itself, so assigning it
+    // its own local bounds moved it to the window origin and put the page
+    // under the bar. The layout already places it below the bar.
+    contents_background_view_->SetBoundsRect(contents_container()->bounds());
     ReorderChildView(origin_temporary_link_view_, -1);
     EnsureFindBarHostViewIsLastChild();
     return;
@@ -2095,34 +2094,30 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
     auto* contents = GetActiveWebContents();
 
     if (origin_temporary_link_view_) {
-      if (contents && !contents->IsFocusedElementEditable()) {
-        if (accelerator.modifiers() == ui::EF_NONE &&
-            accelerator.key_code() >= ui::VKEY_1 &&
+      // This runs before the renderer sees the key, so anything claimed here
+      // is taken from the page. A temporary window is still a page the user
+      // may want to read, type in, or use site shortcuts on, so only
+      // modified combinations are claimed; every plain key goes through.
+      // Escape is deliberately not claimed: the page gets first refusal so it
+      // can close its own menus, and BraveBrowserView::AcceleratorPressed
+      // discards the window only if the page left it unhandled.
+      if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR) {
+        if (accelerator.key_code() >= ui::VKEY_1 &&
             accelerator.key_code() <= ui::VKEY_5 &&
             origin_temporary_link_view_->KeepInSpaceAtIndex(
                 static_cast<size_t>(accelerator.key_code() - ui::VKEY_1))) {
           return content::KeyboardEventProcessingResult::HANDLED;
         }
-        if (!has_modifiers && accelerator.key_code() == ui::VKEY_RETURN) {
+        if (accelerator.key_code() == ui::VKEY_RETURN) {
           origin_temporary_link_view_->KeepSuggested();
           return content::KeyboardEventProcessingResult::HANDLED;
         }
-        if (!has_modifiers && accelerator.key_code() == ui::VKEY_ESCAPE) {
-          origin_temporary_link_view_->Discard();
-          return content::KeyboardEventProcessingResult::HANDLED;
-        }
-        if (!has_modifiers && accelerator.key_code() == ui::VKEY_D) {
-          origin_temporary_link_view_->Discard();
-          return content::KeyboardEventProcessingResult::HANDLED;
-        }
-        if (!has_modifiers && accelerator.key_code() == ui::VKEY_S) {
-          origin_temporary_link_view_->KeepInSplit();
-          return content::KeyboardEventProcessingResult::HANDLED;
-        }
-        if (!has_modifiers && accelerator.key_code() == ui::VKEY_R) {
-          origin_temporary_link_view_->ReplaceCurrentPage();
-          return content::KeyboardEventProcessingResult::HANDLED;
-        }
+      }
+      if (accelerator.modifiers() ==
+              (ui::EF_PLATFORM_ACCELERATOR | ui::EF_SHIFT_DOWN) &&
+          accelerator.key_code() == ui::VKEY_S) {
+        origin_temporary_link_view_->KeepInSplit();
+        return content::KeyboardEventProcessingResult::HANDLED;
       }
       return BrowserView::PreHandleKeyboardEvent(event);
     }
@@ -2209,9 +2204,6 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_R:
           chrome::ExecuteCommand(browser(), IDC_RELOAD);
-          return content::KeyboardEventProcessingResult::HANDLED;
-        case ui::VKEY_SPACE:
-          ShowOriginQuickOpen(ui::VKEY_SPACE);
           return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_O:
           ShowOriginQuickOpen(ui::VKEY_O);

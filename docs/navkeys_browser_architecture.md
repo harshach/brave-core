@@ -45,12 +45,14 @@ primitives so Chromium security updates remain mergeable.
 - Chrome typography uses SF Pro Text on macOS, Segoe UI on Windows, and Inter on
   Linux. The sidebar contains only the selected space title and its pages; the
   duplicate footer-level New Page control is suppressed in Origin.
-- Navigation mode maps the arrow keys (with `j` and `k` aliases) to adjacent
-  pages, Command/Ctrl+Up and Command/Ctrl+Down to adjacent spaces, Space and
-  `o` to the native Quick Open palette, `d` to close the selected branch, `z`
-  to restore, `r` to reload the active page, `s` to split the window and open a
-  new page beside the current one, `m` to mute or unmute every page in the
-  selected Space, and `f` to focus mode. Command/Ctrl+K opens Brave Commander
+- Navigation mode maps the arrow keys to adjacent pages, `1`-`9` to the Space
+  in that position of the bottom row, Command/Ctrl+Up and Command/Ctrl+Down to
+  adjacent spaces, `o` and `n` to the native Quick Open palette, `d` to close
+  the selected branch, `z` to restore, `r` to reload the active page, `s` to
+  split the window and open a new page beside the current one, `p` to pin or
+  unpin the page, `m` to mute or unmute whatever is making sound anywhere in
+  the window, and `f` to focus mode. Space belongs to the page: sites use it
+  to scroll and to pause video. Command/Ctrl+K opens Brave Commander
   and Command/Ctrl+Right closes the active split. `i` enters edit mode and
   `Escape` returns to navigation mode. Editable page fields continue to
   receive their original input.

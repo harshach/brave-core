@@ -490,7 +490,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
-                       OriginPagesHeaderClipsScrollingRows) {
+                       OriginPinnedTilesClipScrollingRows) {
   ToggleVerticalTabStrip();
   ASSERT_TRUE(
       ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
@@ -508,12 +508,14 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
     InvalidateAndRunLayoutForVerticalTabStrip();
   }
 
-  ASSERT_TRUE(container->origin_pages_section_header_);
-  ASSERT_TRUE(container->origin_pages_section_header_->GetVisible());
-  const int viewport_top =
-      container->origin_pages_section_header_->bounds().bottom();
+  // The "Pages" heading is gone, so the pinned tiles are what the scrolling
+  // rows clip against. Pin one so there is a boundary to clip at.
+  browser()->tab_strip_model()->SetTabPinned(0, true);
+  tab_strip->StopAnimating();
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  const int viewport_top = container->GetPinnedTabsAreaBoundary();
   ASSERT_GT(viewport_top, 0);
-  EXPECT_EQ(viewport_top, container->GetPinnedTabsAreaBoundary());
   EXPECT_EQ(container->height() - viewport_top,
             container->GetUnpinnedTabsViewportHeight());
 
@@ -521,7 +523,8 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   tab_strip->StopAnimating();
   InvalidateAndRunLayoutForVerticalTabStrip();
 
-  Tab* first_page = GetTabAt(browser(), 0);
+  // Index 0 is the pinned tile; the clipping applies to the scrolling rows.
+  Tab* first_page = GetTabAt(browser(), 1);
   ASSERT_TRUE(first_page);
   ASSERT_FALSE(first_page->clip_path().isEmpty());
   const gfx::Rect expected_clip_bounds_in_container(
@@ -1918,6 +1921,10 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest, ClipPathOnScrollOffset) {
           ->GetTabContainerForTesting());
   ASSERT_TRUE(brave_tab_container);
 
+  // Pin a real page: the blank startup tab is a placeholder, which Origin
+  // keeps out of the page list, so pinning it produces no tile to clip under.
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
   auto* model = browser()->tab_strip_model();
   model->SetTabPinned(0, true);
 

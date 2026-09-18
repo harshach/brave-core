@@ -14,6 +14,7 @@
 #include "base/check.h"
 #include "base/functional/callback.h"
 #include "base/memory/weak_ptr.h"
+#include "base/run_loop.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
@@ -239,6 +240,36 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
 };
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginTopBarIgnoresScrollFromItsOwnResize) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  ASSERT_TRUE(content::NavigateToURL(
+      browser()->tab_strip_model()->GetActiveWebContents(),
+      embedded_test_server()->GetURL("/title1.html")));
+  // A fresh tab leaves focus in the omnibox, which holds the bar open on
+  // purpose; this test is about the scroll path, so move focus to the page.
+  browser_view()->contents_web_view()->RequestFocus();
+
+  auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
+  ASSERT_TRUE(toolbar);
+  // A page opens at its top, so the bar starts on screen.
+  ASSERT_TRUE(toolbar->origin_page_chrome_revealed());
+
+  toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !toolbar->origin_page_chrome_revealed(); }));
+
+  // Giving the strip back to the page reflows it, and that reflow reports its
+  // own upward scroll. Following it would put the bar straight back and leave
+  // the two trading places, which reads as flicker.
+  toolbar->OnOriginPageScrolled(/*scrolled_down=*/false);
+  base::RunLoop settle;
+  base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
+      FROM_HERE, settle.QuitClosure(), base::Milliseconds(400));
+  settle.Run();
+  EXPECT_FALSE(toolbar->origin_page_chrome_revealed());
+}
+
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
   ASSERT_TRUE(origin_quick_open_view());
   EXPECT_FALSE(origin_quick_open_view()->GetVisible());
@@ -270,12 +301,20 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
   ASSERT_TRUE(workspace_service);
   ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
 
-  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
-      ui::Accelerator(ui::VKEY_2, kModifiers)));
+  // Spaces answer to the plain digits that label the bottom row, so these go
+  // through the page's key path rather than the window accelerators.
+  input::NativeWebKeyboardEvent space_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  space_event.windows_key_code = ui::VKEY_2;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(space_event));
   EXPECT_EQ(workspace_service->GetOriginSpaces()[1].id,
             controller->active_space_id());
-  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
-      ui::Accelerator(ui::VKEY_1, kModifiers)));
+  space_event.windows_key_code = ui::VKEY_1;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(space_event));
   EXPECT_EQ(workspace_service->GetOriginSpaces()[0].id,
             controller->active_space_id());
 }
@@ -342,7 +381,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
-                       OriginTemporaryLinkLayoutAndDiscardShortcut) {
+                       OriginTemporaryLinkLayoutAndPageKeyboard) {
   ASSERT_TRUE(embedded_test_server()->Start());
   ASSERT_TRUE(content::NavigateToURL(
       browser()->tab_strip_model()->GetActiveWebContents(),
@@ -379,23 +418,46 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return temporary_contents->IsFocusedElementEditable(); }));
 
-  input::NativeWebKeyboardEvent discard_event(
+  input::NativeWebKeyboardEvent plain_event(
       blink::WebInputEvent::Type::kRawKeyDown,
       blink::WebInputEvent::kNoModifiers,
       blink::WebInputEvent::GetStaticTimeStampForTests());
-  discard_event.windows_key_code = ui::VKEY_D;
+  plain_event.windows_key_code = ui::VKEY_D;
   EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
-            temporary_view->PreHandleKeyboardEvent(discard_event));
+            temporary_view->PreHandleKeyboardEvent(plain_event));
   EXPECT_FALSE(temporary_browser->IsDeleteScheduled());
 
   ASSERT_TRUE(content::ExecJs(temporary_contents,
                               "document.querySelector('#editor').blur();"));
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return !temporary_contents->IsFocusedElementEditable(); }));
+
+  // A temporary window is still a page the user may want to work in, so plain
+  // keys reach it even with nothing editable focused. Claiming them here would
+  // take Enter, Escape and every single-letter site shortcut from the page.
+  for (const auto key_code : {ui::VKEY_D, ui::VKEY_S, ui::VKEY_R, ui::VKEY_1,
+                              ui::VKEY_RETURN, ui::VKEY_ESCAPE}) {
+    plain_event.windows_key_code = key_code;
+    EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
+              temporary_view->PreHandleKeyboardEvent(plain_event))
+        << "key_code " << key_code << " was taken from the page";
+  }
+  EXPECT_FALSE(temporary_browser->IsDeleteScheduled());
+
+  // The window's own actions live on modified combinations instead.
+  input::NativeWebKeyboardEvent keep_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+#if BUILDFLAG(IS_MAC)
+      blink::WebInputEvent::kMetaKey,
+#else
+      blink::WebInputEvent::kControlKey,
+#endif
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  keep_event.windows_key_code = ui::VKEY_RETURN;
   base::WeakPtr<BrowserWindowInterface> temporary_browser_weak =
       temporary_browser->GetWeakPtr();
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
-            temporary_view->PreHandleKeyboardEvent(discard_event));
+            temporary_view->PreHandleKeyboardEvent(keep_event));
   EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
 }
 

@@ -1112,9 +1112,7 @@ void OriginQuickOpenView::ContentsChanged(views::Textfield* sender,
         (*activation_key_to_suppress_ == ui::VKEY_O &&
          (new_contents == u"o" || new_contents == u"O")) ||
         (*activation_key_to_suppress_ == ui::VKEY_N &&
-         (new_contents == u"n" || new_contents == u"N")) ||
-        (*activation_key_to_suppress_ == ui::VKEY_SPACE &&
-         new_contents == u" ");
+         (new_contents == u"n" || new_contents == u"N"));
     activation_key_to_suppress_.reset();
     if (is_open_shortcut_character) {
       user_input_.clear();

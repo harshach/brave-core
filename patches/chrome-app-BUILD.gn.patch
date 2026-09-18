@@ -1,8 +1,16 @@
 diff --git a/chrome/app/BUILD.gn b/chrome/app/BUILD.gn
-index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..b48a49a010df579ce1dc086b0425cee81f0941a5 100644
+index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..14c3c6e8d666d4e7f3565346ac9beae55111b75e 100644
 --- a/chrome/app/BUILD.gn
 +++ b/chrome/app/BUILD.gn
-@@ -61,6 +61,7 @@ source_set("chrome_dll_resources") {
+@@ -7,6 +7,7 @@ import("//build/config/chromebox_for_meetings/buildflags.gni")
+ import("//build/config/locales.gni")
+ import("//build/config/ozone.gni")
+ import("//build/config/ui.gni")
++import("//brave/components/brave_origin/buildflags/buildflags.gni")
+ import("//chrome/common/features.gni")
+ import("//crypto/features.gni")
+ import("//tools/grit/grit_rule.gni")
+@@ -61,6 +62,7 @@ source_set("chrome_dll_resources") {
        "//build:branding_buildflags",
        "//printing/buildflags",
      ]
@@ -10,7 +18,7 @@ index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..b48a49a010df579ce1dc086b0425cee8
    }
  }
  
-@@ -106,6 +107,7 @@ grit_strings("generated_resources") {
+@@ -106,6 +108,7 @@ grit_strings("generated_resources") {
    if (is_android) {
      create_android_resources = true
    }
@@ -18,3 +26,17 @@ index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..b48a49a010df579ce1dc086b0425cee8
  }
  
  if (is_android) {
+@@ -180,6 +183,13 @@ static_library("test_support") {
+     "//ui/base",
+     "//v8:v8_headers",
+   ]
++
++  # chrome_main_delegate.cc includes brave_main_delegate.cc, which calls into
++  # the Socket profile migration. The browser reaches it through
++  # browser_dependencies; test binaries link this target directly.
++  if (is_mac && is_socket_branded) {
++    deps += [ "//brave/app:socket_profile_migration" ]
++  }
+   public_deps = [ "//ui/lottie" ]
+ 
+   if (is_mac || is_win || is_linux || is_chromeos) {

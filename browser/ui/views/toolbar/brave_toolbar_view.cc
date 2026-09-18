@@ -63,7 +63,6 @@
 #include "chrome/grit/generated_resources.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
 #include "components/prefs/pref_service.h"
-#include "components/vector_icons/vector_icons.h"
 #include "ui/base/hit_test.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -400,29 +399,14 @@ void BraveToolbarView::Init() {
             ? kVerticalTabStripToggleCollapsedIcon
             : kLeoWindowTabsVerticalExpandedIcon);
 
-    auto target_index = GetIndexOf(vertical_tab_toggle_);
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    // Origin uses Sigma's two clear leading actions: a stable sidebar glyph
-    // and a plain search glyph for Quick Open. Chromium's tab-search combo is
-    // visually heavier and reads as a miniature browser window.
-    origin_quick_open_button_ =
-        AddChildViewAt(std::make_unique<ToolbarButton>(base::BindRepeating(
-                           &BraveToolbarView::OnOriginQuickOpenPressed,
-                           base::Unretained(this))),
-                       *target_index + 1);
-    origin_quick_open_button_->SetVectorIcon(vector_icons::kSearchIcon);
-    origin_quick_open_button_->SetPreferredSize(gfx::Size(32, 32));
-    // The five leading controls fit exactly inside Origin's expanded sidebar
-    // column. An extra inset here pushes Reload into the page column and, in
-    // turn, forces the address capsule away from the page's leading edge.
-    origin_quick_open_button_->SetProperty(views::kMarginsKey, gfx::Insets());
-    origin_quick_open_button_->SetTooltipText(u"Search or open a page   O");
-    origin_quick_open_button_->SetAccessibleName(u"Search or open a page");
-#else
+#if !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Origin keeps only the sidebar glyph here. Quick Open has its own key and
+    // its own row in the sidebar, so a search button in the title bar would be
+    // a third way to reach the same surface.
     combo_button_ = AddChildViewAt(
         std::make_unique<TabStripComboButton>(
             browser(), TabStripComboButton::Context::kHorizontalTabStrip),
-        *target_index);
+        *GetIndexOf(vertical_tab_toggle_));
 #endif
 
     UpdateVerticalTabToggleVisibility();
@@ -764,6 +748,11 @@ void BraveToolbarView::RevealOriginPageChrome() {
 
 void BraveToolbarView::OnOriginPageScrolled(bool scrolled_down) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (base::TimeTicks::Now() < origin_scroll_resume_at_) {
+    // This is the page settling after the bar took or gave back its strip,
+    // not the reader moving. Acting on it oscillates the bar.
+    return;
+  }
   // A scroll ending in momentum or a rubber-band reverses direction several
   // times in quick succession. Acting on each one flashes the bar, so wait
   // for the direction to settle and apply only the last one.
@@ -776,8 +765,13 @@ void BraveToolbarView::OnOriginPageScrolled(bool scrolled_down) {
 
 void BraveToolbarView::ApplyOriginScrollState(bool scrolled_down) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_page_chrome_revealed_ == !scrolled_down) {
+    return;
+  }
   origin_scroll_wants_page_chrome_ = !scrolled_down;
   origin_page_chrome_reveal_timer_.Stop();
+  origin_scroll_resume_at_ =
+      base::TimeTicks::Now() + base::Milliseconds(600);
   SetOriginPageChromeRevealed(!scrolled_down);
 #endif
 }
@@ -1290,14 +1284,6 @@ void BraveToolbarView::UpdateVerticalTabToggleState() {
 #endif
 }
 
-void BraveToolbarView::OnOriginQuickOpenPressed() {
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (auto* brave_browser_view = BraveBrowserView::From(browser_view_)) {
-    brave_browser_view->ShowOriginQuickOpen();
-  }
-#endif
-}
-
 void BraveToolbarView::OnVerticalTabTogglePressed() {
   auto* brave_browser_view =
       BraveBrowserView::From(BrowserView::GetBrowserViewForBrowser(browser_));
@@ -1395,10 +1381,6 @@ void BraveToolbarView::UpdateWorkspaceButtonPlacement() {
 
 void BraveToolbarView::UpdateComboButtonState() {
   auto* vtc = VerticalTabController::FromBrowser(browser_);
-  if (origin_quick_open_button_) {
-    origin_quick_open_button_->SetVisible(vtc &&
-                                          vtc->ShouldShowBraveVerticalTabs());
-  }
   if (!combo_button_) {
     return;
   }

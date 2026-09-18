@@ -12,6 +12,7 @@
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
+#include "base/time/time.h"
 #include "base/timer/timer.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
@@ -137,7 +138,6 @@ class BraveToolbarView : public ToolbarView,
   void UpdateVerticalTabTogglePlacement();
   void UpdateVerticalTabToggleState();
   void OnVerticalTabTogglePressed();
-  void OnOriginQuickOpenPressed();
   void CreateWorkspaceButtonIfNeeded();
   void OnWorkspacesButtonPressed();
   void UpdateWorkspaceButtonVisibility();
@@ -161,7 +161,6 @@ class BraveToolbarView : public ToolbarView,
   raw_ptr<TabStripComboButton> combo_button_ = nullptr;
 
   raw_ptr<ToolbarButton> vertical_tab_toggle_ = nullptr;
-  raw_ptr<ToolbarButton> origin_quick_open_button_ = nullptr;
   raw_ptr<ToolbarButton> workspaces_button_ = nullptr;
   raw_ptr<BraveBookmarkButton> bookmark_ = nullptr;
   raw_ptr<BraveShieldsToolbarButton> origin_shields_button_ = nullptr;
@@ -215,6 +214,10 @@ class BraveToolbarView : public ToolbarView,
   bool origin_scroll_wants_page_chrome_ = true;
   base::OneShotTimer origin_page_chrome_reveal_timer_;
   base::OneShotTimer origin_scroll_settle_timer_;
+  // Showing or hiding the bar resizes the page, and that reflow reports its
+  // own scroll direction change. Acting on it would flip the bar straight
+  // back, so ignore scrolling until the resize has settled.
+  base::TimeTicks origin_scroll_resume_at_;
   std::unique_ptr<OriginPointerWatcher> origin_page_chrome_pointer_watcher_;
 
   std::optional<SkColor> origin_page_chrome_surface_;

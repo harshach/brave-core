@@ -31,6 +31,7 @@
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/accessibility/ax_enums.mojom.h"
+#include "ui/base/clipboard/scoped_clipboard_writer.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/image_model.h"
@@ -280,8 +281,9 @@ class OriginSpacePickerRow : public views::Button {
       default_label->SetSubpixelRenderingEnabled(false);
     }
 
-    key_ = AddChildView(
-        std::make_unique<views::Label>(base::NumberToString16(index + 1)));
+    // The plain digits belong to the page now; these are the modified ones.
+    key_ = AddChildView(std::make_unique<views::Label>(
+        u"\u2318" + base::NumberToString16(index + 1)));
     key_->SetVisible(index < 5);
     key_->SetFontList(OriginFont(11, gfx::Font::Weight::MEDIUM));
     key_->SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(2, 6)));
@@ -520,6 +522,12 @@ OriginTemporaryLinkView::OriginTemporaryLinkView(Browser* browser)
                           weak_factory_.GetWeakPtr()),
       l10n_util::GetStringUTF16(IDS_ORIGIN_TEMPORARY_LINK_KEEP),
       OriginHeaderButton::Style::kKeep));
+  // A temporary window has no address bar, so this is the only way to get the
+  // URL out of it without first keeping the page in a Space.
+  copy_link_button_ = trailing_container_->AddChildView(CreateHeaderIconButton(
+      base::BindRepeating(&OriginTemporaryLinkView::CopyLink,
+                          weak_factory_.GetWeakPtr()),
+      kLeoCopyIcon, u"Copy link"));
   discard_button_ = trailing_container_->AddChildView(CreateHeaderIconButton(
       base::BindRepeating(&OriginTemporaryLinkView::Discard,
                           weak_factory_.GetWeakPtr()),
@@ -541,6 +549,7 @@ void OriginTemporaryLinkView::RefreshTheme() {
   SetBackground(views::CreateSolidBackground(palette.bar));
   incoming_link_icon_->SetImage(ui::ImageModel::FromVectorIcon(
       kOriginIncomingLinkIcon, palette.muted, 15));
+  StyleHeaderIconButton(copy_link_button_, kLeoCopyIcon, palette);
   StyleHeaderIconButton(discard_button_, kLeoCloseIcon, palette);
   open_in_label_->SetEnabledColor(palette.secondary);
   title_label_->SetEnabledColor(palette.secondary);
@@ -569,15 +578,26 @@ void OriginTemporaryLinkView::Update() {
   favicon_view_->SetImage(favicon.IsEmpty()
                               ? favicon::GetDefaultFaviconModel()
                               : ui::ImageModel::FromImage(favicon));
+  const GURL visible_url = contents->GetVisibleURL();
   std::u16string title = contents->GetTitle();
   if (title.empty()) {
-    title = base::UTF8ToUTF16(contents->GetVisibleURL().host());
+    title = base::UTF8ToUTF16(visible_url.host());
   }
   title_label_->SetText(std::move(title));
+  title_label_->SetTooltipText(base::UTF8ToUTF16(visible_url.spec()));
 
   const int count = browser_->tab_strip_model()->count();
   count_label_->SetText(base::NumberToString16(count));
   count_label_->SetVisible(count > 1);
+}
+
+void OriginTemporaryLinkView::CopyLink() {
+  auto* contents = browser_->tab_strip_model()->GetActiveWebContents();
+  if (!contents) {
+    return;
+  }
+  ui::ScopedClipboardWriter(ui::ClipboardBuffer::kCopyPaste)
+      .WriteText(base::UTF8ToUTF16(contents->GetVisibleURL().spec()));
 }
 
 void OriginTemporaryLinkView::KeepSuggested() {

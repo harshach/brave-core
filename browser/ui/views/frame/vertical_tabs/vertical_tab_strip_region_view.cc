@@ -98,6 +98,7 @@
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/controls/label.h"
+#include "ui/views/controls/scroll_view.h"
 #include "ui/views/controls/resize_area.h"
 #include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/layout/box_layout.h"
@@ -395,15 +396,6 @@ class OriginWorkspaceButton : public views::LabelButton {
     ring_bounds.Inset(drop_targeted_ ? 1.0f : 0.5f);
     canvas->DrawRoundRect(ring_bounds, 10, ring);
 
-    if (!selected_) {
-      return;
-    }
-
-    cc::PaintFlags accent;
-    accent.setAntiAlias(true);
-    accent.setStyle(cc::PaintFlags::kFill_Style);
-    accent.setColor(kOriginActiveAccent);
-    canvas->DrawRoundRect(gfx::RectF(6, 11, 3, 14), 2, accent);
   }
 
  private:
@@ -414,11 +406,14 @@ class OriginWorkspaceButton : public views::LabelButton {
     const bool highlighted = selected_ || drop_targeted_ ||
                              GetState() == STATE_HOVERED ||
                              GetState() == STATE_PRESSED;
-    const SkColor icon_color = highlighted
-                                   ? (dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
-                                           : SkColorSetRGB(0x18, 0x1D, 0x27))
-                                   : (dark ? SkColorSetRGB(0x6B, 0x6E, 0x75)
-                                           : SkColorSetRGB(0x71, 0x76, 0x80));
+    SkColor icon_color = highlighted
+                             ? (dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
+                                     : SkColorSetRGB(0x18, 0x1D, 0x27))
+                             : (dark ? SkColorSetRGB(0x6B, 0x6E, 0x75)
+                                     : SkColorSetRGB(0x71, 0x76, 0x80));
+    if (selected_) {
+      icon_color = kOriginActiveAccent;
+    }
     SetImageModel(ButtonState::STATE_NORMAL,
                   ui::ImageModel::FromVectorIcon(GetOriginWorkspaceIcon(icon_),
                                                  icon_color, 18));
@@ -1036,12 +1031,35 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
       std::make_unique<views::BoxLayout>(
           views::BoxLayout::Orientation::kHorizontal,
           gfx::Insets::TLBR(6, 10, 6, 10), kOriginWorkspaceGap));
-  workspace_bar_layout->set_main_axis_alignment(
-      views::BoxLayout::MainAxisAlignment::kCenter);
   workspace_bar_layout->set_cross_axis_alignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
   origin_workspace_rail_->SetBackground(
       views::CreateSolidBackground(kColorBraveVerticalTabInactiveBackground));
+
+  auto scroll_view = std::make_unique<views::ScrollView>();
+  scroll_view->SetBackgroundColor(std::nullopt);
+  scroll_view->SetHorizontalScrollBarMode(
+      views::ScrollView::ScrollBarMode::kHiddenButEnabled);
+  scroll_view->SetVerticalScrollBarMode(
+      views::ScrollView::ScrollBarMode::kDisabled);
+  scroll_view->SetDrawOverflowIndicator(false);
+  auto strip = std::make_unique<views::View>();
+  auto* strip_layout = strip->SetLayoutManager(std::make_unique<views::BoxLayout>(
+      views::BoxLayout::Orientation::kHorizontal, gfx::Insets(),
+      kOriginWorkspaceGap));
+  strip_layout->set_cross_axis_alignment(
+      views::BoxLayout::CrossAxisAlignment::kCenter);
+  origin_workspace_strip_ = scroll_view->SetContents(std::move(strip));
+  origin_workspace_scroll_ =
+      origin_workspace_rail_->AddChildView(std::move(scroll_view));
+  workspace_bar_layout->SetFlexForView(origin_workspace_scroll_, 1);
+
+  origin_workspace_add_button_ =
+      origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
+          base::BindRepeating(
+              &BraveVerticalTabStripRegionView::CreateOriginWorkspace,
+              base::Unretained(this)),
+          "add", u"New Space", false));
 
   origin_workspace_header_ =
       origin_page_column_->AddChildView(std::make_unique<views::View>());
@@ -1523,10 +1541,10 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
   // Chromium's dangling-pointer detector intentionally rejects clearing these
   // references after RemoveAllChildViews() has destroyed the buttons.
   origin_workspace_buttons_.clear();
-  origin_workspace_rail_->RemoveAllChildViews();
+  origin_workspace_strip_->RemoveAllChildViews();
 
   for (const auto& space : origin_workspace_service_->GetOriginSpaces()) {
-    auto* button = origin_workspace_rail_->AddChildView(
+    auto* button = origin_workspace_strip_->AddChildView(
         std::make_unique<OriginWorkspaceButton>(
             base::BindRepeating(
                 &BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected,
@@ -1540,11 +1558,6 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
     button->set_context_menu_controller(this);
     origin_workspace_buttons_.push_back(button);
   }
-  origin_workspace_rail_->AddChildView(std::make_unique<OriginWorkspaceButton>(
-      base::BindRepeating(
-          &BraveVerticalTabStripRegionView::CreateOriginWorkspace,
-          base::Unretained(this)),
-      "add", u"New Space", false));
 
   const auto* active =
       origin_workspace_service_->GetOriginSpace(origin_active_workspace_id_);
@@ -1561,6 +1574,15 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
   }
   UpdateOriginWorkspaceMeta();
   UpdateOriginWorkspaceAudio();
+  const auto& all_spaces = origin_workspace_service_->GetOriginSpaces();
+  for (size_t i = 0;
+       i < all_spaces.size() && i < origin_workspace_buttons_.size(); ++i) {
+    if (all_spaces[i].id == origin_active_workspace_id_ &&
+        origin_workspace_buttons_[i]) {
+      origin_workspace_buttons_[i]->ScrollViewToVisible();
+      break;
+    }
+  }
   origin_workspace_rail_->InvalidateLayout();
   origin_workspace_header_->InvalidateLayout();
 #endif
@@ -1713,7 +1735,7 @@ void BraveVerticalTabStripRegionView::ShowOriginShortcutHelp() {
     std::u16string_view description;
   };
   constexpr std::array<ShortcutEntry, 16> kShortcuts = {{
-      {u"Space / O / N", u"Search or open a page"},
+      {u"O / N", u"Search or open a page"},
       {u"↑ / ↓", u"Next / previous page"},
       {u"1 – 9", u"Jump to Space"},
       {u"S", u"Split with a new page"},

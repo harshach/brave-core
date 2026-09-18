@@ -179,34 +179,6 @@ BraveTabContainer::BraveTabContainer(
       -1, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
   pinned_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
 
-  origin_pages_section_header_ = AddChildView(std::make_unique<views::View>());
-  origin_pages_section_header_->SetVisible(false);
-  origin_pages_section_header_->SetCanProcessEventsWithinSubtree(false);
-  auto* pages_section_layout = origin_pages_section_header_->SetLayoutManager(
-      std::make_unique<views::BoxLayout>(
-          views::BoxLayout::Orientation::kHorizontal,
-          gfx::Insets::VH(0, kOriginSectionHorizontalInset), 6));
-  pages_section_layout->set_cross_axis_alignment(
-      views::BoxLayout::CrossAxisAlignment::kCenter);
-  auto* pages_section_label = origin_pages_section_header_->AddChildView(
-      std::make_unique<views::Label>(u"Pages"));
-  pages_section_label->SetHorizontalAlignment(
-      gfx::HorizontalAlignment::ALIGN_LEFT);
-  pages_section_label->SetFontList(views::Label::GetDefaultFontList().Derive(
-      -1, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
-  pages_section_label->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
-  pages_section_layout->SetFlexForView(pages_section_label, 1);
-  auto* pages_navigation_hint = origin_pages_section_header_->AddChildView(
-      std::make_unique<views::Label>(u"↑  ↓"));
-  pages_navigation_hint->SetFontList(views::Label::GetDefaultFontList().Derive(
-      -2, gfx::Font::NORMAL, gfx::Font::Weight::SEMIBOLD));
-  pages_navigation_hint->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
-  origin_pages_count_ = origin_pages_section_header_->AddChildView(
-      std::make_unique<views::Label>());
-  origin_pages_count_->SetFontList(views::Label::GetDefaultFontList().Derive(
-      -1, gfx::Font::NORMAL, gfx::Font::Weight::NORMAL));
-  origin_pages_count_->SetEnabledColor(kColorBraveVerticalTabNTBTextColor);
-
   origin_split_section_header_ = AddChildView(std::make_unique<views::View>());
   origin_split_section_header_->SetVisible(false);
   origin_split_section_header_->SetCanProcessEventsWithinSubtree(false);
@@ -846,8 +818,7 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   for (views::View* section_header :
-       {origin_pinned_section_header_, origin_pages_section_header_,
-        origin_split_section_header_}) {
+       {origin_pinned_section_header_, origin_split_section_header_}) {
     if (section_header && section_header->GetVisible()) {
       section_header->Paint(paint_info);
     }
@@ -1452,17 +1423,6 @@ void BraveTabContainer::UpdateIdealBounds() {
       compact_y += kOriginPinnedSectionBottomInset;
     }
 
-    const bool show_pages_section = !visible_page_tab_indices.empty();
-    origin_pages_section_header_->SetVisible(show_pages_section);
-    if (show_pages_section) {
-      origin_pages_count_->SetText(base::NumberToString16(
-          visible_page_tab_indices.size() + visible_side_tab_indices.size()));
-      origin_pages_section_header_->SetBounds(0, compact_y, width(),
-                                              kOriginSectionHeaderHeight);
-      compact_y += kOriginSectionHeaderHeight;
-    } else {
-      origin_pages_section_header_->SetBoundsRect(gfx::Rect());
-    }
     for (const size_t index : visible_page_tab_indices) {
       gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
       bounds.set_y(compact_y);
@@ -1981,16 +1941,7 @@ int BraveTabContainer::GetPinnedTabsAreaBoundary() const {
     return GetPinnedTabsAreaBottom();
   }
   if (scroll_direction == views::LayoutOrientation::kVertical) {
-    int boundary = GetPinnedTabsAreaBottom();
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-    // The Pages heading remains fixed while page rows scroll beneath it.
-    if (origin_pages_section_header_ &&
-        origin_pages_section_header_->GetVisible()) {
-      boundary =
-          std::max(boundary, origin_pages_section_header_->bounds().bottom());
-    }
-#endif
-    return boundary;
+    return GetPinnedTabsAreaBottom();
   }
 
   // For horizontal tabs, calculate the right boundary
@@ -2264,9 +2215,6 @@ void BraveTabContainer::UpdateClipPathForSlotViews() {
   }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (origin_pages_section_header_) {
-    origin_pages_section_header_->SetClipPath({});
-  }
   for (views::View* section_header : {origin_split_section_header_}) {
     if (section_header) {
       UpdateClipPathForChildren(section_header, pinned_tabs_area_boundary);

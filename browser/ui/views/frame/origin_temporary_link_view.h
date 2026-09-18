@@ -58,6 +58,7 @@ class OriginTemporaryLinkView : public views::View {
   void ShowSpacePicker();
   void OnSpacePickerClosed();
   void KeepInSelectedSpace();
+  void CopyLink();
   void RefreshSpaceChip();
   void BalanceSideContainers();
 
@@ -70,6 +71,7 @@ class OriginTemporaryLinkView : public views::View {
   raw_ptr<views::ImageView> favicon_view_ = nullptr;
   raw_ptr<views::Label> title_label_ = nullptr;
   raw_ptr<views::Label> count_label_ = nullptr;
+  raw_ptr<views::ImageButton> copy_link_button_ = nullptr;
   raw_ptr<views::ImageButton> discard_button_ = nullptr;
   std::string selected_space_id_;
   std::string selected_domain_;

@@ -38,6 +38,7 @@
 namespace views {
 class Label;
 class LabelButton;
+class ScrollView;
 class MenuRunner;
 class Textfield;
 }  // namespace views
@@ -357,6 +358,9 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::View> origin_status_row_ = nullptr;
   raw_ptr<views::View> origin_shortcut_button_ = nullptr;
   raw_ptr<views::View> origin_settings_button_ = nullptr;
+  raw_ptr<views::ScrollView> origin_workspace_scroll_ = nullptr;
+  raw_ptr<views::View> origin_workspace_strip_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_add_button_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
   raw_ptr<views::LabelButton> origin_workspace_drop_target_button_ = nullptr;
   std::string origin_drag_destination_space_id_;

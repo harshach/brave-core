@@ -210,8 +210,11 @@ void AddBraveTabThemeColorMixer(ui::ColorProvider* provider,
   // Origin uses one shell surface across the frame, workspace sidebar, and
   // toolbar. The rounded address field and web canvas supply the page layer.
   const bool dark = key.color_mode == ui::ColorProviderKey::ColorMode::kDark;
+  // The shell is tinted rather than white so the page reads as a separate
+  // surface on top of it. Pure white left the sidebar and the page edge to
+  // edge with nothing between them in light mode.
   const SkColor kWorkspaceSurface =
-      dark ? SkColorSetRGB(0x17, 0x19, 0x1E) : SK_ColorWHITE;
+      dark ? SkColorSetRGB(0x17, 0x19, 0x1E) : SkColorSetRGB(0xF4, 0xF4, 0xF6);
   // The frame, toolbar, and sidebar are one shell. Page-derived colour belongs
   // only to the rounded location bar and the web canvas layered above it.
   const SkColor kPageChromeSurface = kWorkspaceSurface;

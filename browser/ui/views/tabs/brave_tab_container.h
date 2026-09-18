@@ -174,7 +174,7 @@ class BraveTabContainer : public TabContainerImpl,
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginNewPageFollowsPageRows);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
-                           OriginPagesHeaderClipsScrollingRows);
+                           OriginPinnedTilesClipScrollingRows);
 
   class DropArrow {
    public:
@@ -391,8 +391,6 @@ class BraveTabContainer : public TabContainerImpl,
   // Non-interactive headings which make the vertical tab model read as a
   // Sigma-style page list instead of a generic browser tab strip.
   raw_ptr<views::View> origin_pinned_section_header_ = nullptr;
-  raw_ptr<views::View> origin_pages_section_header_ = nullptr;
-  raw_ptr<views::Label> origin_pages_count_ = nullptr;
   raw_ptr<views::View> origin_split_section_header_ = nullptr;
   raw_ptr<views::View> origin_new_page_button_ = nullptr;
 };
