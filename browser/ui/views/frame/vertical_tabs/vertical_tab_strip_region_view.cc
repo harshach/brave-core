@@ -298,6 +298,9 @@ class OriginWorkspaceButton : public views::LabelButton {
         icon_(std::move(icon)),
         selected_(selected) {
     SetPreferredSize(gfx::Size(36, 36));
+    // Without a floor the row's layout shrinks these when space is tight,
+    // which is what made one Space's highlight taller than it is wide.
+    SetMinSize(gfx::Size(36, 36));
     SetBorder(views::CreateEmptyBorder(gfx::Insets()));
     SetHorizontalAlignment(gfx::HorizontalAlignment::ALIGN_CENTER);
     SetAccessibleName(accessible_name);
@@ -363,6 +366,16 @@ class OriginWorkspaceButton : public views::LabelButton {
     UpdateWorkspaceIcon();
   }
 
+  // The row compresses its buttons when space runs short, and drawing the
+  // highlight across the whole button turned it into a tall oval on whichever
+  // Space got squeezed. Keep it square so every Space looks the same.
+  gfx::RectF GetOriginHighlightBounds() const {
+    gfx::RectF bounds(GetLocalBounds());
+    const float side = std::min(bounds.width(), bounds.height());
+    bounds.ClampToCenteredSize(gfx::SizeF(side, side));
+    return bounds;
+  }
+
   void OnPaintBackground(gfx::Canvas* canvas) override {
     const bool dark =
         !GetColorProvider() ||
@@ -378,7 +391,7 @@ class OriginWorkspaceButton : public views::LabelButton {
                                       : SkColorSetRGB(0xF5, 0xF5, 0xF5))
                               : (dark ? SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF)
                                       : SkColorSetRGB(0xF5, 0xF5, 0xF5)));
-      canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), 10, fill);
+      canvas->DrawRoundRect(GetOriginHighlightBounds(), 10, fill);
     }
     if (!selected_ && !drop_targeted_) {
       return;
@@ -392,7 +405,7 @@ class OriginWorkspaceButton : public views::LabelButton {
                       ? kOriginActiveAccent
                       : (dark ? SkColorSetARGB(0x21, 0xFF, 0xFF, 0xFF)
                               : SkColorSetRGB(0xE9, 0xEA, 0xEB)));
-    gfx::RectF ring_bounds(GetLocalBounds());
+    gfx::RectF ring_bounds = GetOriginHighlightBounds();
     ring_bounds.Inset(drop_targeted_ ? 1.0f : 0.5f);
     canvas->DrawRoundRect(ring_bounds, 10, ring);
 

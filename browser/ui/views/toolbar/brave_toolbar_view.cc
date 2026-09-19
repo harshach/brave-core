@@ -861,6 +861,14 @@ void BraveToolbarView::ScheduleOriginPageChromeReveal(bool revealed) {
 #endif
 }
 
+double BraveToolbarView::origin_page_chrome_reveal_fraction() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return origin_page_chrome_animation_.GetCurrentValue();
+#else
+  return 1.0;
+#endif
+}
+
 void BraveToolbarView::SetOriginPageChromeRevealed(bool revealed) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (display_mode_ != DisplayMode::kNormal) {
@@ -869,32 +877,72 @@ void BraveToolbarView::SetOriginPageChromeRevealed(bool revealed) {
   if (!revealed && ShouldHoldOriginPageChromeOpen()) {
     return;
   }
+  if (origin_page_chrome_revealed_ == revealed &&
+      !origin_page_chrome_animation_.is_animating()) {
+    return;
+  }
   origin_page_chrome_revealed_ = revealed;
-  // Fade rather than hide. SetVisible() would collapse these out of the flex
-  // layout, changing the bar's height and shifting the sidebar and page below
-  // it every time the bar came and went.
-  for (views::View* view : {static_cast<views::View*>(location_bar_view_),
-                            static_cast<views::View*>(extensions_container()),
-                            static_cast<views::View*>(bookmark_.get()),
-                            static_cast<views::View*>(
-                                origin_shields_button_.get())}) {
-    if (!view) {
-      continue;
+  // Events follow the intent immediately; the visuals catch up over the
+  // animation, so a half-faded field never swallows a click.
+  for (views::View* view : GetOriginPageChromeViews()) {
+    if (view) {
+      view->SetCanProcessEventsWithinSubtree(revealed);
     }
-    if (!view->layer()) {
-      view->SetPaintToLayer();
-      view->layer()->SetFillsBoundsOpaquely(false);
-    }
-    view->layer()->SetOpacity(revealed ? 1.0f : 0.0f);
-    view->SetCanProcessEventsWithinSubtree(revealed);
   }
-  // The page claims the bar's strip while the bar is hidden, so the browser
-  // layout has to re-run to hand it over or take it back.
-  if (browser_view_) {
-    browser_view_->InvalidateLayout();
+  origin_page_chrome_animation_.SetSlideDuration(base::Milliseconds(180));
+  origin_page_chrome_animation_.SetTweenType(gfx::Tween::EASE_OUT);
+  if (revealed) {
+    origin_page_chrome_animation_.Show();
+  } else {
+    origin_page_chrome_animation_.Hide();
   }
-  SchedulePaint();
 #endif
+}
+
+std::vector<views::View*> BraveToolbarView::GetOriginPageChromeViews() {
+  return {static_cast<views::View*>(location_bar_view_),
+          static_cast<views::View*>(extensions_container()),
+          static_cast<views::View*>(bookmark_.get()),
+          static_cast<views::View*>(origin_shields_button_.get())};
+}
+
+void BraveToolbarView::AnimationProgressed(const gfx::Animation* animation) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (animation == &origin_page_chrome_animation_) {
+    const float opacity =
+        static_cast<float>(origin_page_chrome_animation_.GetCurrentValue());
+    // Fade rather than hide. SetVisible() would collapse these out of the flex
+    // layout, changing the bar's height and shifting the sidebar and page
+    // below it every time the bar came and went.
+    for (views::View* view : GetOriginPageChromeViews()) {
+      if (!view) {
+        continue;
+      }
+      if (!view->layer()) {
+        view->SetPaintToLayer();
+        view->layer()->SetFillsBoundsOpaquely(false);
+      }
+      view->layer()->SetOpacity(opacity);
+    }
+    // The page takes the strip as the bar leaves it, a frame at a time.
+    if (browser_view_) {
+      browser_view_->InvalidateLayout();
+    }
+    SchedulePaint();
+    return;
+  }
+#endif
+  ToolbarView::AnimationProgressed(animation);
+}
+
+void BraveToolbarView::AnimationEnded(const gfx::Animation* animation) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (animation == &origin_page_chrome_animation_) {
+    AnimationProgressed(animation);
+    return;
+  }
+#endif
+  ToolbarView::AnimationEnded(animation);
 }
 
 void BraveToolbarView::Layout(PassKey) {

@@ -12,6 +12,7 @@
 #include "base/check.h"
 #include "base/check_is_test.h"
 #include "base/i18n/rtl.h"
+#include "base/numerics/safe_conversions.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
@@ -263,15 +264,25 @@ void BraveBrowserViewTabbedLayoutImpl::ApplyOriginFloatingTopBarLayout(
   // own strip is untouched either way, so the window controls never move.
   auto* brave_toolbar =
       views::AsViewClass<BraveToolbarView>(views().toolbar.get());
-  if (!brave_toolbar || brave_toolbar->origin_page_chrome_revealed()) {
+  if (!brave_toolbar) {
+    return;
+  }
+  // Follow the reveal animation rather than its end points, so the page glides
+  // into the strip instead of jumping the bar's full height in one pass.
+  const double revealed = brave_toolbar->origin_page_chrome_reveal_fraction();
+  if (revealed >= 1.0) {
     return;
   }
 
   const int client_top = params.visual_client_area.y();
-  if (contents_layout->bounds.y() > client_top) {
+  const int revealed_top = contents_layout->bounds.y();
+  if (revealed_top > client_top) {
     const int bottom = contents_layout->bounds.bottom();
-    contents_layout->bounds.set_y(client_top);
-    contents_layout->bounds.set_height(std::max(0, bottom - client_top));
+    const int top =
+        client_top +
+        base::ClampRound((revealed_top - client_top) * revealed);
+    contents_layout->bounds.set_y(top);
+    contents_layout->bounds.set_height(std::max(0, bottom - top));
     if (auto* background_layout =
             layout.GetLayoutFor(views().contents_background)) {
       background_layout->bounds = contents_layout->bounds;

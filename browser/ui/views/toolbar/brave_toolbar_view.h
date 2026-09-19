@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
@@ -20,6 +21,7 @@
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "components/prefs/pref_member.h"
 #include "third_party/skia/include/core/SkColor.h"
+#include "ui/gfx/animation/slide_animation.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/views/view_targeter_delegate.h"
 
@@ -101,6 +103,10 @@ class BraveToolbarView : public ToolbarView,
   bool DoesIntersectRect(const views::View* target,
                          const gfx::Rect& rect) const override;
 
+  // views::AnimationDelegateViews:
+  void AnimationProgressed(const gfx::Animation* animation) override;
+  void AnimationEnded(const gfx::Animation* animation) override;
+
   // Origin's page chrome hides until it is wanted; call this to bring it back
   // for an action that needs the address field, such as Command+L.
   void RevealOriginPageChrome();
@@ -112,6 +118,9 @@ class BraveToolbarView : public ToolbarView,
   bool origin_page_chrome_revealed() const {
     return origin_page_chrome_revealed_;
   }
+
+  // 0 while hidden, 1 while shown, and everything between during the reveal.
+  double origin_page_chrome_reveal_fraction() const;
 
  private:
   // views::View already declares OnEvent() with an incompatible signature, so
@@ -130,6 +139,7 @@ class BraveToolbarView : public ToolbarView,
   void ApplyOriginScrollState(bool scrolled_down);
   void ScheduleOriginPageChromeReveal(bool revealed);
   bool ShouldHoldOriginPageChromeOpen() const;
+  std::vector<views::View*> GetOriginPageChromeViews();
   // Width of the leading strip the window controls and navigation buttons
   // occupy, which stays live even while the rest of the bar is faded out.
   int GetOriginWindowControlsStripWidth() const;
@@ -208,6 +218,7 @@ class BraveToolbarView : public ToolbarView,
   // Origin's top bar carries only the window controls until the pointer comes
   // to rest in it: the address field and page actions are transient.
   bool origin_page_chrome_revealed_ = true;
+  gfx::SlideAnimation origin_page_chrome_animation_{this};
   bool origin_pointer_in_page_chrome_ = false;
   // Scrolling owns the bar: once the reader comes back up it stays until they
   // go down again. Starts true because a fresh page is at its top.
