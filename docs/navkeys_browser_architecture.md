@@ -45,6 +45,11 @@ primitives so Chromium security updates remain mergeable.
 - Chrome typography uses SF Pro Text on macOS, Segoe UI on Windows, and Inter on
   Linux. The sidebar contains only the selected space title and its pages; the
   duplicate footer-level New Page control is suppressed in Origin.
+- The top bar's address field and page actions follow the page's scroll:
+  reading downward takes them away, coming back up returns them, as does
+  Command/Ctrl+L. Hovering the bar holds it open but never summons it, because
+  the page owns that strip while the bar is away and revealing on approach
+  would move whatever the pointer was reaching for.
 - Navigation mode maps the arrow keys to adjacent pages, `1`-`9` to the Space
   in that position of the bottom row, Command/Ctrl+Up and Command/Ctrl+Down to
   adjacent spaces, `o` and `n` to the native Quick Open palette, `d` to close

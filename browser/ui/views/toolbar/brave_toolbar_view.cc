@@ -728,14 +728,21 @@ void BraveToolbarView::OnOriginPointerMoved(const gfx::Point& screen_point) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   gfx::Rect zone = GetBoundsInScreen();
   if (origin_page_chrome_revealed_) {
-    // Showing the bar pushes the page down by the bar's height, so whatever
-    // the pointer was reaching for moves down with it. Hold the bar open
-    // across that distance; otherwise the page content runs away from the
-    // cursor and the bar oscillates as the two chase each other.
+    // While the bar is up it has pushed the page down by its own height, so
+    // anything the pointer is tracking sits lower than it did. Hold the bar
+    // open across that distance rather than hiding the moment the pointer
+    // passes its edge.
     zone.set_height(zone.height() * 2);
   }
   origin_pointer_in_page_chrome_ = zone.Contains(screen_point);
-  ScheduleOriginPageChromeReveal(origin_pointer_in_page_chrome_);
+
+  // Hovering holds the bar open; it never summons it. The page owns this
+  // strip while the bar is away, so revealing on approach would slide the
+  // site's own header out from under whatever the pointer was aiming at.
+  // Scrolling back up, Command+L and the omnibox still bring it back.
+  if (origin_page_chrome_revealed_) {
+    ScheduleOriginPageChromeReveal(origin_pointer_in_page_chrome_);
+  }
 #endif
 }
 
