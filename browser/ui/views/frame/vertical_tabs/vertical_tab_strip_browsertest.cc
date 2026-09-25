@@ -461,6 +461,150 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarDocksWhenShownAgain) {
+  using State = BraveVerticalTabStripRegionView::State;
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  ToggleVerticalTabStrip();
+
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(State::kExpanded, region->state());
+
+  // The page starts where the sidebar ends: beside it, never beneath it.
+  auto expect_docked = [&](const char* when) {
+    browser_view()->DeprecatedLayoutImmediately();
+    const gfx::Rect sidebar = views::View::ConvertRectToTarget(
+        region, browser_view(), region->GetLocalBounds());
+    const gfx::Rect contents = browser_view()->contents_container()->bounds();
+    EXPECT_GE(contents.x(), sidebar.right())
+        << when << ": sidebar " << sidebar.ToString() << " contents "
+        << contents.ToString();
+  };
+  expect_docked("at startup");
+
+  region->ToggleState();
+  ASSERT_EQ(State::kCollapsed, region->state());
+  region->ToggleState();
+  ASSERT_EQ(State::kExpanded, region->state());
+  expect_docked("after hiding and showing with the toggle");
+
+  region->ToggleState();
+  ASSERT_EQ(State::kCollapsed, region->state());
+  region->SetState(State::kFloating);
+  expect_docked("after revealing a hidden sidebar from the window edge");
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarDocksAfterModeChanges) {
+  using State = BraveVerticalTabStripRegionView::State;
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  ToggleVerticalTabStrip();
+
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(State::kExpanded, region->state());
+
+  auto sidebar_bounds = [&] {
+    return views::View::ConvertRectToTarget(region, browser_view(),
+                                            region->GetLocalBounds());
+  };
+  auto expect_docked = [&](const char* when) {
+    const bool docked = base::test::RunUntil([&] {
+      browser_view()->DeprecatedLayoutImmediately();
+      return region->GetVisible() &&
+             browser_view()->contents_container()->bounds().x() >=
+                 sidebar_bounds().right();
+    });
+    EXPECT_TRUE(docked) << when << ": state "
+                        << static_cast<int>(region->state()) << " sidebar "
+                        << sidebar_bounds().ToString() << " contents "
+                        << browser_view()->contents_container()->bounds()
+                               .ToString();
+  };
+  expect_docked("at startup");
+
+  // Command+Left goes through the shared collapsed pref, not ToggleState().
+  auto* prefs = browser()->GetProfile()->GetPrefs();
+  prefs->SetBoolean(brave_tabs::kVerticalTabsCollapsed, true);
+  ASSERT_EQ(State::kCollapsed, region->state());
+  prefs->SetBoolean(brave_tabs::kVerticalTabsCollapsed, false);
+  ASSERT_EQ(State::kExpanded, region->state());
+  expect_docked("after hiding and showing with Command+Left");
+
+  // With the top bar scrolled away the page owns the strip above it.
+  auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
+  browser_view()->contents_web_view()->RequestFocus();
+  toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return !toolbar->origin_page_chrome_revealed(); }));
+  region->ToggleState();
+  region->ToggleState();
+  expect_docked("after hiding and showing with the top bar scrolled away");
+
+  // Focus mode and fullscreen float the sidebar on purpose. Leaving them has
+  // to bring back the docked sidebar the window started with.
+  auto* focus_mode = browser()->GetFeatures().focus_mode_controller();
+  ASSERT_TRUE(focus_mode);
+  focus_mode->SetEnabled(true);
+  focus_mode->SetEnabled(false);
+  expect_docked("after leaving focus mode");
+
+  ui_test_utils::ToggleFullscreenModeAndWait(browser());
+  ui_test_utils::ToggleFullscreenModeAndWait(browser());
+  expect_docked("after leaving fullscreen");
+}
+
+// Same round trip with the width animation running, as it does in use. The
+// other docking tests disable animation, which hides anything that only goes
+// wrong on the frames in between.
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarDocksWhenShownAgainAnimated) {
+  using State = BraveVerticalTabStripRegionView::State;
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_ENABLED);
+  ToggleVerticalTabStrip();
+
+  auto* container = browser_view()->vertical_tab_strip_container_view();
+  ASSERT_TRUE(container);
+  auto* region = container->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+
+  auto sidebar_bounds = [&] {
+    return views::View::ConvertRectToTarget(region, browser_view(),
+                                            region->GetLocalBounds());
+  };
+  auto docked = [&] {
+    browser_view()->DeprecatedLayoutImmediately();
+    return region->GetVisible() && sidebar_bounds().width() > 0 &&
+           browser_view()->contents_container()->bounds().x() >=
+               sidebar_bounds().right();
+  };
+  ASSERT_TRUE(base::test::RunUntil(docked)) << "not docked at startup";
+
+  region->ToggleState();
+  ASSERT_EQ(State::kCollapsed, region->state());
+  ASSERT_TRUE(base::test::RunUntil([&] {
+    browser_view()->DeprecatedLayoutImmediately();
+    return !region->is_animating();
+  }));
+  region->ToggleState();
+  ASSERT_EQ(State::kExpanded, region->state());
+  EXPECT_TRUE(base::test::RunUntil(docked))
+      << "after an animated hide and show: sidebar "
+      << sidebar_bounds().ToString() << " contents "
+      << browser_view()->contents_container()->bounds().ToString();
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
                        OriginNewPageFollowsPageRows) {
   ToggleVerticalTabStrip();
   ASSERT_TRUE(

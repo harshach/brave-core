@@ -172,6 +172,10 @@ class BraveVerticalTabStripRegionView : public views::View,
 
  private:
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, VisualState);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSidebarDocksWhenShownAgain);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSidebarDocksAfterModeChanges);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, ExpandedState);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, ExpandedWidth);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
