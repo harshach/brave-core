@@ -48,7 +48,7 @@ constexpr int kFallbackTemporaryWindowWidth = 960;
 constexpr int kFallbackTemporaryWindowHeight = 600;
 
 Browser* AsBrowser(BrowserWindowInterface* browser) {
-  return browser ? browser->GetBrowserForMigrationOnly() : nullptr;
+  return static_cast<Browser*>(browser);
 }
 
 Browser* FindTemporaryBrowser(Profile* profile) {
@@ -215,11 +215,7 @@ bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser) {
   if (!browser) {
     return false;
   }
-  const Browser* concrete = browser->GetBrowserForMigrationOnly();
-  if (!concrete) {
-    return false;
-  }
-  const BrowserInitState* init_state = BrowserInitState::From(concrete);
+  const BrowserInitState* init_state = BrowserInitState::From(browser);
   return init_state &&
          init_state->create_params().app_name == kTemporaryLinkAppName;
 }

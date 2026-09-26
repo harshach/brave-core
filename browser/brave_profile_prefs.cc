@@ -217,9 +217,9 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   // Origin keeps the bookmark bar off the new tab page too.
   registry->SetDefaultPrefValue(
-      bookmarks::prefs::kBookmarkBarVisibilityState,
+      ::bookmarks::prefs::kBookmarkBarVisibilityState,
       base::Value(static_cast<int>(
-          bookmarks::BookmarkBarVisibilityState::kAlwaysHide)));
+          ::bookmarks::BookmarkBarVisibilityState::kAlwaysHide)));
 #endif
 #endif  // BUILDFLAG(IS_ANDROID)
 

@@ -48,6 +48,7 @@
 #include "base/command_line.h"
 #include "chrome/browser/extensions/extension_apitest.h"
 #include "chrome/browser/extensions/extension_view_host.h"
+#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/extensions/extension_action_test_helper.h"
 #include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
@@ -227,11 +228,11 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
         ->origin_temporary_link_view_;
   }
 
-  Browser* OpenOriginTemporaryLink(Browser* fallback, const GURL& url) {
+  Browser* OpenOriginTemporaryLink(BrowserWindowInterface* fallback,
+                                   const GURL& url) {
     NavigateParams params(fallback, url, ui::PAGE_TRANSITION_LINK);
     origin_external_link::ConfigureNavigation(url, fallback, &params);
-    Browser* temporary_browser =
-        params.browser ? params.browser->GetBrowserForMigrationOnly() : nullptr;
+    Browser* temporary_browser = static_cast<Browser*>(params.browser);
     Navigate(&params);
     return temporary_browser;
   }
@@ -529,7 +530,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   Browser* temporary_browser = nullptr;
   for (BrowserWindowInterface* candidate : GetAllBrowserWindowInterfaces()) {
     if (origin_external_link::IsTemporaryLinkBrowser(candidate)) {
-      temporary_browser = candidate->GetBrowserForMigrationOnly();
+      temporary_browser = static_cast<Browser*>(candidate);
     }
   }
   ASSERT_TRUE(temporary_browser);
@@ -575,7 +576,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   BrowserWindowInterface* restoring_window =
       CreateBrowserWindow(std::move(restore_params));
   ASSERT_TRUE(restoring_window);
-  Browser* restoring_browser = restoring_window->GetBrowserForMigrationOnly();
+  Browser* restoring_browser = static_cast<Browser*>(restoring_window);
   ASSERT_TRUE(restoring_browser);
   ASSERT_TRUE(restoring_browser->tab_strip_model()->empty());
   const BrowserInitState* restore_state =
@@ -608,8 +609,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   BrowserWindowInterface* placeholder_window =
       CreateBrowserWindow(std::move(placeholder_params));
   ASSERT_TRUE(placeholder_window);
-  Browser* placeholder_browser =
-      placeholder_window->GetBrowserForMigrationOnly();
+  Browser* placeholder_browser = static_cast<Browser*>(placeholder_window);
   ASSERT_TRUE(placeholder_browser);
   ASSERT_TRUE(placeholder_browser->tab_strip_model()->empty());
   base::WeakPtr<BrowserWindowInterface> placeholder_browser_weak =
@@ -625,7 +625,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
 
   CloseBrowserSynchronously(temporary_browser);
   CloseBrowserSynchronously(
-      restoring_browser_weak->GetBrowserForMigrationOnly());
+      static_cast<Browser*>(restoring_browser_weak.get()));
   EXPECT_FALSE(restoring_browser_weak);
 }
 

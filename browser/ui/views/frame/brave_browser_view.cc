@@ -58,6 +58,7 @@
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
+#include "components/favicon/content/content_favicon_util.h"
 #include "components/viz/common/vertical_scroll_direction.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
 #include "brave/browser/ui/views/window_closing_confirm_dialog_view.h"
@@ -80,6 +81,7 @@
 #include "chrome/browser/favicon/favicon_utils.h"
 #include "chrome/browser/ui/actions/chrome_action_id.h"
 #include "chrome/browser/ui/bookmarks/bookmark_tab_helper.h"
+#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_actions.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_element_identifiers.h"
@@ -201,7 +203,8 @@ std::optional<SkColor> GetOriginFaviconAccent(content::WebContents* contents) {
     return std::nullopt;
   }
 
-  const gfx::Image favicon = favicon::TabFaviconFromWebContents(contents);
+  const gfx::Image favicon =
+      favicon::GetTabFaviconMaybeDesaturatedOnError(contents);
   if (favicon.IsEmpty()) {
     return std::nullopt;
   }
@@ -589,7 +592,8 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (origin_external_link::IsTemporaryLinkBrowser(browser_)) {
     origin_temporary_link_view_ =
-        AddChildView(std::make_unique<OriginTemporaryLinkView>(browser_));
+        AddChildView(std::make_unique<OriginTemporaryLinkView>(
+            static_cast<Browser*>(browser_.get())));
   } else {
     origin_empty_space_view_ = AddChildView(std::make_unique<views::View>());
     origin_empty_space_view_->SetBackground(
@@ -602,7 +606,7 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
 
     origin_quick_open_view_ =
         AddChildView(std::make_unique<OriginQuickOpenView>(
-            browser_,
+            static_cast<Browser*>(browser_.get()),
             base::BindRepeating(&BraveBrowserView::SubmitOriginQuickOpen,
                                 base::Unretained(this)),
             base::BindRepeating(&BraveBrowserView::ShowOriginCommander,
@@ -858,7 +862,8 @@ void BraveBrowserView::SubmitOriginQuickOpen(
       // A result that is already open splits with that page rather than
       // opening a duplicate of it beside itself.
       if (selection.switch_to_tab &&
-          SplitWithExistingOriginTab(browser(), destination_url)) {
+          SplitWithExistingOriginTab(static_cast<Browser*>(browser()),
+                                     destination_url)) {
         break;
       }
       chrome::NewSplitTab(browser(), split_tabs::SplitTabLayout::kSideBySide,
@@ -1904,10 +1909,6 @@ void BraveBrowserView::UpdateOriginPageChromeColor(
   origin_page_chrome_location_bar_ring_ = palette.location_bar_ring;
   origin_page_chrome_foreground_ = palette.foreground;
 
-  if (main_background_region_) {
-    main_background_region_->SetBackground(
-        views::CreateSolidBackground(palette.surface));
-  }
   if (origin_empty_space_view_) {
     origin_empty_space_view_->SetBackground(
         views::CreateSolidBackground(palette.surface));

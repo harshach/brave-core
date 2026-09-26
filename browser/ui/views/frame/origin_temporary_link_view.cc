@@ -29,6 +29,7 @@
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "components/favicon/content/content_favicon_util.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/accessibility/ax_enums.mojom.h"
 #include "ui/base/clipboard/scoped_clipboard_writer.h"
@@ -574,7 +575,8 @@ void OriginTemporaryLinkView::Update() {
   }
   RefreshSpaceChip();
 
-  const gfx::Image favicon = favicon::TabFaviconFromWebContents(contents);
+  const gfx::Image favicon =
+      favicon::GetTabFaviconMaybeDesaturatedOnError(contents);
   favicon_view_->SetImage(favicon.IsEmpty()
                               ? favicon::GetDefaultFaviconModel()
                               : ui::ImageModel::FromImage(favicon));
