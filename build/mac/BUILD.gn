@@ -434,6 +434,22 @@ action("package") {
   if (is_brave_origin_branded && origin_adblock_components_dir != "") {
     deps += [ ":install_origin_adblock_components" ]
   }
+  if (is_socket_branded) {
+    deps += [ ":touch_app_bundle" ]
+  }
+}
+
+if (is_socket_branded) {
+  action("touch_app_bundle") {
+    visibility = [ ":package" ]
+    script = "touch_app_bundle.py"
+    deps = [ "//chrome:chrome_app" ]
+    outputs = [ "$target_gen_dir/touch_app_bundle.stamp" ]
+    args = [
+      rebase_path(unsigned_app_path, root_build_dir),
+      rebase_path(outputs[0], root_build_dir),
+    ]
+  }
 }
 
 copy("copy_signing_config") {
