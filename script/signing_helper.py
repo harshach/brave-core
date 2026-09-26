@@ -56,8 +56,8 @@ def BraveModifyPartsForSigning(parts, config):
         CodeSignOptions.HARDENED_RUNTIME | CodeSignOptions.RESTRICT
         | CodeSignOptions.LIBRARY_VALIDATION | CodeSignOptions.KILL)
 
-    # Add Sparkle
-    if not development:
+    # Add Sparkle. Socket is built without it (see enable_sparkle).
+    if not development and config.app_product != 'Socket':
         # Add Sparkle binaries
         parts['sparkle-framework-fileop'] = CodeSignedProduct(
             '{0.framework_dir}/Versions/{0.version}/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/fileop'  # pylint: disable=line-too-long
