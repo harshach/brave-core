@@ -33,4 +33,8 @@ inline constexpr char kOriginTabSessionSpacesPref[] =
 inline constexpr char kOriginWindowSessionSpacesPref[] =
     "brave.origin.window_session_spaces";
 
+// OriginSpaceThemeIntensity applied to every Space's window theme.
+inline constexpr char kOriginSpaceThemeIntensityPref[] =
+    "brave.origin.space_theme_intensity";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

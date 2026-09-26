@@ -67,6 +67,8 @@ class WorkspaceService : public KeyedService {
   bool UpdateOriginSpace(const OriginSpaceMetadata& space);
   bool DeleteOriginSpace(const std::string& id);
   bool ReorderOriginSpace(const std::string& id, size_t target_index);
+  OriginSpaceThemeIntensity GetOriginSpaceThemeIntensity() const;
+  void SetOriginSpaceThemeIntensity(OriginSpaceThemeIntensity intensity);
 
   // Returns the registrable domain used by external-link routing. Host-only
   // URLs such as localhost and IP addresses use their canonical host.

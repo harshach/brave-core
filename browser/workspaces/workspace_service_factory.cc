@@ -70,6 +70,9 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
                                std::string());
   registry->RegisterDictionaryPref(kOriginTabSessionSpacesPref);
   registry->RegisterDictionaryPref(kOriginWindowSessionSpacesPref);
+  registry->RegisterIntegerPref(
+      kOriginSpaceThemeIntensityPref,
+      static_cast<int>(OriginSpaceThemeIntensity::kRich));
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

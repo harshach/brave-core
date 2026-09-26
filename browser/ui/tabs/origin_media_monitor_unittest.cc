@@ -132,6 +132,21 @@ TEST_F(OriginMediaMonitorTest, MutedPlaybackHasNoSoundIndicator) {
   EXPECT_FALSE(monitor_->IsSpaceAudible(space_id));
 }
 
+// A muted Space that is still producing sound shows still, struck-through
+// bars instead of none, so it can be unmuted from the rail.
+TEST_F(OriginMediaMonitorTest, MutedPlaybackIsReportedSeparately) {
+  const std::string space_id = controller_->active_space_id();
+  auto* page = AddPage();
+  content::WebContentsTester::For(page)->SetIsCurrentlyAudible(true);
+  EXPECT_FALSE(monitor_->IsSpacePlayingMuted(space_id));
+
+  monitor_->SetSpaceMuted(space_id, true);
+  EXPECT_TRUE(monitor_->IsSpacePlayingMuted(space_id));
+
+  content::WebContentsTester::For(page)->SetIsCurrentlyAudible(false);
+  EXPECT_FALSE(monitor_->IsSpacePlayingMuted(space_id));
+}
+
 TEST_F(OriginMediaMonitorTest, AnyAudibleUnmutedPageKeepsIndicatorVisible) {
   const std::string space_id = controller_->active_space_id();
   auto* first = AddPage();

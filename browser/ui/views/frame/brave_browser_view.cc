@@ -46,6 +46,7 @@
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
+#include "brave/browser/ui/views/frame/origin_space_window_theme.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
@@ -58,10 +59,9 @@
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
-#include "components/favicon/content/content_favicon_util.h"
-#include "components/viz/common/vertical_scroll_direction.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
 #include "brave/browser/ui/views/window_closing_confirm_dialog_view.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
@@ -112,6 +112,7 @@
 #include "chrome/browser/ui/views/toolbar/browser_app_menu_button.h"
 #include "chrome/browser/ui/web_applications/app_browser_controller.h"
 #include "chrome/common/pref_names.h"
+#include "components/favicon/content/content_favicon_util.h"
 #include "components/javascript_dialogs/tab_modal_dialog_manager.h"
 #include "components/omnibox/browser/autocomplete_classifier.h"
 #include "components/omnibox/browser/autocomplete_match.h"
@@ -120,6 +121,7 @@
 #include "components/split_tabs/split_tab_visual_data.h"
 #include "components/tabs/public/tab_interface.h"
 #include "components/viz/common/frame_sinks/copy_output_result.h"
+#include "components/viz/common/vertical_scroll_direction.h"
 #include "components/web_modal/web_contents_modal_dialog_manager.h"
 #include "content/public/browser/page_navigator.h"
 #include "content/public/browser/render_widget_host.h"
@@ -613,6 +615,16 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
                                 base::Unretained(this)),
             base::BindRepeating(&BraveBrowserView::HideOriginQuickOpen,
                                 base::Unretained(this))));
+
+    auto* space_controller = browser_->GetFeatures().origin_space_controller();
+    auto* workspace_service =
+        WorkspaceServiceFactory::GetForProfile(GetProfile());
+    if (space_controller && workspace_service) {
+      origin_space_window_theme_ = std::make_unique<OriginSpaceWindowTheme>(
+          *space_controller, *workspace_service,
+          base::BindRepeating(&BraveBrowserView::OnOriginSpaceThemeChanged,
+                              base::Unretained(this)));
+    }
   }
 #endif
 
@@ -2040,6 +2052,26 @@ bool BraveBrowserView::IsPointInOriginTemporaryLinkHeader(
   return false;
 }
 
+ui::ColorProviderKey::InitializerSupplier*
+BraveBrowserView::GetOriginSpaceColorSupplier() const {
+  return origin_space_window_theme_
+             ? origin_space_window_theme_->color_supplier()
+             : nullptr;
+}
+
+void BraveBrowserView::PreviewOriginSpaceTheme(
+    std::optional<std::string> space_id) {
+  if (origin_space_window_theme_) {
+    origin_space_window_theme_->SetPreviewSpace(std::move(space_id));
+  }
+}
+
+void BraveBrowserView::OnOriginSpaceThemeChanged() {
+  if (auto* widget = GetWidget()) {
+    widget->ThemeChanged();
+  }
+}
+
 bool BraveBrowserView::IsPointInOriginPageUnderTopBar(
     const gfx::Point& point_in_widget) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -2210,6 +2242,16 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           if (active_index != TabStripModel::kNoTab) {
             model->SetTabPinned(active_index,
                                 !model->IsTabPinned(active_index));
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        }
+        case ui::VKEY_E: {
+          // Edits the Space on screen: its theme, name, icon, or deletion.
+          if (vertical_tab_strip_container_view_) {
+            if (auto* region = vertical_tab_strip_container_view_
+                                   ->vertical_tab_strip_region_view()) {
+              region->ShowOriginSpaceCardForActiveSpace();
+            }
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }

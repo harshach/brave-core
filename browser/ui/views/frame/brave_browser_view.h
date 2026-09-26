@@ -36,6 +36,7 @@
 #include "components/tabs/public/tab_interface.h"
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/color/color_provider_key.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 #include "url/gurl.h"
@@ -81,6 +82,7 @@ class BrowserWindowInterface;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
+class OriginSpaceWindowTheme;
 class OriginTemporaryLinkView;
 struct OriginQuickOpenSelection;
 class SidebarContainerView;
@@ -124,6 +126,11 @@ class BraveBrowserView : public BrowserView,
       const gfx::Point& point_in_widget) const;
   // True where the page has taken over the strip of a hidden top bar.
   bool IsPointInOriginPageUnderTopBar(const gfx::Point& point_in_widget);
+  // Tints the window with its Space's theme; null outside Origin windows.
+  ui::ColorProviderKey::InitializerSupplier* GetOriginSpaceColorSupplier()
+      const;
+  // Previews `space_id`'s theme on this window until reset with nullopt.
+  void PreviewOriginSpaceTheme(std::optional<std::string> space_id);
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a
@@ -338,6 +345,7 @@ class BraveBrowserView : public BrowserView,
   void HandleBrowserWindowMouseEvent(const ui::MouseEvent& event);
   void StopTabCycling();
   void OnCompactModePrefChanged();
+  void OnOriginSpaceThemeChanged();
   void OnPreferenceChanged(const std::string& pref_name);
   void UpdateOriginPageChromeColor(content::WebContents* contents);
   void ScheduleOriginPageHeaderColorSample(content::WebContents* contents);
@@ -455,6 +463,7 @@ class BraveBrowserView : public BrowserView,
   base::CallbackListSubscription active_tab_will_detach_subscription_;
 
   bool origin_insert_mode_ = false;
+  std::unique_ptr<OriginSpaceWindowTheme> origin_space_window_theme_;
 
   base::WeakPtrFactory<BraveBrowserView> weak_ptr_{this};
 };

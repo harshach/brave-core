@@ -90,6 +90,8 @@ class OriginMediaMonitor : public TabStripModelObserver,
   // Paused, silent and muted pages never keep the rail badge visible.
   bool IsSpaceAudible(const std::string& space_id) const;
   bool IsSpaceMuted(const std::string& space_id) const;
+  // True while a page in the Space is producing sound that is muted.
+  bool IsSpacePlayingMuted(const std::string& space_id) const;
   void SetSpaceMuted(const std::string& space_id, bool muted);
   void ToggleSpaceMuted(const std::string& space_id);
 

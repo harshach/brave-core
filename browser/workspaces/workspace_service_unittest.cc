@@ -20,6 +20,7 @@
 #include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "brave/browser/workspaces/features.h"
+#include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_metadata.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/browser/workspaces/workspace_utils.h"
@@ -27,6 +28,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile_manager.h"
+#include "components/prefs/pref_service.h"
 #include "components/sessions/core/command_storage_backend.h"
 #include "components/sessions/core/session_id.h"
 #include "components/sessions/core/session_service_commands.h"
@@ -113,6 +115,73 @@ TEST_F(WorkspaceServiceTest, OriginSpaces_CRUDAndOrdering) {
   EXPECT_EQ(service_->GetOriginSpaces().size(), 6u);
   EXPECT_NE(service_->GetOriginSpace(home_id), nullptr);
   EXPECT_EQ(service_->GetOriginSpace(work_id), nullptr);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemesDefaultByIconAndPersist) {
+  const auto& spaces = service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 5u);
+  EXPECT_EQ(spaces[0].theme, kOriginSpaceThemeEmber);
+  EXPECT_EQ(spaces[1].theme, kOriginSpaceThemeOcean);
+  EXPECT_EQ(spaces[2].theme, kOriginSpaceThemeViolet);
+  EXPECT_EQ(spaces[3].theme, kOriginSpaceThemeForest);
+  EXPECT_EQ(spaces[4].theme, kOriginSpaceThemeTeal);
+
+  OriginSpaceMetadata home = spaces[0];
+  home.theme = kOriginSpaceThemeRose;
+  ASSERT_TRUE(service_->UpdateOriginSpace(home));
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpace(home.id)->theme, kOriginSpaceThemeRose);
+
+  // An unknown theme falls back to the one that suits the icon.
+  home.theme = "neon";
+  ASSERT_TRUE(service_->UpdateOriginSpace(home));
+  EXPECT_EQ(service_->GetOriginSpace(home.id)->theme, kOriginSpaceThemeEmber);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemeFilledInForOlderEntries) {
+  base::ListValue spaces;
+  spaces.Append(base::DictValue()
+                    .Set("id", "older")
+                    .Set("name", "Reading")
+                    .Set("icon", kOriginSpaceIconReading));
+  spaces.Append(base::DictValue()
+                    .Set("id", "custom")
+                    .Set("name", "Mine")
+                    .Set("icon", kOriginSpaceIconHome));
+  profile_->GetPrefs()->SetList(kOriginSpacesPref, std::move(spaces));
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpace("older")->theme, kOriginSpaceThemeForest);
+  // The filled-in theme is written back so it no longer follows the icon.
+  const base::ListValue& saved =
+      profile_->GetPrefs()->GetList(kOriginSpacesPref);
+  ASSERT_EQ(saved.size(), 2u);
+  EXPECT_EQ(*saved[0].GetDict().FindString("theme"), kOriginSpaceThemeForest);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemeIntensityIsSharedAndClamped) {
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kRich);
+
+  class CountingObserver : public WorkspaceService::Observer {
+   public:
+    void OnOriginSpacesChanged() override { ++changes; }
+    int changes = 0;
+  } observer;
+  service_->AddObserver(&observer);
+  service_->SetOriginSpaceThemeIntensity(OriginSpaceThemeIntensity::kVivid);
+  service_->SetOriginSpaceThemeIntensity(OriginSpaceThemeIntensity::kVivid);
+  EXPECT_EQ(observer.changes, 1);
+  service_->RemoveObserver(&observer);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kVivid);
+
+  profile_->GetPrefs()->SetInteger(kOriginSpaceThemeIntensityPref, 9);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kVivid);
+  profile_->GetPrefs()->SetInteger(kOriginSpaceThemeIntensityPref, -2);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kSubtle);
 }
 
 TEST_F(WorkspaceServiceTest, OriginSpaces_NeverDeleteLastSpace) {

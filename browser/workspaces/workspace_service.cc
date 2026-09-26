@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "base/containers/fixed_flat_map.h"
 #include "base/files/file_util.h"
 #include "base/functional/bind.h"
 #include "base/hash/hash.h"
@@ -44,6 +45,7 @@ std::string ComputeKey(const std::string& name) {
 constexpr char kSpaceIdKey[] = "id";
 constexpr char kSpaceNameKey[] = "name";
 constexpr char kSpaceIconKey[] = "icon";
+constexpr char kSpaceThemeKey[] = "theme";
 
 struct DefaultOriginSpace {
   std::string_view name;
@@ -72,6 +74,45 @@ bool IsOriginSpaceIcon(std::string_view icon) {
       kOriginSpaceIconTravel,
   });
   return std::ranges::find(kIconNames, icon) != kIconNames.end();
+}
+
+bool IsOriginSpaceTheme(std::string_view theme) {
+  constexpr auto kThemeNames = std::to_array<std::string_view>({
+      kOriginSpaceThemeEmber,
+      kOriginSpaceThemeAmber,
+      kOriginSpaceThemeForest,
+      kOriginSpaceThemeTeal,
+      kOriginSpaceThemeOcean,
+      kOriginSpaceThemeViolet,
+      kOriginSpaceThemeRose,
+      kOriginSpaceThemeGraphite,
+  });
+  return std::ranges::find(kThemeNames, theme) != kThemeNames.end();
+}
+
+// A Space without a chosen theme takes one that suits its icon, so the
+// default Spaces each get their own colour.
+std::string NormalizeOriginSpaceTheme(std::string_view theme,
+                                      std::string_view icon) {
+  if (IsOriginSpaceTheme(theme)) {
+    return std::string(theme);
+  }
+  static constexpr auto kIconThemes =
+      base::MakeFixedFlatMap<std::string_view, std::string_view>({
+          {kOriginSpaceIconHome, kOriginSpaceThemeEmber},
+          {kOriginSpaceIconWork, kOriginSpaceThemeOcean},
+          {kOriginSpaceIconPlayground, kOriginSpaceThemeViolet},
+          {kOriginSpaceIconReading, kOriginSpaceThemeForest},
+          {kOriginSpaceIconTerminal, kOriginSpaceThemeTeal},
+          {kOriginSpaceIconIdeas, kOriginSpaceThemeAmber},
+          {kOriginSpaceIconMessages, kOriginSpaceThemeRose},
+          {kOriginSpaceIconSchool, kOriginSpaceThemeAmber},
+          {kOriginSpaceIconShopping, kOriginSpaceThemeRose},
+          {kOriginSpaceIconTravel, kOriginSpaceThemeOcean},
+      });
+  const auto it = kIconThemes.find(icon);
+  return std::string(it == kIconThemes.end() ? kOriginSpaceThemeGraphite
+                                             : it->second);
 }
 
 std::string NormalizeOriginSpaceIcon(std::string_view icon,
@@ -140,10 +181,12 @@ std::string WorkspaceService::CreateOriginSpace(std::string name,
     name = "Untitled";
   }
   icon = NormalizeOriginSpaceIcon(icon, name);
+  std::string theme = NormalizeOriginSpaceTheme(std::string_view(), icon);
   OriginSpaceMetadata space{
       .id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
       .name = std::move(name),
-      .icon = std::move(icon)};
+      .icon = std::move(icon),
+      .theme = std::move(theme)};
   origin_spaces_.push_back(std::move(space));
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
@@ -158,6 +201,7 @@ bool WorkspaceService::UpdateOriginSpace(const OriginSpaceMetadata& space) {
   }
   it->name = space.name.empty() ? "Untitled" : space.name;
   it->icon = NormalizeOriginSpaceIcon(space.icon, it->name);
+  it->theme = NormalizeOriginSpaceTheme(space.theme, it->icon);
   SaveOriginSpaces();
   NotifyOriginSpacesChanged();
   return true;
@@ -298,15 +342,23 @@ void WorkspaceService::LoadOriginSpaces() {
     }
     std::string normalized_icon = NormalizeOriginSpaceIcon(*icon, *name);
     migrated_icons |= normalized_icon != *icon;
-    origin_spaces_.push_back(
-        {.id = *id, .name = *name, .icon = std::move(normalized_icon)});
+    // Themes arrived after icons, so older entries have none yet.
+    const std::string* theme = dict->FindString(kSpaceThemeKey);
+    std::string normalized_theme = NormalizeOriginSpaceTheme(
+        theme ? std::string_view(*theme) : std::string_view(), normalized_icon);
+    migrated_icons |= !theme || normalized_theme != *theme;
+    origin_spaces_.push_back({.id = *id,
+                              .name = *name,
+                              .icon = std::move(normalized_icon),
+                              .theme = std::move(normalized_theme)});
   }
   if (origin_spaces_.empty()) {
     for (const auto& default_space : kDefaultOriginSpaces) {
       origin_spaces_.push_back(
           {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
            .name = std::string(default_space.name),
-           .icon = std::string(default_space.icon)});
+           .icon = std::string(default_space.icon),
+           .theme = NormalizeOriginSpaceTheme({}, default_space.icon)});
     }
     SaveOriginSpaces();
   } else if (origin_spaces_.size() == 1u &&
@@ -319,7 +371,9 @@ void WorkspaceService::LoadOriginSpaces() {
       origin_spaces_.push_back(
           {.id = base::Uuid::GenerateRandomV4().AsLowercaseString(),
            .name = std::string(kDefaultOriginSpaces[i].name),
-           .icon = std::string(kDefaultOriginSpaces[i].icon)});
+           .icon = std::string(kDefaultOriginSpaces[i].icon),
+           .theme =
+               NormalizeOriginSpaceTheme({}, kDefaultOriginSpaces[i].icon)});
     }
     SaveOriginSpaces();
   } else if (migrated_icons) {
@@ -334,9 +388,28 @@ void WorkspaceService::SaveOriginSpaces() {
     dict.Set(kSpaceIdKey, space.id);
     dict.Set(kSpaceNameKey, space.name);
     dict.Set(kSpaceIconKey, space.icon);
+    dict.Set(kSpaceThemeKey, space.theme);
     list.Append(std::move(dict));
   }
   pref_service_->SetList(kOriginSpacesPref, std::move(list));
+}
+
+OriginSpaceThemeIntensity WorkspaceService::GetOriginSpaceThemeIntensity()
+    const {
+  const int value = pref_service_->GetInteger(kOriginSpaceThemeIntensityPref);
+  return static_cast<OriginSpaceThemeIntensity>(
+      std::clamp(value, static_cast<int>(OriginSpaceThemeIntensity::kSubtle),
+                 static_cast<int>(OriginSpaceThemeIntensity::kVivid)));
+}
+
+void WorkspaceService::SetOriginSpaceThemeIntensity(
+    OriginSpaceThemeIntensity intensity) {
+  if (intensity == GetOriginSpaceThemeIntensity()) {
+    return;
+  }
+  pref_service_->SetInteger(kOriginSpaceThemeIntensityPref,
+                            static_cast<int>(intensity));
+  NotifyOriginSpacesChanged();
 }
 
 void WorkspaceService::NotifyOriginSpacesChanged() {

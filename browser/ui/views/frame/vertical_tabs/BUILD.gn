@@ -8,6 +8,10 @@ import("//build/config/ui.gni")
 
 source_set("vertical_tabs") {
   sources = [
+    "origin_owned_bubble.cc",
+    "origin_owned_bubble.h",
+    "origin_space_card.cc",
+    "origin_space_card.h",
     "vertical_tab_strip_container_view.cc",
     "vertical_tab_strip_container_view.h",
     "vertical_tab_strip_region_view.cc",
@@ -23,14 +27,17 @@ source_set("vertical_tabs") {
   deps = [
     "//base",
     "//brave/browser/ui:brave_tab_prefs",
+    "//brave/browser/ui/tabs:origin_audio_bars",
     "//brave/browser/ui/tabs:origin_media_monitor",
     "//brave/browser/ui/tabs:origin_space_controller",
+    "//brave/browser/ui/tabs:origin_space_theme",
     "//brave/browser/ui/tabs:tabs_public",
     "//brave/browser/ui/views/frame",
     "//brave/browser/workspaces",
-    "//brave/components/constants",
     "//brave/components/brave_origin/buildflags",
+    "//brave/components/constants",
     "//brave/components/vector_icons",
+    "//cc/paint",
     "//chrome/app:command_ids",
     "//chrome/browser/profiles",
     "//chrome/browser/themes",
@@ -44,6 +51,8 @@ source_set("vertical_tabs") {
     "//chrome/browser/ui/views/toolbar",
     "//chrome/common:constants",
     "//components/prefs",
+    "//ui/base",
+    "//ui/gfx",
     "//ui/views",
   ]
 }
@@ -60,6 +69,7 @@ source_set("browser_tests") {
   deps = [
     ":vertical_tabs",
     "//base/i18n:test_support",
+    "//brave/browser/ui/tabs:origin_space_theme",
     "//brave/browser/ui/tabs:tab_menu",
     "//brave/browser/ui/tabs:tabs_public",
     "//brave/browser/ui/views/frame",
@@ -75,10 +85,13 @@ source_set("browser_tests") {
     "//chrome/browser/ui/views/tabs:tab_strip",
     "//chrome/browser/ui/views/tabs/tab",
     "//chrome/test:test_support_ui",
+    "//components/input",
     "//content/test:test_support",
     "//testing/gtest",
+    "//third_party/blink/public/common",
     "//ui/base",
     "//ui/base:test_support",
+    "//ui/color",
     "//ui/compositor",
     "//ui/display:test_support",
     "//ui/views",

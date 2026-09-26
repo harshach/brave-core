@@ -122,6 +122,18 @@ bool OriginMediaMonitor::IsSpaceAudible(const std::string& space_id) const {
   return false;
 }
 
+bool OriginMediaMonitor::IsSpacePlayingMuted(
+    const std::string& space_id) const {
+  for (int i = 0; i < tab_strip_model_->count(); ++i) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(i);
+    if (contents->IsCurrentlyAudible() && contents->IsAudioMuted() &&
+        space_controller_->GetSpaceIdForTab(contents) == space_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool OriginMediaMonitor::IsSpaceMuted(const std::string& space_id) const {
   bool found = false;
   for (int i = 0; i < tab_strip_model_->count(); ++i) {

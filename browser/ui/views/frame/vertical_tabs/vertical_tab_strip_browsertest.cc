@@ -15,15 +15,18 @@
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/ui/browser_commands.h"
+#include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/focus_mode/focus_mode_features.h"
 #include "brave/browser/ui/tabs/brave_tab_menu_model.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/ui/tabs/origin_space_theme.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_space_card.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/tabs/brave_browser_tab_strip_controller.h"
@@ -50,6 +53,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
+#include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_menu_model_delegate.h"
 #include "chrome/browser/ui/views/frame/browser_frame_view.h"
@@ -65,27 +69,34 @@
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/interactive_test_utils.h"
 #include "chrome/test/base/ui_test_utils.h"
-#include "components/tabs/public/split_tab_data.h"
-#include "content/public/browser/render_widget_host_view.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/saved_tab_groups/public/tab_group_sync_service.h"
 #include "components/tab_groups/tab_group_id.h"
+#include "components/tabs/public/split_tab_data.h"
+#include "content/public/browser/keyboard_event_processing_result.h"
+#include "content/public/browser/render_widget_host_view.h"
 #include "content/public/test/browser_test.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
 #include "third_party/skia/include/core/SkPath.h"
 #include "ui/base/cursor/cursor.h"
 #include "ui/base/cursor/mojom/cursor_type.mojom-shared.h"
 #include "ui/base/test/ui_controls.h"
+#include "ui/color/color_provider.h"
+#include "ui/color/color_provider_key.h"
 #include "ui/compositor/paint_context.h"
 #include "ui/display/screen.h"
 #include "ui/display/test/test_screen.h"
 #include "ui/events/event.h"
 #include "ui/gfx/animation/animation_test_api.h"
+#include "ui/gfx/color_utils.h"
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/views/controls/button/label_button.h"
 #include "ui/views/layout/flex_layout.h"
 #include "ui/views/layout/layout_manager.h"
 #include "ui/views/paint_info.h"
 #include "ui/views/test/views_test_utils.h"
+#include "ui/views/widget/widget_delegate.h"
 
 #if BUILDFLAG(IS_WIN)
 #include "chrome/browser/ui/view_ids.h"
@@ -429,6 +440,151 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
       destination->GetBoundsInScreen().CenterPoint();
 
   EXPECT_EQ(region, region->GetOriginTabDragTarget(destination_center));
+}
+
+namespace {
+
+bool IsWindowDark(BrowserView* browser_view) {
+  return color_utils::IsDark(
+      browser_view->GetWidget()->GetColorProvider()->GetColor(
+          ui::kColorFrameActive));
+}
+
+SkColor WindowColor(BrowserView* browser_view, ui::ColorId id) {
+  return browser_view->GetWidget()->GetColorProvider()->GetColor(id);
+}
+
+bool HasViewWithTooltip(views::View* view, std::u16string_view tooltip) {
+  if (auto* button = views::AsViewClass<views::Button>(view);
+      button && button->GetTooltipText() == tooltip) {
+    return true;
+  }
+  for (views::View* child : view->children()) {
+    if (HasViewWithTooltip(child, tooltip)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSpaceCardThemesTheWholeWindow) {
+  ToggleVerticalTabStrip();
+  auto* region = browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+  auto* service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(service);
+  ASSERT_GE(service->GetOriginSpaces().size(), 2u);
+  const OriginSpaceMetadata home = service->GetOriginSpaces()[0];
+  const OriginSpaceMetadata work = service->GetOriginSpaces()[1];
+  ASSERT_NE(home.theme, work.theme);
+  const bool dark = IsWindowDark(browser_view());
+  auto surface = [&](const std::string& theme,
+                     OriginSpaceThemeIntensity intensity) {
+    return origin_space_theme::GetColors(theme, intensity, dark).surface;
+  };
+  constexpr auto kRich = OriginSpaceThemeIntensity::kRich;
+
+  // The frame, top bar and sidebar all wear the active Space's theme.
+  EXPECT_EQ(surface(home.theme, kRich),
+            WindowColor(browser_view(), ui::kColorFrameActive));
+  EXPECT_EQ(surface(home.theme, kRich),
+            WindowColor(browser_view(), kColorToolbar));
+  EXPECT_EQ(
+      surface(home.theme, kRich),
+      WindowColor(browser_view(), kColorBraveVerticalTabInactiveBackground));
+
+  // E opens the card for the Space on screen.
+  input::NativeWebKeyboardEvent e_key(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  e_key.windows_key_code = ui::VKEY_E;
+  browser_view()->contents_web_view()->RequestFocus();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            browser_view()->PreHandleKeyboardEvent(e_key));
+  ASSERT_TRUE(region->origin_space_card_);
+  EXPECT_EQ(home.id, region->origin_space_card_space_id_);
+
+  // Right-clicking another Space opens its card and previews its colour.
+  region->ShowContextMenuForViewImpl(region->origin_workspace_buttons_[1],
+                                     gfx::Point(),
+                                     ui::mojom::MenuSourceType::kMouse);
+  ASSERT_TRUE(region->origin_space_card_);
+  EXPECT_EQ(work.id, region->origin_space_card_space_id_);
+  EXPECT_EQ(surface(work.theme, kRich),
+            WindowColor(browser_view(), ui::kColorFrameActive));
+
+  auto* card =
+      views::AsViewClass<OriginSpaceCard>(region->origin_space_card_.widget()
+                                              ->widget_delegate()
+                                              ->GetContentsView());
+  ASSERT_TRUE(card);
+  card->SelectThemeForTesting(kOriginSpaceThemeRose);
+  EXPECT_EQ(kOriginSpaceThemeRose, service->GetOriginSpace(work.id)->theme);
+  EXPECT_EQ(surface(kOriginSpaceThemeRose, kRich),
+            WindowColor(browser_view(), kColorToolbar));
+  // Picking a theme must not tear down the rail the card points at.
+  EXPECT_TRUE(region->origin_space_card_);
+
+  card->SelectIntensityForTesting(OriginSpaceThemeIntensity::kVivid);
+  EXPECT_EQ(OriginSpaceThemeIntensity::kVivid,
+            service->GetOriginSpaceThemeIntensity());
+  EXPECT_EQ(surface(kOriginSpaceThemeRose, OriginSpaceThemeIntensity::kVivid),
+            WindowColor(browser_view(), ui::kColorFrameActive));
+
+  // Closing the card returns the window to the Space it shows.
+  region->origin_space_card_.Close();
+  EXPECT_TRUE(base::test::RunUntil([&] {
+    return WindowColor(browser_view(), ui::kColorFrameActive) ==
+           surface(home.theme, OriginSpaceThemeIntensity::kVivid);
+  }));
+  EXPECT_TRUE(
+      base::test::RunUntil([&] { return !region->origin_space_card_; }));
+
+  // Bubbles that have closed must not leave anything watching the window:
+  // switching Spaces re-themes it, which used to crash after a card or the
+  // icon picker had been open.
+  region->ShowOriginWorkspaceIconPicker();
+  ASSERT_TRUE(region->origin_workspace_icon_picker_);
+  region->origin_workspace_icon_picker_.Close();
+  EXPECT_TRUE(base::test::RunUntil(
+      [&] { return !region->origin_workspace_icon_picker_; }));
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  ASSERT_TRUE(controller->SelectSpace(work.id));
+  EXPECT_EQ(surface(kOriginSpaceThemeRose, OriginSpaceThemeIntensity::kVivid),
+            WindowColor(browser_view(), ui::kColorFrameActive));
+  ASSERT_TRUE(controller->SelectSpace(home.id));
+  EXPECT_EQ(surface(home.theme, OriginSpaceThemeIntensity::kVivid),
+            WindowColor(browser_view(), ui::kColorFrameActive));
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginPageListEndsAtTheSpaceRow) {
+  ToggleVerticalTabStrip();
+  auto* region = browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+
+  const gfx::Rect pages = views::View::ConvertRectToTarget(
+      region->region_view_container_->parent(), region,
+      region->region_view_container_->bounds());
+  const gfx::Rect rail = views::View::ConvertRectToTarget(
+      region->origin_workspace_rail_->parent(), region,
+      region->origin_workspace_rail_->bounds());
+  ASSERT_FALSE(rail.IsEmpty());
+  // Nothing sits over the last pages any more.
+  EXPECT_EQ(pages.bottom(), rail.y());
+  EXPECT_FALSE(HasViewWithTooltip(region, u"Keyboard shortcuts"));
+  EXPECT_FALSE(HasViewWithTooltip(region, u"Settings"));
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,

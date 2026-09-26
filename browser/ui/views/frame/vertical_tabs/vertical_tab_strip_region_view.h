@@ -21,6 +21,7 @@
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_owned_bubble.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
 #include "chrome/browser/ui/views/tabs/dragging/tab_drag_target.h"
@@ -28,7 +29,6 @@
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/slide_animation.h"
 #include "ui/views/animation/animation_delegate_views.h"
-#include "ui/menus/simple_menu_model.h"
 #include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/resize_area_delegate.h"
 #include "ui/views/controls/textfield/textfield_controller.h"
@@ -121,6 +121,9 @@ class BraveVerticalTabStripRegionView : public views::View,
   void ResetExpandedWidth();
   bool IsMenuShowing() const;
 
+  // Opens the card for the Space the window is showing.
+  void ShowOriginSpaceCardForActiveSpace();
+
   void ListenFullscreenChanges();
   void StopListeningFullscreenChanges();
 
@@ -185,6 +188,10 @@ class BraveVerticalTabStripRegionView : public views::View,
                            OriginResizeHandleIsInteractive);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginSpaceRailIsNativeTabDropTarget);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSpaceCardThemesTheWholeWindow);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginPageListEndsAtTheSpaceRow);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -215,43 +222,16 @@ class BraveVerticalTabStripRegionView : public views::View,
   int GetOriginPageListTop() const;
   void SetOriginWorkspaceIcon(std::string icon);
   void ShowOriginQuickOpen();
-  void ShowOriginShortcutHelp();
-  void ShowOriginSettingsMenu();
-  void OpenOriginSettingsPage(std::string url);
-  void SetOriginThemeMode(int mode);
   void UpdateOriginWorkspaceMeta();
   // Refreshes the rail's per-Space sound badges from the media monitor.
   void UpdateOriginWorkspaceAudio();
-  void MuteOriginWorkspace(std::string space_id);
-  // Right-clicking a Space in the rail offers rename and delete. Deleting is
-  // refused for the last Space; pages in a deleted Space move to the first one.
-  void ShowOriginWorkspaceMenu(const std::string& space_id,
-                               views::View* source,
-                               const gfx::Point& point,
-                               ui::mojom::MenuSourceType source_type);
+  // Mutes the Space, or unmutes it if its sound is already muted.
+  void ToggleOriginWorkspaceMute(std::string space_id);
+  // Right-clicking a Space in the rail opens its card: theme, intensity,
+  // rename, icon and delete. Deleting is refused for the last Space; pages in
+  // a deleted Space move to the first one.
+  void ShowOriginSpaceCard(const std::string& space_id);
   void DeleteOriginWorkspace(std::string space_id);
-
-  // Carries the Space the menu was opened on, so the commands do not depend on
-  // the selection changing underneath them.
-  class OriginWorkspaceMenuDelegate : public ui::SimpleMenuModel::Delegate {
-   public:
-    enum : int { kRename = 1, kChangeIcon, kDelete };
-
-    OriginWorkspaceMenuDelegate(
-        base::WeakPtr<BraveVerticalTabStripRegionView> view,
-        std::string space_id,
-        bool can_delete);
-    ~OriginWorkspaceMenuDelegate() override;
-
-    // ui::SimpleMenuModel::Delegate:
-    bool IsCommandIdEnabled(int command_id) const override;
-    void ExecuteCommand(int command_id, int event_flags) override;
-
-   private:
-    base::WeakPtr<BraveVerticalTabStripRegionView> view_;
-    const std::string space_id_;
-    const bool can_delete_;
-  };
   void EnsureOriginSpaceHasPage();
   void ApplyOriginWorkspaceTabs();
 
@@ -359,9 +339,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::LabelButton> origin_workspace_more_button_ = nullptr;
   raw_ptr<views::View> origin_search_button_ = nullptr;
   raw_ptr<views::View> origin_new_page_button_ = nullptr;
-  raw_ptr<views::View> origin_status_row_ = nullptr;
-  raw_ptr<views::View> origin_shortcut_button_ = nullptr;
-  raw_ptr<views::View> origin_settings_button_ = nullptr;
   raw_ptr<views::ScrollView> origin_workspace_scroll_ = nullptr;
   raw_ptr<views::View> origin_workspace_strip_ = nullptr;
   raw_ptr<views::LabelButton> origin_workspace_add_button_ = nullptr;
@@ -371,9 +348,11 @@ class BraveVerticalTabStripRegionView : public views::View,
   std::string origin_pending_drop_space_id_;
   std::vector<raw_ptr<content::WebContents>> origin_pending_drop_contents_;
   base::OnceClosureList origin_drag_target_destroy_callbacks_;
-  base::WeakPtr<views::Widget> origin_workspace_icon_picker_widget_;
-  base::WeakPtr<views::Widget> origin_shortcut_help_widget_;
-  base::WeakPtr<views::Widget> origin_settings_widget_;
+  OriginOwnedBubble origin_workspace_icon_picker_;
+  OriginOwnedBubble origin_space_card_;
+  std::string origin_space_card_space_id_;
+  // Tells a closing card whether a newer one has replaced it.
+  int origin_space_card_generation_ = 0;
   raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
   raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
   raw_ptr<OriginMediaMonitor> origin_media_monitor_ = nullptr;
@@ -431,9 +410,6 @@ class BraveVerticalTabStripRegionView : public views::View,
   BooleanPrefMember vertical_tab_on_right_;
 
   std::unique_ptr<views::MenuRunner> menu_runner_;
-  std::unique_ptr<OriginWorkspaceMenuDelegate>
-      origin_workspace_menu_delegate_;
-  std::unique_ptr<ui::SimpleMenuModel> origin_workspace_menu_model_;
 
   // A subscription to `Browser::RegisterBrowserDidClose`, to manage the
   // lifetime of `menu_runner_`.
