@@ -40,7 +40,12 @@ class BraveAccountUIDesktop
 
  private:
   // brave_account::mojom::DialogController:
+  // No-op: the rows live in brave://settings, whose own binding of this
+  // interface opens the dialog.
+  void OpenDialog(const std::string& initiating_service_name,
+                  brave_account::mojom::DialogMode dialog_mode) override {}
   void CloseDialog() override;
+  void GetDialogMode(GetDialogModeCallback callback) override;
 
   mojo::Receiver<brave_account::mojom::DialogController> receiver_{this};
 
@@ -52,8 +57,5 @@ class BraveAccountUIDesktopConfig
  public:
   BraveAccountUIDesktopConfig();
 };
-
-void ShowBraveAccountDialog(content::WebUI* web_ui,
-                            const std::string& initiating_service_name);
 
 #endif  // BRAVE_BROWSER_UI_WEBUI_BRAVE_ACCOUNT_BRAVE_ACCOUNT_UI_DESKTOP_H_

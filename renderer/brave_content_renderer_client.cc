@@ -124,10 +124,22 @@ void BraveContentRendererClient::
       SetRuntimeFeaturesDefaultsBeforeBlinkInitialization();
 
   blink::WebRuntimeFeatures::EnableFledge(false);
+  // Disable the fenced frames API; kFencedFrames is disabled browser-side.
+  blink::WebRuntimeFeatures::EnableFencedFrames(false);
   // Disable topics APIs because kBrowsingTopics feature is disabled
   blink::WebRuntimeFeatures::EnableTopicsAPI(false);
   blink::WebRuntimeFeatures::EnableWebGPUExperimentalFeatures(false);
   blink::WebRuntimeFeatures::EnableWebNFC(false);
+
+  // Disable the WebOTP API; kWebOTP is disabled browser-side, and
+  // content/child/runtime_features.cc forwards that state to Blink only when
+  // the feature is overridden by a field trial or the command line - a
+  // plastered default is not an override. Without this the renderer requests
+  // blink.mojom.WebOTPService, whose binder is registered only while the
+  // feature is on, and the missing binder is a bad message that kills the
+  // renderer. Upstream syncs UserMediaElement the same way; see
+  // runtime_features.cc.
+  blink::WebRuntimeFeatures::EnableWebOTP(false);
 
   // These features don't have dedicated WebRuntimeFeatures wrappers.
   blink::WebRuntimeFeatures::EnableFeatureFromString("AdTagging", false);
@@ -162,8 +174,6 @@ void BraveContentRendererClient::RenderThreadStarted() {
 
   brave_observer_ = std::make_unique<BraveRenderThreadObserver>();
   content::RenderThread::Get()->AddObserver(brave_observer_.get());
-  brave_search_service_worker_holder_.SetBrowserInterfaceBrokerProxy(
-      browser_interface_broker_.get());
 }
 
 void BraveContentRendererClient::RenderFrameCreated(

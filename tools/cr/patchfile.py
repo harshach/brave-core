@@ -12,7 +12,7 @@ from pathlib import Path
 import re
 import subprocess
 
-from plaster import PlasterFile, PLASTER_FILES_PATH
+from plaster import PlasterFile, plaster_for_patch
 from repository import Repository
 import repository
 
@@ -22,11 +22,8 @@ def _plaster_path_for_patch(patch_path: Path) -> Path | None:
 
     Return None if no file is found.
     """
-    if len(patch_path.parts) != 2:
-        return None
-    source_name = patch_path.name[:-len('.patch')].replace('-', '/')
-    candidate = PLASTER_FILES_PATH / f'{source_name}.yaml'
-    return candidate if candidate.exists() else None
+    candidate = plaster_for_patch(patch_path)
+    return candidate if candidate is not None and candidate.exists() else None
 
 
 def patch_has_plaster(patch_path: Path) -> bool:
@@ -171,7 +168,7 @@ class Patchfile:
 
                 if 'does not exist in index' in reason:
                     # This type of detection could occur in certain cases when
-                    # `npm run init` or `sync` were not run for the working
+                    # `pnpm run init` or `sync` were not run for the working
                     # branch. It may be useful to warn.
                     #
                     # It is also of notice that this error can also occur when

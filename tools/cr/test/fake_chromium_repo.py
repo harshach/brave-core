@@ -68,6 +68,17 @@ class FakeChromiumRepo:
         (self.brave / 'chromium_src').mkdir(exist_ok=True)
         (self.brave / 'rewrite').mkdir(exist_ok=True)
         (self.brave / 'patches').mkdir(exist_ok=True)
+        # Real brave-core always lists the repositories it patches, so the
+        # fixture does too. Tests adding a repository with `add_repo` rewrite
+        # this to name it (see `set_patched_repositories`).
+        #
+        # It is amended into the initial commit rather than committed on its
+        # own, so it is tracked, as it is upstream, without adding a commit
+        # that every test looking at brave's history would have to account
+        # for.
+        self.set_patched_repositories()
+        self._run_git_command(['add', str(self.repositories_file)], self.brave)
+        self._run_git_command(['commit', '--amend', '--no-edit'], self.brave)
 
         # `FakeChromiumRepo` will change the current directory to a mirro path
         # inside the fake brave repo, relative to the cwd in brave-core when
@@ -103,6 +114,28 @@ class FakeChromiumRepo:
     def brave_patches(self) -> Path:
         """Returns the path to the Brave patches directory."""
         return self.brave / 'patches'
+
+    @property
+    def repositories_file(self) -> Path:
+        """The file listing every repository brave-core patches."""
+        return self.brave_patches / '.repositories.cfg'
+
+    def set_patched_repositories(self, *relative_paths: str) -> None:
+        """Lists the repositories brave-core patches, `src` plus the given.
+
+        Mirrors `patches/.repositories.cfg`: one gn-style source-absolute path
+        per line, so `//` names chromium's own `src`, which is always listed,
+        and `//v8` names `src/v8`.
+
+        Args:
+            relative_paths: Repository paths besides `src`, as passed to
+                `add_repo`.
+        """
+        lines = ['//'] + [f'//{path}' for path in relative_paths]
+        self.repositories_file.parent.mkdir(parents=True, exist_ok=True)
+        self.repositories_file.write_text('\n'.join(lines) + '\n',
+                                          encoding='utf-8',
+                                          newline='\n')
 
     @property
     def remote(self) -> Path:
@@ -346,7 +379,7 @@ class FakeChromiumRepo:
         return self._run_git_command(['rev-parse', 'HEAD'], self.brave)
 
     def run_update_patches(self) -> None:
-        """Emulates `npm run update_patches`.
+        """Emulates `pnpm run update_patches`.
 
         Follows `build/commands/lib/updatePatches.js`: for every Chromium-side
         repository, each *modified* tracked file (`--diff-filter=M`) has its
@@ -383,8 +416,8 @@ class FakeChromiumRepo:
                 # returns from the diff file.
                 result = subprocess.run(
                     [
-                        'git', 'diff', '--src-prefix=a/', '--dst-prefix=b/',
-                        '--default-prefix', '--full-index',
+                        'git', 'diff', '--no-ext-diff', '--src-prefix=a/',
+                        '--dst-prefix=b/', '--default-prefix', '--full-index',
                         '--ignore-space-at-eol', filename
                     ],
                     stdout=subprocess.PIPE,
@@ -459,7 +492,7 @@ class FakeChromiumRepo:
         ]
 
     def run_apply_patches(self) -> list[dict]:
-        """Emulates `npm run apply_patches`.
+        """Emulates `pnpm run apply_patches`.
 
         Follows `build/commands/lib/gitPatcher.js`: the sources a patch applies
         to are read from the patch file and reset before applying, patches
@@ -547,7 +580,7 @@ class FakeChromiumRepo:
         return package['config']['projects']['chrome']['tag']
 
     def sync_chromium(self, version: str | None = None) -> None:
-        """Emulates the `gclient sync` stage of `npm run init`.
+        """Emulates the `gclient sync` stage of `pnpm run init`.
 
         Discards every working-tree change in the Chromium-side repositories
         and checks `src/` out at `version`, leaving it detached exactly as a
@@ -582,7 +615,7 @@ class FakeChromiumRepo:
             path.write_text(''.join(lines), encoding='utf-8', newline='')
 
     def run_chromium_rebase_l10n(self) -> list[str]:
-        """Emulates `npm run chromium_rebase_l10n`.
+        """Emulates `pnpm run chromium_rebase_l10n`.
 
         The real command regenerates brave's `.grd`/`.grdp`/`.xtb` files from
         the strings of the Chromium tree currently synced. Here every tracked

@@ -2157,8 +2157,8 @@ extension Strings {
       "setDefaultBrowserCalloutTitle",
       tableName: "BraveShared",
       bundle: .module,
-      value: "Brave can now be set as your default browser in iOS. Tap here to open settings.",
-      comment: ""
+      value: "**Set Brave as your default browser and block ads on every site you visit.** Tap here to open Settings and set Brave as default.",
+      comment: "A callout that explains how to set Brave as the default browser. This is a markdown string, the ** is for bold."
     )
   public static let defaultBrowserCalloutCloseAccesabilityLabel =
     NSLocalizedString(
@@ -2407,27 +2407,10 @@ extension Strings {
         tableName: "BraveShared",
         bundle: .module,
         value:
-          "Help support Brave's mission to build an independent, user-first Web with Sponsored Ads. We measure ad performance privately, without identifying you.",
-        comment: "Description under the settings toggle that enables Sponsored Ads"
+          "Help support Brave's mission to build an independent, user-first Web with Sponsored Ads. We measure ad performance privately, without identifying you. [Learn more](%@)",
+        comment: "Markdown formatted description under the settings toggle that enables Sponsored Ads. %@ is replaced by a URL and should not be localized."
       )
 
-    public static let surveyPanelistTitle =
-      NSLocalizedString(
-        "settings.surveyPanelistTitle",
-        tableName: "BraveShared",
-        bundle: .module,
-        value: "Allow Brave surveys",
-        comment: "Title to explain the survey panelist toggle"
-      )
-
-    public static let surveyPanelistDescription =
-      NSLocalizedString(
-        "settings.surveyPanelistDescription",
-        tableName: "BraveShared",
-        bundle: .module,
-        value: "Allows Brave to show links to private surveys in the new tab page. Surveys help us build better features and measure the effectiveness of browser-based ad campaigns. [Learn more](%@)",
-        comment: "Description to explain the survey panelist toggle"
-      )
   }
 }
 
@@ -4206,6 +4189,37 @@ extension Strings {
       comment: "A button title to show more bookmarks, that opens a new menu."
     )
 
+    public static let topsites = NSLocalizedString(
+      "ntp.topsites",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Top Sites",
+      comment: "The title of a picker for user to pick which type of topsites to show in NTP"
+    )
+
+    public static let topsitesTypeNone = NSLocalizedString(
+      "ntp.topsitesTypeNone",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "None",
+      comment: "None type of topsites. Selection means there won't be any topsites tiles in NTP"
+    )
+
+    public static let topsitesTypeFavorites = NSLocalizedString(
+      "ntp.topsitesTypeFavorites",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Favorites",
+      comment: "Favorites type of topsites. Selection means NTP will display favorites tiles if there is any."
+    )
+
+    public static let topsitesTypeMostVisited = NSLocalizedString(
+      "ntp.topsitesTypeMostVisited",
+      tableName: "BraveShared",
+      bundle: .module,
+      value: "Frequently Visited",
+      comment: "MostVisited type of topsites. Selection means NTP will display most visited tiles if there is any."
+    )
   }
 
 }
@@ -9263,5 +9277,72 @@ extension Strings {
     value: "Open in tab",
     comment:
       "Accessibility text for an icon button which will exit QuickView mode and open the current page in a regular tab."
+  )
+
+  public static let quickViewConfirmationAlertTitle = NSLocalizedString(
+    "quickview.confirmation.alert.title",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Keep opening conversation links in Quick View?",
+    comment:
+      "Title of the alert shown the first time a user closes QuickView, asking if they want to keep using it for future links."
+  )
+  public static let quickViewConfirmationAlertMessage = NSLocalizedString(
+    "quickview.confirmation.alert.message",
+    tableName: "BraveShared",
+    bundle: .module,
+    value:
+      "QuickView lets you preview links without leaving your page. You can turn this off anytime in Settings.",
+    comment:
+      "Message of the alert shown the first time a user closes QuickView, explaining the feature and where to change it."
+  )
+  public static let quickViewConfirmationAlertKeepButtonTitle = NSLocalizedString(
+    "quickview.confirmation.alert.keep.button.title",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Keep using QuickView",
+    comment: "Button title to keep opening links in QuickView after the confirmation alert."
+  )
+  public static let quickViewConfirmationAlertTurnOffButtonTitle = NSLocalizedString(
+    "quickview.confirmation.alert.turnOff.button.title",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Turn off",
+    comment: "Button title to stop opening links in QuickView after the confirmation alert."
+  )
+}
+
+// MARK: - Background Downloading
+extension Strings {
+  public static let backgroundDownloadingTitleSingleDownload = NSLocalizedString(
+    "backgroundDownloadingTitleSingleDownload",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Downloading \"%@\"",
+    comment: "A title that appears in the dynamic island when a download is continuing while Brave is backgrounded. %@ is replaced with a file name"
+  )
+
+  public static let backgroundDownloadingTitleMultiDownload = NSLocalizedString(
+    "backgroundDownloadingTitleMultiDownload",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Downloading %lld files",
+    comment: "A title that appears in the dynamic island when a download is continuing while Brave is backgrounded. %lld is replaced with the number of active downloads"
+  )
+
+  public static let backgroundDownloadingSubtitleWithExpectedSize = NSLocalizedString(
+    "backgroundDownloadingSubtitleWithExpectedSize",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "%@ of %@",
+    comment: "A subtitle that appears in the dynamic island when a download is continuing while Brave is backgrounded. The %@'s are replaced with a progress and a file size. E.g. '1MB of 20MB'"
+  )
+
+  public static let backgroundDownloadingSubtitle = NSLocalizedString(
+    "backgroundDownloadingSubtitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "%@",
+    comment: "A subtitle that appears in the dynamic island when a download is continuing while Brave is backgrounded. The %@'s are replaced with the current downloaded amount (e.g. '20MB')"
   )
 }

@@ -6,6 +6,7 @@ import BraveWidgetsModels
 import Foundation
 import Preferences
 import Shared
+import Strings
 import UIKit
 import Web
 
@@ -23,6 +24,22 @@ enum BackgroundMediaType: Int, CaseIterable {
     switch self {
     case .sponsoredImages: return true
     case .defaultImages: return false
+    }
+  }
+}
+
+public enum TopsitesMode: Int, CaseIterable, Identifiable {
+  case mostVisited
+  case favourite
+  case none
+
+  public var id: Self { self }
+
+  public var title: String {
+    switch self {
+    case .mostVisited: return Strings.NTP.topsitesTypeMostVisited
+    case .favourite: return Strings.NTP.topsitesTypeFavorites
+    case .none: return Strings.NTP.topsitesTypeNone
     }
   }
 }
@@ -145,6 +162,11 @@ extension Preferences {
     public static let openLinkInQuickViewMode: Option<Bool> = .init(
       key: "general.open-link-in-quickview-mode",
       default: true
+    )
+    /// Whether or not brave has shown a prompt to users to confirm later continue opening links in QuickView
+    public static let openLinkInQuickViewModeConfirmationShown: Option<Bool> = .init(
+      key: "general.open-link-in-quickview-mode-confirmation-shown",
+      default: false
     )
     /// Whether or not the crash reporting alert has been shown at least once
     public static let crashReportingOptInShown: Option<Bool> = .init(
@@ -335,6 +357,15 @@ extension Preferences {
     /// Tells the app whether we should show Favourites in new tab page view controller
     public static let showNewTabFavourites =
       Option<Bool>(key: "newtabpage.show-newtab-favourites", default: true)
+
+    /// Mode to display NTP tiles in NTP
+    ///
+    /// Defaults to favourites so the mode matches what the NTP renders for users who never picked
+    /// one. Most visited is an explicit choice until the NTP reads the mode itself.
+    public static let topsitesMode = Option<TopsitesMode>(
+      key: "newtabpage.topsites-mode",
+      default: .favourite
+    )
   }
 
   final public class AdblockDebug {

@@ -133,6 +133,7 @@ class AdsServiceImpl : public AdsService,
   ~AdsServiceImpl() override;
 
   // AdsService:
+  base::WeakPtr<AdsService> GetWeakPtr() override;
   bool IsIneligibleToStart() const override;
   bool IsInitialized() const override;
 
@@ -182,8 +183,6 @@ class AdsServiceImpl : public AdsService,
   void ClearAdsServiceDataAndMaybeRestartCallback(ResultCallback callback,
                                                   bool success);
 
-  void OnExternalWalletConnectedCallback(bool success);
-
   void SetSysInfo();
   void SetBuildChannel();
   void SetCommandLineSwitches();
@@ -204,6 +203,8 @@ class AdsServiceImpl : public AdsService,
   void InitializeNotificationAdsPrefChangeRegistrar();
   void InitializeSponsoredAdsPrefChangeRegistrar();
   void OnAdsPrefChanged(const std::string& path);
+  bool ShouldClearAdsData(const std::string& path) const;
+  void MaybeClearAdsData(const std::string& path);
   void OnVariationsCountryPrefChanged();
   void NotifyPrefChanged(const std::string& path) const;
 
@@ -264,6 +265,12 @@ class AdsServiceImpl : public AdsService,
   void GetInternals(GetInternalsCallback callback) override;
 
   void GetDiagnostics(GetDiagnosticsCallback callback) override;
+
+  void EvaluateConditionMatcher(
+      const std::string& pref_path,
+      const std::string& condition,
+      std::optional<std::string> test_value,
+      EvaluateConditionMatcherCallback callback) override;
 
   void GetStatementOfAccounts(GetStatementOfAccountsCallback callback) override;
 

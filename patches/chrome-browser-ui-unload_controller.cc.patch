@@ -1,10 +1,10 @@
 diff --git a/chrome/browser/ui/unload_controller.cc b/chrome/browser/ui/unload_controller.cc
-index e5cd22968a6d8569e1853a1926f0c187adc56fba..9f4334f402757588bca20a4372d06f6cdba70cf3 100644
+index 201af07cf7cbe30e3032783cee1f6f7f9bfbc432..d6a8c80d53c8ba7d764fec5dc185508489e394c2 100644
 --- a/chrome/browser/ui/unload_controller.cc
 +++ b/chrome/browser/ui/unload_controller.cc
 @@ -177,6 +177,9 @@ void UnloadController::OnWindowClosing() {
-     tab_restore_service->BrowserClosing(
-         browser_->GetFeatures().live_tab_context());
+   if (tab_restore_service && notify_restore_service) {
+     tab_restore_service->BrowserClosing(BrowserLiveTabContext::From(browser_));
    }
 +  if (MaybeHandleSharedPinnedTabsClosing(browser_)) {
 +    return;

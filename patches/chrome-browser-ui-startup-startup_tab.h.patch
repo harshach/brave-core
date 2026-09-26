@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/ui/startup/startup_tab.h b/chrome/browser/ui/startup/startup_tab.h
-index 494d35877bec129310bef73cec9aebc722d135aa..0b9f50754fcc4db95d544d25126a794ee5c3a4a8 100644
+index 494d35877bec129310bef73cec9aebc722d135aa..0cb4f1f147469345c34e20da7851f0cb899b8812 100644
 --- a/chrome/browser/ui/startup/startup_tab.h
 +++ b/chrome/browser/ui/startup/startup_tab.h
 @@ -31,6 +31,17 @@ struct StartupTab {

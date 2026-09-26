@@ -28,9 +28,7 @@ import {
 } from '$wallet/common/constants/local-storage-keys'
 
 // Slices
-import {
-  networkEntityAdapter, //
-} from '$wallet/common/slices/entities/network.entity'
+import { getNetworkId } from '$wallet/common/slices/entities/network.entity'
 
 // Utils
 import { reduceAddress } from '$wallet/utils/reduce-address'
@@ -58,7 +56,7 @@ import {
 } from '$wallet/components/desktop/popup-modals/zcash_sync_modal/zcash_sync_modal'
 import {
   AddressActionsMenu, //
-} from '$wallet/components/desktop/wallet-menus/address_actions_menu'
+} from '$wallet/page/components/wallet_menus/address_actions_menu'
 
 // Styled Components
 import {
@@ -169,9 +167,7 @@ export const AssetGroupContainer = (props: Props) => {
 
   const isCollapsed = React.useMemo(() => {
     if (network) {
-      return collapsedNetworks.includes(
-        networkEntityAdapter.selectId(network).toString(),
-      )
+      return collapsedNetworks.includes(getNetworkId(network))
     }
     if (account) {
       return collapsedAccounts.includes(account.accountId.uniqueKey)
@@ -192,7 +188,7 @@ export const AssetGroupContainer = (props: Props) => {
     }
 
     if (network) {
-      const networksKey = networkEntityAdapter.selectId(network).toString()
+      const networksKey = getNetworkId(network)
 
       // Construct new list
       const newCollapsedNetworks = isCollapsed

@@ -466,23 +466,6 @@ const update = () => {
       'java',
       'res',
     )
-    const androidFeaturesTabUiResSource = path.join(
-      config.braveCoreDir,
-      'android',
-      'features',
-      'tab_ui',
-      'java',
-      'res',
-    )
-    const androidFeaturesTabUiDest = path.join(
-      config.srcDir,
-      'chrome',
-      'android',
-      'features',
-      'tab_ui',
-      'java',
-      'res',
-    )
     const androidDownloadInternalResSource = path.join(
       config.braveCoreDir,
       'browser',
@@ -534,7 +517,6 @@ const update = () => {
     // Mapping for copying Brave's Android resource into chromium folder.
     const copyAndroidResourceMapping = {
       [androidResSource]: [androidResDest],
-      [androidFeaturesTabUiResSource]: [androidFeaturesTabUiDest],
       [androidDownloadInternalResSource]: [androidDownloadInternalResDest],
       [androidIconSource]: [androidIconDest],
       [androidIconBaseSource]: [androidIconBaseDest],

@@ -1,12 +1,12 @@
 diff --git a/chrome/browser/ui/omnibox/omnibox_popup_view.h b/chrome/browser/ui/omnibox/omnibox_popup_view.h
-index 26b199944d786e8c09bbf92d890915702aad21b8..250abcb1ae697e54380625ff767f138dbc501b94 100644
+index 54434e68fabf557ebd3e12d4daaa0b1d8eb15ed2..1c237c20571818e6bee825065b8b6c21cc87a9f0 100644
 --- a/chrome/browser/ui/omnibox/omnibox_popup_view.h
 +++ b/chrome/browser/ui/omnibox/omnibox_popup_view.h
-@@ -109,6 +109,7 @@ class OmniboxPopupView {
-   base::TimeTicks construction_time() const { return construction_time_; }
+@@ -119,6 +119,7 @@ class OmniboxPopupView {
+   virtual const OmniboxController* controller() const;
  
-  protected:
-+  BRAVE_OMNIBOX_POPUP_VIEW_FRIEND
-   friend class OmniboxResultView;
-   friend class OmniboxSuggestionButtonRowView;
+  private:
++  friend class BraveOmniboxResultView;
+   // Owned by the LocationBarView that owns this. Outlives this.
+   const raw_ptr<OmniboxController> controller_;
  

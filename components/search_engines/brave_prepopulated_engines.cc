@@ -89,7 +89,10 @@ PrepopulatedEngine ModifyEngineParams(const PrepopulatedEngine& engine,
           engine.type,
           engine.preconnect_to_search_url,
           engine.prefetch_likely_navigations,
-          id > 0 ? id : engine.id};
+          id > 0 ? id : engine.id,
+          engine.migrate_to_id,
+          engine.send_x_geo_header,
+          engine.regulatory_extensions};
 }
 
 }  // namespace
@@ -152,6 +155,8 @@ const PrepopulatedEngine brave_ecosia =
                        "https://www.ecosia.org/search?tt="
 #if BUILDFLAG(IS_ANDROID)
                        "42b8ae98"
+#elif BUILDFLAG(IS_IOS)
+                       "d188c5da"
 #else
                        "e8eb07a6"
 #endif
@@ -193,7 +198,7 @@ const PrepopulatedEngine brave_yandex =
                        u"Yandex",
                        nullptr,
                        "https://yandex.ru/search/?clid="
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
                        "2423859"
 #else
                        "2353835"
@@ -214,6 +219,8 @@ const PrepopulatedEngine brave_search = MakeBravePrepopulatedEngine(
     "https://search.brave.com/search?q={searchTerms}&source="
 #if BUILDFLAG(IS_ANDROID)
     "android",
+#elif BUILDFLAG(IS_IOS)
+    "ios",
 #else
     "desktop",
 #endif
@@ -222,6 +229,8 @@ const PrepopulatedEngine brave_search = MakeBravePrepopulatedEngine(
     "suggest?q={searchTerms}&rich=true&rich_verticals=true&source="
 #if BUILDFLAG(IS_ANDROID)
     "android",
+#elif BUILDFLAG(IS_IOS)
+    "ios",
 #else
     "desktop",
 #endif
@@ -262,7 +271,7 @@ const PrepopulatedEngine brave_yahoo_jp = ModifyEngineParams(
     nullptr,  // keyword
     // search url
     "https://search.yahoo.co.jp/search?p={searchTerms}&ei={inputEncoding}&fr="
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
     "brave-mobile_ext",
 #else
     "brave-desktop_ext",
@@ -272,7 +281,7 @@ const PrepopulatedEngine brave_yahoo_jp = ModifyEngineParams(
     "webassistSearch?p={searchTerms}&appid="
     "dj00aiZpPXVyZmc2WDgzWnA5SSZzPWNvbnN1bWVyc2VjcmV0Jng9MTE-"
     "&output=fxjson&fr="
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
     "brave-mobile_ext",
 #else
     "brave-desktop_ext",
@@ -280,7 +289,7 @@ const PrepopulatedEngine brave_yahoo_jp = ModifyEngineParams(
     // image url
     "https://search.yahoo.co.jp/image/"
     "search?p={searchTerms}&ei={inputEncoding}&fr="
-#if BUILDFLAG(IS_ANDROID)
+#if BUILDFLAG(IS_ANDROID) || BUILDFLAG(IS_IOS)
     "brave-mobile_ext",
 #else
     "brave-desktop_ext",

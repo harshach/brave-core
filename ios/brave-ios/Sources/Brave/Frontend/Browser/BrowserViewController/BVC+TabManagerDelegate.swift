@@ -47,7 +47,7 @@ extension BrowserViewController: TabManagerDelegate {
       braveTalkJavascript: braveTalkJitsiCoordinator,
       profileController: profileController
     )
-    tab.aiChatWebUIHelper?.attachPrivacySensitiveTabHelpers = { [unowned self] detachedTab, _ in
+    tab.aiChatWebUIHelper?.attachPrivacySensitiveTabHelpers = { detachedTab, _ in
       detachedTab.detachedPrivacyHelper = .init(
         tab: detachedTab
       )
@@ -97,6 +97,12 @@ extension BrowserViewController: TabManagerDelegate {
     // When `BraveShieldsTabHelper+TabPolicyDecider` is moved to `BraveShields` target,
     // we should add it as a policy decider at initialization.
     tab.addPolicyDecider(braveShieldsHelper)
+    // Must be added before `braveSearch`. HttpsUpgradeTabHelper needs first look at a
+    // main-frame http navigation so it can attempt the upgrade before BraveSearchTabHelper
+    // decides whether to route it into QuickView. BraveSearchTabHelper recognizes a reissued
+    // https request via `tab.httpsUpgradeHelper?.pendingUpgrade` and only opens QuickView once
+    // `tabDidFinishNavigation` confirms it actually landed on the upgraded (or
+    // gracefully-rolled-back) page rather than a failure/interstitial.
     if FeatureList.kBraveHttpsByDefault.enabled {
       tab.httpsUpgradeHelper = .init(
         tab: tab,
@@ -126,6 +132,7 @@ extension BrowserViewController: TabManagerDelegate {
     if FeatureList.kUseProfileWebViewConfiguration.enabled {
       tab.requestBlockingTabHelper = .init(tab: tab)
       tab.cosmeticFilteringTabHelper = .init(tab: tab)
+      tab.scriptletsTabHelper = .init(tab: tab)
     }
 
     tab.braveTalk = .init(tab: tab, coordinator: braveTalkJitsiCoordinator)
@@ -162,6 +169,7 @@ extension BrowserViewController: TabManagerDelegate {
         syncAPI: profileController.syncAPI,
         sendTabAPI: profileController.sendTabAPI,
         historyAPI: profileController.historyAPI,
+        httpsUpgradeExceptionsService: braveCore.httpsUpgradeExceptionsService,
         onOpenInNewTab: { [weak self] request, isPrivateMode in
           guard let self else { return }
           self.tabManager.addTabAndSelect(
@@ -179,6 +187,26 @@ extension BrowserViewController: TabManagerDelegate {
           self.tabManager.configureTab(tab, request: request, flushToDisk: false, zombie: true)
           self.tabManager.saveTab(tab, saveOrder: true)
           self.tabManager.selectTab(tab)
+        },
+        onShowConfirmationAlert: { [weak self] in
+          let alert = UIAlertController(
+            title: Strings.quickViewConfirmationAlertTitle,
+            message: Strings.quickViewConfirmationAlertMessage,
+            preferredStyle: .alert
+          )
+          alert.addAction(
+            .init(title: Strings.quickViewConfirmationAlertKeepButtonTitle, style: .default)
+          )
+          alert.addAction(
+            .init(
+              title: Strings.quickViewConfirmationAlertTurnOffButtonTitle,
+              style: .cancel,
+              handler: { _ in
+                Preferences.General.openLinkInQuickViewMode.value = false
+              }
+            )
+          )
+          self?.present(alert, animated: true)
         }
       )
       if let sheet = quickViewController.sheetPresentationController {
@@ -302,7 +330,9 @@ extension BrowserViewController: TabManagerDelegate {
       navigationToolbar.updateForwardStatus(tab.canGoForward)
     }
 
-    let shouldShowPlaylistURLBarButton = selected?.visibleURL?.isPlaylistSupportedSiteURL == true
+    let shouldShowPlaylistURLBarButton =
+      selected?.visibleURL?.isPlaylistSupportedSiteURL == true
+      && selected?.playlist?.isPlaylistBlocked(selected?.visibleURL) == false
 
     if !shouldShowPlaylistURLBarButton {
       let readerModeState = selected?.readerMode?.state
@@ -373,7 +403,6 @@ extension BrowserViewController: TabManagerDelegate {
     tab.addObserver(self)
     tab.delegate = self
     tab.downloadDelegate = self
-    tab.certificateStore = profile.certStore
     attachTabHelpers(to: tab)
     /// Add BVC as the last TabPolicyDecider, so it only executes on requests
     /// that all other policy deciders have decided to allow. This is for
@@ -471,7 +500,6 @@ extension BrowserViewController: TabManagerDelegate {
     topToolbar.updateTabCount(count)
 
     // Update Actions for Tab-Tray Button
-    var newTabMenuChildren: [UIAction] = []
     var addTabMenuChildren: [UIAction] = []
 
     if !privateBrowsingManager.isPrivateBrowsing {
@@ -497,12 +525,6 @@ extension BrowserViewController: TabManagerDelegate {
         }
       )
 
-      if (UIDevice.current.userInterfaceIdiom == .pad && tabsBar.view.isHidden == true)
-        || (UIDevice.current.userInterfaceIdiom == .phone && toolbar == nil)
-      {
-        newTabMenuChildren.append(openNewPrivateTab)
-      }
-
       addTabMenuChildren.append(openNewPrivateTab)
     }
 
@@ -519,13 +541,29 @@ extension BrowserViewController: TabManagerDelegate {
         )
       }
     )
-
-    if (UIDevice.current.userInterfaceIdiom == .pad && tabsBar.view.isHidden)
-      || (UIDevice.current.userInterfaceIdiom == .phone && toolbar == nil)
-    {
-      newTabMenuChildren.append(openNewTab)
-    }
     addTabMenuChildren.append(openNewTab)
+
+    if UIApplication.shared.supportsMultipleScenes {
+      addTabMenuChildren.append(
+        UIAction(
+          title: Strings.newWindowTitle,
+          image: UIImage(braveSystemNamed: "leo.window.tab-new"),
+          handler: UIAction.deferredActionHandler { [unowned self] _ in
+            self.openInNewWindow(url: nil, isPrivate: false)
+          }
+        )
+      )
+
+      addTabMenuChildren.append(
+        UIAction(
+          title: Strings.newPrivateWindowTitle,
+          image: UIImage(braveSystemNamed: "leo.window.tab-private"),
+          handler: UIAction.deferredActionHandler { [unowned self] _ in
+            self.openInNewWindow(url: nil, isPrivate: true)
+          }
+        )
+      )
+    }
 
     var bookmarkMenuChildren: [UIAction] = []
 
@@ -757,7 +795,6 @@ extension BrowserViewController: TabManagerDelegate {
       closeAllTabMenuChildren.append(closeAllTabs)
     }
 
-    let newTabMenu = UIMenu(title: "", options: .displayInline, children: newTabMenuChildren)
     let addTabMenu = UIMenu(title: "", options: .displayInline, children: addTabMenuChildren)
     let bookmarkMenu = UIMenu(title: "", options: .displayInline, children: bookmarkMenuChildren)
     let duplicateTabMenu = UIMenu(
@@ -778,7 +815,7 @@ extension BrowserViewController: TabManagerDelegate {
     let closeTabMenu = UIMenu(title: "", options: .displayInline, children: closeTabMenuChildren)
 
     let tabButtonMenuActionList = [
-      closeTabMenu, closeAllTabMenu, recentlyClosedMenu, duplicateTabMenu, bookmarkMenu, newTabMenu,
+      closeTabMenu, closeAllTabMenu, recentlyClosedMenu, duplicateTabMenu, bookmarkMenu,
     ]
     let addTabMenuActionList = [addTabMenu]
 

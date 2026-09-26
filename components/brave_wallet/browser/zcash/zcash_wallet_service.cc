@@ -164,6 +164,11 @@ void ZCashWalletService::StartShieldSync(mojom::AccountIdPtr account_id,
     return;
   }
 
+  if (!IsZCashIronwoodEnabled() &&
+      keyring_service_->GetZCashIronwoodSyncStateReset(account_id)) {
+    keyring_service_->SetZCashIronwoodSyncStateReset(account_id, false);
+  }
+
   if (IsZCashIronwoodEnabled() &&
       !keyring_service_->GetZCashIronwoodSyncStateReset(account_id)) {
     if (!pending_sync_callback_.is_null()) {
@@ -503,7 +508,8 @@ ZCashWalletService::GetTransactionType(const mojom::AccountIdPtr& account_id,
                                        const std::string& addr) {
   // Returns the ZCash transaction type based on the sender pool
   // (from_token_type), the Ironwood feature flag, and the recipient address.
-  // Covered test cases: GetTransactionType_IronwoodMatrix.
+  // Covered test cases: GetTransactionType_IronwoodEnabled,
+  // GetTransactionType_IronwoodDisabled, GetTransactionType_ShieldedDisabled.
   //
   // When shielded transactions and Ironwood are enabled:
   //   Shielded sender (Orchard or Ironwood):
@@ -521,10 +527,12 @@ ZCashWalletService::GetTransactionType(const mojom::AccountIdPtr& account_id,
   //
   // Ironwood-related transactions require the Ironwood feature; otherwise
   // their sender or recipient is rejected with the corresponding type error.
+  // Orchard → transparent (o→t) remains available without Ironwood.
   //
   // Shielded transactions disabled:
   //   Shielded sender (Orchard or Ironwood) → kInvalidSenderType
-  //   Transparent sender                    → kTransparentToTransparent
+  //   Transparent sender + transparent addr → kTransparentToTransparent
+  //   Transparent sender + orchard addr     → transparent recipient error
   if (!IsZCashAccount(account_id)) {
     return base::unexpected(mojom::ZCashAddressError::kNotZCashAccount);
   }
@@ -677,8 +685,13 @@ void ZCashWalletService::OnGetUtxos(
   DCHECK(context->addresses.contains(address));
   DCHECK(!context->utxos.contains(address));
 
-  if (!result.has_value() || !result.value()) {
+  if (!result.has_value()) {
     context->SetError(result.error());
+    WorkOnGetUtxos(std::move(context));
+    return;
+  }
+  if (!result.value()) {
+    context->SetError(WalletParsingErrorMessage());
     WorkOnGetUtxos(std::move(context));
     return;
   }

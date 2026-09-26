@@ -7,6 +7,7 @@
 #define BRAVE_IOS_BROWSER_BRAVE_ADS_ADS_SERVICE_IMPL_IOS_H_
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -19,6 +20,7 @@
 #include "brave/components/brave_ads/core/public/ads_callback.h"
 #include "brave/components/brave_ads/core/public/ads_client/ads_client_notifier.h"
 #include "brave/components/brave_ads/core/public/common/functional/once_closure_task_queue.h"
+#include "components/prefs/pref_change_registrar.h"
 
 class PrefService;
 
@@ -34,12 +36,12 @@ class AdsServiceImplIOS : public AdsService {
  public:
   explicit AdsServiceImplIOS(PrefService& prefs);
 
-  AdsClientNotifier* GetAdsClientNotifier();
-
   AdsServiceImplIOS(const AdsServiceImplIOS&) = delete;
   AdsServiceImplIOS& operator=(const AdsServiceImplIOS&) = delete;
 
   ~AdsServiceImplIOS() override;
+
+  AdsClientNotifier* GetAdsClientNotifier();
 
   void InitializeAds(const std::string& storage_path,
                      std::unique_ptr<AdsClient> ads_client,
@@ -61,6 +63,7 @@ class AdsServiceImplIOS : public AdsService {
   void NotifyDidClearAdsServiceData() const;
 
   // AdsService:
+  base::WeakPtr<AdsService> GetWeakPtr() override;
   bool IsIneligibleToStart() const override;
   bool IsInitialized() const override;
 
@@ -81,6 +84,12 @@ class AdsServiceImplIOS : public AdsService {
   void GetInternals(GetInternalsCallback callback) override;
 
   void GetDiagnostics(GetDiagnosticsCallback callback) override;
+
+  void EvaluateConditionMatcher(
+      const std::string& pref_path,
+      const std::string& condition,
+      std::optional<std::string> test_value,
+      EvaluateConditionMatcherCallback callback) override;
 
   void GetStatementOfAccounts(GetStatementOfAccountsCallback callback) override;
 
@@ -148,16 +157,24 @@ class AdsServiceImplIOS : public AdsService {
   void Shutdown() override;
 
   bool CanStartBatAdsService() const;
-  void InitializeAds(ResultCallback callback);
-  void InitializeAdsCallback(ResultCallback callback, bool success);
+  bool UserHasJoinedBraveRewards() const;
+  void InitializeBatAds(ResultCallback callback);
+  void InitializeBatAdsCallback(ResultCallback callback, bool success);
 
   void ShutdownAdsCallback(ResultCallback callback, bool success);
 
-  void ClearAdsData(ResultCallback callback, bool success);
+  void ClearAdsData(ResultCallback callback, bool was_running, bool success);
   void ClearAdsPrefs();
-  void ClearAdsDataCallback(ResultCallback callback);
+  void ClearAdsDataCallback(ResultCallback callback, bool was_running);
+
+  void InitializePrefChangeRegistrar();
+  void OnAdsPrefChanged(const std::string& path);
+  bool ShouldClearAdsData(const std::string& path) const;
+  void MaybeClearAdsData(const std::string& path);
 
   const raw_ref<PrefService> prefs_;
+
+  PrefChangeRegistrar pref_change_registrar_;
 
   const scoped_refptr<base::SequencedTaskRunner> file_task_runner_;
 

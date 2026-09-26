@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/startup/startup_browser_creator_impl.cc b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-index 332a48ebee92fde32f995f387230cb8b6c780e9c..3f6c7217ab7a831652d771980f338eae5e9ae579 100644
+index 7eab8f7d297ca7b7b4a7d2bd4a5d988613064aba..52fb14286e631423e677fc0b88e828636952379c 100644
 --- a/chrome/browser/ui/startup/startup_browser_creator_impl.cc
 +++ b/chrome/browser/ui/startup/startup_browser_creator_impl.cc
-@@ -422,6 +422,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
+@@ -426,6 +426,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
        params.disposition = WindowOpenDisposition::CURRENT_TAB;
        params.tabstrip_add_types = ADD_NONE;
        first_tab = false;
@@ -10,7 +10,7 @@ index 332a48ebee92fde32f995f387230cb8b6c780e9c..3f6c7217ab7a831652d771980f338eae
        Navigate(&params);
        continue;
      }
-@@ -452,6 +453,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
+@@ -456,6 +457,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
      }
  #endif  // BUILDFLAG(ENABLE_RLZ)
  
@@ -18,7 +18,7 @@ index 332a48ebee92fde32f995f387230cb8b6c780e9c..3f6c7217ab7a831652d771980f338eae
      Navigate(&params);
      first_tab = false;
    }
-@@ -470,7 +472,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
+@@ -474,7 +476,7 @@ BrowserWindowInterface* StartupBrowserCreatorImpl::OpenTabsInBrowser(
      base::nix::SetActivationToken(startup_id);
    }
  #endif

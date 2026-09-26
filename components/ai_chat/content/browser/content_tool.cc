@@ -72,10 +72,10 @@ ContentTool::ContentTool(const blink::mojom::ScriptTool& script_tool,
 
   if (url.SchemeIs(content::kChromeUIUntrustedScheme)) {
     // First-party WebUI (e.g. the Leo workspace page at
-    // chrome-untrusted://workspace) that registers tools via WebMCP. These are
-    // system-owned, so surface the tool's own name and description verbatim: no
-    // host prefix (the page is unique and controls its names) and no
-    // "website-provided" framing.
+    // chrome-untrusted://<uuid>.leo-workspace) that registers tools via WebMCP.
+    // These are system-owned, so surface the tool's own name and description
+    // verbatim: no host prefix (the page is unique and controls its names) and
+    // no "website-provided" framing.
     name_ = script_tool.name;
     description_ = script_tool.description;
   } else {
@@ -154,17 +154,25 @@ std::optional<std::vector<std::string>> ContentTool::RequiredProperties()
 std::variant<bool, mojom::PermissionChallengePtr>
 ContentTool::RequiresUserInteractionBeforeHandling(
     const mojom::ToolUseEvent& tool_use) const {
-  if (user_permission_granted_) {
+  if (user_permission_granted_ ||
+      user_permission_strategy_ == mojom::ToolPermission::kAllowSession) {
     return false;
   }
 
   auto challenge = mojom::PermissionChallenge::New();
   challenge->description = GetPermissionChallengeDescription(tool_use);
+  // Every tool a page exposes has a standing permission in the website tools
+  // dialog for the answer to be recorded as.
+  challenge->supports_allow_session = true;
   return challenge;
 }
 
 void ContentTool::UserPermissionGranted(const std::string& tool_use_id) {
   user_permission_granted_ = true;
+}
+
+void ContentTool::SetUserPermissionStrategy(mojom::ToolPermission permission) {
+  user_permission_strategy_ = permission;
 }
 
 std::optional<std::string> ContentTool::GetPermissionChallengeDescription(

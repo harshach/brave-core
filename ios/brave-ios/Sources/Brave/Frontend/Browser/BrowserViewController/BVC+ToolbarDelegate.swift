@@ -7,12 +7,14 @@ import AVFoundation
 import BraveCore
 import BraveNews
 import BraveShared
+import BraveShields
 import BraveStrings
 import BraveUI
 import BraveWallet
 import BraveWidgetsModels
 import BrowserMenu
 import CertificateUtilities
+import Combine
 import Data
 import Lottie
 import Onboarding
@@ -21,7 +23,6 @@ import Playlist
 import Preferences
 import Shared
 import SpeechRecognition
-import Storage
 import SwiftUI
 import Web
 import os.log
@@ -460,42 +461,82 @@ extension BrowserViewController: TopToolbarDelegate, SearchContainerViewControll
       return
     }
 
-    weak var weakPopover: PopoverController?
-    let popover = PopoverController(
-      contentController: PopoverNavigationController(
-        rootViewController: ShieldsPanelViewController(
-          url: url,
-          tab: selectedTab,
-          domain: Domain.getOrCreate(forUrl: url, persistent: !selectedTab.isPrivate)
-        ) { [weak self, weak selectedTab] action in
-          switch action {
-          case .navigate(let target, let dismiss):
-            guard let self, let selectedTab else { return }
-            if dismiss {
-              weakPopover?.dismiss(animated: true) {
-                self.navigate(to: target, tab: selectedTab, url: url, on: nil)
-              }
-            } else {
-              navigate(to: target, tab: selectedTab, url: url, on: weakPopover)
-            }
-          case .changedShieldSettings:
-            self?.changedShieldSettings()
-          case .shredSiteData:
-            weakPopover?.dismiss(animated: true) {
-              guard let selectedTab = selectedTab else { return }
-              self?.shredData(for: url, in: selectedTab)
-            }
+    weak var weakShieldsPanelVC: UIViewController?
+    let shieldsPanelActionHandler: (ShieldsPanelAction) -> Void = {
+      [weak self, weak selectedTab] action in
+      guard let self, let selectedTab else { return }
+      switch action {
+      case .navigate(let target, let dismiss):
+        if dismiss {
+          weakShieldsPanelVC?.dismiss(animated: true) {
+            self.navigate(to: target, tab: selectedTab, url: url, on: nil)
           }
+        } else {
+          self.navigate(to: target, tab: selectedTab, url: url, on: weakShieldsPanelVC)
         }
-      ),
-      contentSizeBehavior: .preferredContentSize
-    )
-    weakPopover = popover
-    popover.present(from: topToolbar.shieldsButton, on: self)
+      case .changedShieldSettings:
+        self.changedShieldSettings()
+      case .shredSiteData:
+        weakShieldsPanelVC?.dismiss(animated: true) {
+          self.shredData(for: url, in: selectedTab)
+        }
+      case .openURLInNewTab(let url):
+        weakShieldsPanelVC?.dismiss(animated: true) {
+          self.tabManager.addTabAndSelect(
+            URLRequest(url: url),
+            afterTab: selectedTab,
+            isPrivate: selectedTab.isPrivate
+          )
+        }
+      }
+    }
+    if FeatureList.kShowUpdatedShieldsPanel.enabled {
+      let shieldsPanelViewController = ShieldsPanelViewController(
+        url: url,
+        viewModel: ShieldsPanelViewModel(
+          tab: selectedTab,
+          stats: selectedTab.contentBlocker?.$stats.eraseToAnyPublisher()
+            ?? Just(.init()).eraseToAnyPublisher(),
+          blockedRequests: selectedTab.contentBlocker?.$blockedRequests.map(Array.init)
+            .eraseToAnyPublisher() ?? Just([]).eraseToAnyPublisher(),
+          isShredEnabled: FeatureList.kBraveShredFeature.enabled
+        ),
+        action: shieldsPanelActionHandler
+      )
+      weakShieldsPanelVC = shieldsPanelViewController
+      if UIDevice.current.userInterfaceIdiom == .pad {
+        shieldsPanelViewController.modalPresentationStyle = .popover
+      }
+      shieldsPanelViewController.popoverPresentationController?.sourceView =
+        topToolbar.shieldsButton
+      shieldsPanelViewController.popoverPresentationController?.sourceRect =
+        topToolbar.shieldsButton.bounds
+      shieldsPanelViewController.popoverPresentationController?.popoverLayoutMargins = .init(
+        equalInset: 4
+      )
+      shieldsPanelViewController.popoverPresentationController?.permittedArrowDirections = [
+        .up, .down,
+      ]
+      self.present(shieldsPanelViewController, animated: true)
+    } else {
+      let popover = PopoverController(
+        contentController: PopoverNavigationController(
+          rootViewController: LegacyShieldsPanelViewController(
+            url: url,
+            tab: selectedTab,
+            domain: Domain.getOrCreate(forUrl: url, persistent: !selectedTab.isPrivate),
+            callback: shieldsPanelActionHandler
+          )
+        ),
+        contentSizeBehavior: .preferredContentSize
+      )
+      weakShieldsPanelVC = popover
+      popover.present(from: topToolbar.shieldsButton, on: self)
+    }
   }
 
   private func navigate(
-    to target: ShieldsPanelView.Action.NavigationTarget,
+    to target: ShieldsPanelAction.NavigationTarget,
     tab: some TabState,
     url: URL,
     on viewController: UIViewController?
@@ -612,13 +653,18 @@ extension BrowserViewController: TopToolbarDelegate, SearchContainerViewControll
     var components = URLComponents(url: url, resolvingAgainstBaseURL: false)
     components?.fragment = nil
     components?.queryItems = nil
-    guard let cleanedURL = components?.url else { return }
+    guard let cleanedURL = components?.url,
+      let selectedTab = tabManager.selectedTab,
+      let webcompatReporter = WebcompatReporter.ServiceFactory.get(
+        profile: selectedTab.profile
+      )
+    else { return }
 
     let viewController = UIHostingController(
       rootView: SubmitReportView(
         url: cleanedURL,
-        isPrivateBrowsing: privateBrowsingManager.isPrivateBrowsing,
-        tab: tabManager.selectedTab
+        webcompatReporter: webcompatReporter,
+        tab: selectedTab
       )
     )
 
@@ -671,7 +717,7 @@ extension BrowserViewController: TopToolbarDelegate, SearchContainerViewControll
   }
 
   func topToolbarDidPressVoiceSearchButton(_ urlBar: TopToolbarView) {
-    Task { @MainActor in
+    Task { @MainActor [self] in
       onPendingRequestUpdatedCancellable = speechRecognizer.$finalizedRecognition.sink {
         [weak self] finalizedRecognition in
         guard let self else { return }
@@ -1108,7 +1154,7 @@ extension BrowserViewController: UIContextMenuInteractionDelegate {
   /// - Note: "Copy Clean Link" will be included even if no cleaning is done to the url.
   private func makeCopyMenu() -> UIMenu? {
     let tab = tabManager.selectedTab
-    guard let url = self.topToolbar.currentURL else { return nil }
+    guard let url = tab?.visibleURL?.displayURL else { return nil }
 
     let children: [UIAction] = [
       UIAction(

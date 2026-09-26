@@ -173,10 +173,6 @@
 #include "brave/browser/ui/views/speedreader/reader_mode_toolbar_view.h"
 #endif
 
-#if BUILDFLAG(ENABLE_BRAVE_WAYBACK_MACHINE)
-#include "brave/browser/ui/views/page_action/wayback_machine_bubble_view.h"
-#endif
-
 namespace {
 
 // Exposed for testing.
@@ -323,29 +319,12 @@ std::optional<SkColor> GetDominantOriginHeaderColor(const SkBitmap& bitmap) {
 
 std::optional<bool> g_download_confirm_return_allow_for_testing;
 
-bool IsUnsupportedCommand(int command_id, Browser* browser) {
+bool IsUnsupportedCommand(int command_id, BrowserWindowInterface* browser) {
   return IsRunningInForcedAppMode() &&
          !IsCommandAllowedInAppMode(
              command_id,
              browser->GetType() == BrowserWindowInterface::Type::TYPE_POPUP);
 }
-
-// A view that paints a background under the content area of the browser view so
-// that the web content area can be displayed with rounded corners and a shadow.
-class ContentsBackground : public views::View {
-  METADATA_HEADER(ContentsBackground, views::View)
- public:
-  ContentsBackground() {
-    SetBackground(views::CreateSolidBackground(kColorToolbar));
-    SetEnabled(false);
-
-    // Prevent to eat any events that goes to web contents because web contents
-    // could be behind this background.
-    SetCanProcessEventsWithinSubtree(false);
-  }
-};
-BEGIN_METADATA(ContentsBackground)
-END_METADATA
 
 // Pairs an already-open page in this window with the active tab instead of
 // loading a second copy of it beside itself. Returns false when there is no
@@ -591,7 +570,8 @@ bool BraveBrowserView::ShouldUseBraveWebViewRoundedCornersForContents(
 #endif
 }
 
-BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
+BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
+    : BrowserView(browser) {
   CHECK(multi_contents_view_);
 
   // Upstream doesn't set icon because kFeatureTitleBar is not supported by
@@ -605,11 +585,6 @@ BraveBrowserView::BraveBrowserView(Browser* browser) : BrowserView(browser) {
   tab_strip_placement_ = std::make_unique<TabStripPlacementCoordinator>(
       base::PassKey<BraveBrowserView>(), browser,
       horizontal_tab_strip_region_view_);
-
-  // Need this background view always as we have contents margin/rounded corners
-  // when split view is active regardless of rounded corners feature.
-  contents_background_view_ =
-      AddChildViewAt(std::make_unique<ContentsBackground>(), 0);
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (origin_external_link::IsTemporaryLinkBrowser(browser_)) {
@@ -727,7 +702,7 @@ void BraveBrowserView::Layout(PassKey) {
     // contents_container() is the multi-contents view itself, so assigning it
     // its own local bounds moved it to the window origin and put the page
     // under the bar. The layout already places it below the bar.
-    contents_background_view_->SetBoundsRect(contents_container()->bounds());
+    main_background_region_->SetBoundsRect(contents_container()->bounds());
     ReorderChildView(origin_temporary_link_view_, -1);
     EnsureFindBarHostViewIsLastChild();
     return;
@@ -991,7 +966,7 @@ sidebar::Sidebar* BraveBrowserView::InitSidebar() {
 }
 
 void BraveBrowserView::ToggleSidebar() {
-  browser_->GetFeatures().side_panel_ui()->Toggle();
+  SidePanelUI::From(browser_)->Toggle();
 }
 
 void BraveBrowserView::ShowBraveVPNBubble(bool show_select) {
@@ -1217,24 +1192,6 @@ void BraveBrowserView::ShowPlaylistBubble() {
 }
 #endif
 
-#if BUILDFLAG(ENABLE_BRAVE_WAYBACK_MACHINE)
-void BraveBrowserView::ShowWaybackMachineBubble() {
-  views::View* const anchor =
-      toolbar_button_provider()
-          ->GetPageActionBubbleAnchor(kActionShowWaybackMachine)
-          .GetIfView();
-  if (!anchor) {
-    return;
-  }
-
-  auto* item = actions::ActionManager::Get().FindAction(
-      kActionShowWaybackMachine,
-      BrowserActions::From(browser())->root_action_item());
-  WaybackMachineBubbleView::Show(
-      browser()->tab_strip_model()->GetActiveWebContents(), anchor, item);
-}
-#endif
-
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
 WalletButton* BraveBrowserView::GetWalletButton() {
   return static_cast<BraveToolbarView*>(toolbar())->wallet_button();
@@ -1318,8 +1275,6 @@ void BraveBrowserView::AddedToWidget() {
       std::make_unique<BrowserWindowMouseEventHandler>(this);
 
   // we must call all new views once BraveBrowserView is added to widget
-
-  GetBrowserViewLayout()->set_contents_background(contents_background_view_);
   GetBrowserViewLayout()->set_sidebar_container(sidebar_container_view_);
 
   if (vertical_tab_strip_host_view_) {
@@ -1450,7 +1405,7 @@ void BraveBrowserView::OnTabStripModelChanged(
     if (focus_mode_title_bar_view_ &&
         focus_mode_title_bar_view_->GetVisible()) {
       focus_mode_title_bar_view_->SetTab(
-          browser()->tab_strip_model()->GetActiveTab());
+          browser()->GetTabStripModel()->GetActiveTab());
     }
   }
 
@@ -1522,8 +1477,8 @@ bool BraveBrowserView::MaybeUpdateDevtools(content::WebContents* web_contents) {
   // But, it could not when web panel is active and split view is opened
   // together. Early return to avoid crash from that.
   if (IsWebPanelContents(web_contents) && IsInSplitView()) {
-    return browser_->GetFeatures().devtools_ui_controller()->UpdateDevtools(
-        web_contents, false);
+    return DevtoolsUIController::From(browser_)->UpdateDevtools(web_contents,
+                                                                false);
   }
 
   bool result = BrowserView::MaybeUpdateDevtools(web_contents);
@@ -1949,8 +1904,8 @@ void BraveBrowserView::UpdateOriginPageChromeColor(
   origin_page_chrome_location_bar_ring_ = palette.location_bar_ring;
   origin_page_chrome_foreground_ = palette.foreground;
 
-  if (contents_background_view_) {
-    contents_background_view_->SetBackground(
+  if (main_background_region_) {
+    main_background_region_->SetBackground(
         views::CreateSolidBackground(palette.surface));
   }
   if (origin_empty_space_view_) {
@@ -2352,7 +2307,7 @@ bool BraveBrowserView::IsInTabDragging() const {
 }
 
 void BraveBrowserView::ReadyToListenFullscreenChanges() {
-  CHECK(browser_->GetFeatures().exclusive_access_manager());
+  CHECK(ExclusiveAccessManager::From(browser_));
 
   if (vertical_tab_strip_container_view_) {
     vertical_tab_strip_container_view_->vertical_tab_strip_region_view()
@@ -2361,7 +2316,7 @@ void BraveBrowserView::ReadyToListenFullscreenChanges() {
 }
 
 void BraveBrowserView::StopListeningFullscreenChanges() {
-  CHECK(browser_->GetFeatures().exclusive_access_manager());
+  CHECK(ExclusiveAccessManager::From(browser_));
 
   if (vertical_tab_strip_container_view_) {
     vertical_tab_strip_container_view_->vertical_tab_strip_region_view()

@@ -33,7 +33,11 @@ import { BraveWallet, WalletRoutes } from '../../../../constants/types'
 import { getLocale } from '$web-common/locale'
 import Amount from '../../../../utils/amount'
 // FIXME(onyb): move makeNetworkAsset to utils/assets-utils
-import { isNativeAsset, isShieldedToken } from '../../../../utils/asset-utils'
+import {
+  isLegacyShieldedToken,
+  isNativeAsset,
+  isShieldedToken,
+} from '../../../../utils/asset-utils'
 import { makeNetworkAsset } from '../../../../options/asset-options'
 import {
   getPriceRequestsForTokens,
@@ -92,7 +96,7 @@ const getTokenFromParam = (
   tokenList: BraveWallet.BlockchainToken[],
   zcashTokenType: BraveWallet.ZCashTokenType,
 ) => {
-  return tokenList.find(
+  const token = tokenList.find(
     (token) =>
       (token.chainId === network.chainId
         && token.coin === network.coin
@@ -105,6 +109,10 @@ const getTokenFromParam = (
         && token.symbol.toLowerCase() === contractOrSymbol.toLowerCase()
         && token.zcashTokenType === zcashTokenType),
   )
+  if (token && isLegacyShieldedToken(token)) {
+    return undefined
+  }
+  return token
 }
 
 const getAssetBalance = (
@@ -739,6 +747,9 @@ export const useSwap = () => {
   //  - Refresh quotes based on the new fromAmount, with debouncing.
   const handleOnSetFromAmount = useCallback(
     async (value: string) => {
+      if (Amount.isNegativeOrPaddedZeroAmount(value)) {
+        return
+      }
       setFromAmount(value)
       setEditingFromOrToAmount('from')
       if (!value) {
@@ -759,6 +770,9 @@ export const useSwap = () => {
   //  - Refresh quotes based on the new toAmount, with debouncing.
   const handleOnSetToAmount = useCallback(
     async (value: string) => {
+      if (Amount.isNegativeOrPaddedZeroAmount(value)) {
+        return
+      }
       setToAmount(value)
       setEditingFromOrToAmount('to')
       if (!value) {

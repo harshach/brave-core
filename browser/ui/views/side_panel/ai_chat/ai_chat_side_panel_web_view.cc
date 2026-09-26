@@ -17,7 +17,6 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/navigator/browser_navigator.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
@@ -163,14 +162,14 @@ content::WebContents* AIChatSidePanelWebView::AddNewContents(
   auto* browser = browser_view->browser();
 
   // If AI Chat is not open in the side panel, don't open the tab.
-  if (browser->GetFeatures().side_panel_ui()->GetCurrentEntryId() !=
+  if (SidePanelUI::From(browser)->GetCurrentEntryId() !=
       SidePanelEntryId::kChatUI) {
     return nullptr;
   }
 
   // Rather than opening a new tab from the side panel we navigate the active
   // tab next to the sidepanel.
-  auto* active_tab = browser->tab_strip_model()->GetActiveWebContents();
+  auto* active_tab = browser->GetTabStripModel()->GetActiveWebContents();
   NavigateParams params(browser, target_url, ui::PAGE_TRANSITION_LINK);
 
   // If the global side panel is enabled, open the url in the current active

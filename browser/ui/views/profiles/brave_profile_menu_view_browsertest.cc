@@ -15,7 +15,6 @@
 #include "chrome/browser/profiles/profile_manager.h"
 #include "chrome/browser/profiles/profile_test_util.h"
 #include "chrome/browser/profiles/profile_window.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/profiles/avatar_toolbar_button.h"
@@ -68,13 +67,13 @@ class BraveProfileMenuViewTest : public InProcessBrowserTest {
 #endif
   }
 
-  ProfileMenuViewBase* profile_menu_view(Browser* browser) {
-    auto* coordinator = browser->GetFeatures().profile_menu_coordinator();
+  ProfileMenuViewBase* profile_menu_view(BrowserWindowInterface* browser) {
+    auto* coordinator = ProfileMenuCoordinator::From(browser);
     return coordinator ? coordinator->GetProfileMenuViewBaseForTesting()
                        : nullptr;
   }
 
-  void OpenProfileMenu(Browser* browser) {
+  void OpenProfileMenu(BrowserWindowInterface* browser) {
     BrowserView* browser_view = BrowserView::GetBrowserViewForBrowser(browser);
     auto* avatar_toolbar_button = static_cast<AvatarToolbarButton*>(
         browser_view->toolbar_button_provider()
@@ -88,7 +87,7 @@ class BraveProfileMenuViewTest : public InProcessBrowserTest {
     ASSERT_TRUE(base::test::RunUntil(
         [&]() { return profile_menu_view(browser) != nullptr; }));
     ASSERT_NO_FATAL_FAILURE(WaitForMenuToBeActive(profile_menu_view(browser)));
-    auto* coordinator = browser->GetFeatures().profile_menu_coordinator();
+    auto* coordinator = ProfileMenuCoordinator::From(browser);
     EXPECT_TRUE(coordinator->IsShowing());
   }
 
@@ -100,7 +99,7 @@ class BraveProfileMenuViewTest : public InProcessBrowserTest {
     return profile_attributes->GetName();
   }
 
-  void CheckIdentity(Browser* browser) {
+  void CheckIdentity(BrowserWindowInterface* browser) {
     ProfileMenuViewBase* menu = profile_menu_view(browser);
     // Profile image and title container
     EXPECT_EQ(2u, menu->identity_info_container_->children().size());
@@ -142,7 +141,7 @@ IN_PROC_BROWSER_TEST_F(BraveProfileMenuViewTest, OpenGuestWindowProfile) {
   // Open a Guest window.
   EXPECT_EQ(1U, GlobalBrowserCollection::GetInstance()->GetSize());
   profiles::SwitchToGuestProfile(base::DoNothing());
-  Browser* guest_browser = ui_test_utils::WaitForBrowserToOpen();
+  BrowserWindowInterface* guest_browser = ui_test_utils::WaitForBrowserToOpen();
   EXPECT_EQ(2U, GlobalBrowserCollection::GetInstance()->GetSize());
 
   OpenProfileMenu(guest_browser);

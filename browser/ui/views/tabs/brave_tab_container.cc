@@ -19,6 +19,8 @@
 #include "base/feature_list.h"
 #include "base/notimplemented.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/task/sequenced_task_runner.h"
+#include "brave/browser/resources/tab_strip/grit/tab_strip_resources.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
@@ -48,12 +50,12 @@
 #include "chrome/browser/ui/views/tabs/tab_group_highlight.h"
 #include "chrome/browser/ui/views/tabs/tab_group_views.h"
 #include "chrome/browser/ui/views/tabs/tab_strip_layout_helper.h"
-#include "chrome/grit/theme_resources.h"
 #include "components/prefs/pref_service.h"
 #include "components/tabs/public/split_tab_data.h"
 #include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/image_model.h"
+#include "ui/base/resource/resource_bundle.h"
 #include "ui/color/color_id.h"
 #include "ui/compositor/paint_recorder.h"
 #include "ui/display/screen.h"
@@ -226,15 +228,19 @@ BraveTabContainer::~BraveTabContainer() {
   // closed tabs were cleaned up from OnTabCloseAnimationCompleted().
   CancelAnimation();
   DCHECK(closing_tabs_.empty()) << "There are dangling closed tabs.";
-  DCHECK(!layout_locked_)
-      << "The lock returned by LockLayout() shouldn't outlive this object";
+  // Note: |layout_locked_| may still be true here. The unlock closure
+  // returned by LockLayout() is bound to a weak pointer, so a lock that
+  // outlives this object is benign (e.g. the window is closed while a
+  // session-restore insert batch holds the lock).
 }
 
 base::OnceClosure BraveTabContainer::LockLayout() {
   DCHECK(!layout_locked_) << "LockLayout() doesn't allow reentrance";
   layout_locked_ = true;
+  // Bind weakly: during session restore the closure is posted to the task
+  // queue, and the window (with this container) can be closed before it runs.
   return base::BindOnce(&BraveTabContainer::OnUnlockLayout,
-                        base::Unretained(this));
+                        weak_factory_.GetWeakPtr());
 }
 
 bool BraveTabContainer::ShouldShowVerticalTabs() const {
@@ -465,6 +471,15 @@ bool BraveTabContainer::ShouldTabBeVisible(const Tab* tab) const {
 
 std::vector<Tab*> BraveTabContainer::AddTabs(
     std::vector<TabInsertionParams> tabs_params) {
+  // Session restore inserts tabs one batch after another, and every insert
+  // triggers a full O(tab count) strip layout. Lock the layout for the rest
+  // of the current task batch and post the unlock closure, so all inserts
+  // that pile up in the task queue are laid out in a single pass.
+  if (GetScrollDirection() && !layout_locked_ && IsSessionRestoreInProgress()) {
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(FROM_HERE,
+                                                             LockLayout());
+  }
+
   std::vector<Tab*> added_tabs =
       TabContainerImpl::AddTabs(std::move(tabs_params));
   // Session restore inserts many background tabs back-to-back; scrolling to
@@ -760,6 +775,16 @@ void BraveTabContainer::PaintBoundingBoxForSplitTab(
 }
 
 void BraveTabContainer::OnUnlockLayout() {
+  if (IsSessionRestoreInProgress()) {
+    // Session restore for this profile is still (or again) in progress by
+    // the time this deferred task runs (e.g. during the profile chooser
+    // startup flow). Wait for it to finish rather than unlocking early.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindOnce(&BraveTabContainer::OnUnlockLayout,
+                                  weak_factory_.GetWeakPtr()));
+    return;
+  }
+
   layout_locked_ = false;
 
   InvalidateIdealBounds();
@@ -786,17 +811,6 @@ void BraveTabContainer::CompleteAnimationAndLayout() {
 }
 
 void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
-  // Exclude tabs that own layer.
-  std::vector<ZOrderableTabContainerElement> orderable_children;
-  for (views::View* child : children()) {
-    if (!ZOrderableTabContainerElement::CanOrderView(child)) {
-      continue;
-    }
-    orderable_children.emplace_back(child);
-  }
-
-  std::stable_sort(orderable_children.begin(), orderable_children.end());
-
   auto* tab_strip =
       static_cast<TabStrip*>(base::to_address(tab_slot_controller_));
   if (!tab_strip->controller() || !tab_strip->GetBrowserWindowInterface()) {
@@ -812,8 +826,19 @@ void BraveTabContainer::PaintChildren(const views::PaintInfo& paint_info) {
     PaintBoundingBoxForSplitTabs(*recorder.canvas());
   }
 
-  for (const ZOrderableTabContainerElement& child : orderable_children) {
-    child.view()->Paint(paint_info);
+  // Paint slot views in z-order using the cache maintained by
+  // TabContainerImpl, exactly like TabContainerImpl::PaintChildren() does.
+  // The cache is only rebuilt after tabs are added, removed, reordered,
+  // activated, grouped or split, so the steady state costs nothing per paint.
+  // Collecting and sorting every slot view here on each paint was O(n log n)
+  // per frame, which is noticeable with many tabs since a scrollable strip
+  // repaints on every wheel tick and every animation frame.
+  UpdateZOrderCacheIfDirty();
+  for (const ZOrderableTabContainerElement& child : z_ordered_children_cache_) {
+    // Views that own a layer are composited separately.
+    if (!child.view()->layer()) {
+      child.view()->Paint(paint_info);
+    }
   }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -1200,6 +1225,10 @@ void BraveTabContainer::OnSplitCreated(const std::vector<int>& indices) {
   PreferredSizeChanged();
   InvalidateLayout();
 #endif
+  // TabContainerImpl::OnSplitCreated() is intentionally not called, so mirror
+  // its cache invalidation: tabs joining a split become selected, which
+  // changes their z-value (see Tab::GetZValue()).
+  MarkZOrderCacheDirty();
 }
 
 void BraveTabContainer::OnSplitRemoved(const std::vector<int>& indices) {
@@ -1208,6 +1237,8 @@ void BraveTabContainer::OnSplitRemoved(const std::vector<int>& indices) {
   PreferredSizeChanged();
   InvalidateLayout();
 #endif
+  // See OnSplitCreated().
+  MarkZOrderCacheDirty();
 }
 
 void BraveTabContainer::OnSplitContentsChanged(
@@ -1966,16 +1997,60 @@ void BraveTabContainer::SetScrollOffset(int offset) {
     return;
   }
 
-  // When offset changes, relayout tabs even when size doesn't change.
   // Callers must pass offset in [0, GetMaxScrollOffset()].
+  const int delta = offset - scroll_offset_;
   scroll_offset_ = offset;
-  last_layout_size_ = std::nullopt;
-  CompleteAnimationAndLayout();
+
+  if (!ScrollByDelta(delta)) {
+    // The fast path declined: the strip is not settled (a layout is
+    // pending, an animation or drag session is running, or the layout is
+    // locked), so the new offset needs the full layout. Reset the layout
+    // size so it runs even though the size did not change.
+    last_layout_size_ = std::nullopt;
+    CompleteAnimationAndLayout();
+  }
   UpdateScrollBarState();
 
   if (scroll_direction == views::LayoutOrientation::kHorizontal) {
     horizontal_scroll_offset_changed_callbacks_.Notify();
   }
+}
+
+bool BraveTabContainer::ScrollByDelta(int delta) {
+  // The fast path only applies to a settled vertical strip: ideal bounds and
+  // view bounds agree and were computed for the current size. Anything else
+  // (pending layout, running animation, drag session, locked layout) goes
+  // through the full layout, which also handles those cases today.
+  if (GetScrollDirection() != views::LayoutOrientation::kVertical ||
+      layout_locked_ || last_layout_size_ != size() || IsAnimating() ||
+      IsDragSessionActive()) {
+    return false;
+  }
+
+  // A scroll does not change the layout, only where it is placed relative
+  // to the viewport. Shift the ideal bounds that UpdateIdealBounds() already
+  // produced instead of recomputing them: the result is identical to what
+  // UpdateIdealBounds() would compute for the new offset.
+  const int tab_count = GetTabCount();
+  for (int i = 0; i < tab_count; ++i) {
+    if (GetTabAtModelIndex(i)->data().pinned) {
+      continue;
+    }
+    gfx::Rect bounds = tabs_view_model_.ideal_bounds(i);
+    bounds.Offset(0, -delta);
+    tabs_view_model_.set_ideal_bounds(i, bounds);
+  }
+  for (auto& [group_id, _] : group_views_) {
+    layout_helper_->group_header_ideal_bounds().at(group_id).Offset(0, -delta);
+  }
+
+  // The visibility pass reads the ideal bounds shifted above, so it sees the
+  // new offset without recomputing anything.
+  SnapToIdealBounds();
+  SetTabSlotVisibility();
+  UpdateClipPathForSlotViews();
+  SchedulePaint();
+  return true;
 }
 
 base::CallbackListSubscription

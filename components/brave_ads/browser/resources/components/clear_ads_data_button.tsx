@@ -17,6 +17,7 @@ const STATUS_DURATION_MS = 3000
 export function ClearAdsDataButton() {
   const actions = useAppActions()
   const rewardsEnabled = useAppState((state) => state.rewardsEnabled)
+  const isInitialized = useAppState((state) => state.isInitialized)
 
   const [status, setStatus] = React.useState<'success' | 'error' | null>(null)
 
@@ -33,18 +34,24 @@ export function ClearAdsDataButton() {
     setStatus(success ? 'success' : 'error')
   }
 
-  if (rewardsEnabled) {
+  // For non-Rewards users the ads service only ever runs while Sponsored
+  // Ads is enabled, and its data is auto-cleared the moment it's disabled
+  // (see `AdsServiceImpl::OnAdsPrefChanged`), so `!isInitialized` here means
+  // there's nothing left to clear.
+  if (rewardsEnabled || !isInitialized) {
     return null
   }
 
   return (
     <>
-      <Button
-        size='small'
-        onClick={clearAdsData}
-      >
-        Clear Ads Data
-      </Button>
+      <span className='fixed-flex-item'>
+        <Button
+          size='small'
+          onClick={clearAdsData}
+        >
+          Clear Ads Data
+        </Button>
+      </span>
       {status &&
         createPortal(
           <Alert

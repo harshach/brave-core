@@ -67,6 +67,7 @@ import org.chromium.chrome.browser.ui.appmenu.AppMenuItemProperties;
 import org.chromium.chrome.browser.ui.bottombar.BottomBarConfigUtils;
 import org.chromium.chrome.browser.ui.messages.snackbar.SnackbarManager;
 import org.chromium.chrome.browser.ui.side_ui.SideUiStateProvider;
+import org.chromium.chrome.browser.util.BrowserUiUtils;
 import org.chromium.chrome.browser.vpn.BraveVpnPolicy;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnPrefUtils;
 import org.chromium.chrome.browser.vpn.utils.BraveVpnProfileUtils;
@@ -168,7 +169,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                                 R.id.recent_tabs_menu_id,
                                 R.id.page_zoom_id,
                                 R.id.find_in_page_id,
-                                R.id.set_default_browser)),
+                                R.id.default_browser_promo_menu_id)),
                 new PolicyControlledMenuItem(
                         R.id.brave_rewards_id,
                         this::buildBraveRewardsItem,
@@ -509,6 +510,17 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                 && super.shouldShowMoveToOtherWindow();
     }
 
+    @Override
+    protected boolean shouldShowPageInfoItem() {
+        if (!super.shouldShowPageInfoItem()) {
+            return false;
+        }
+
+        // Show the page info item only when the address bar has no
+        // page info button.
+        return BrowserUiUtils.isPageInfoMovedToAppMenu(mContext);
+    }
+
     /**
      * Builds the complete list of main menu items for the Customize menu settings screen using
      * cached policy values.
@@ -702,7 +714,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
             modelList.add(buildBravePlaylistItem());
             modelList.add(buildBraveAddToPlaylistItem());
         }
-        modelList.add(buildSetDefaultBrowserItem());
+        modelList.add(buildDefaultBrowserItem());
 
         // Add policy-controlled items based on policy states, respecting their position
         for (PolicyControlledMenuItem item : getPolicyControlledMenuItems()) {
@@ -885,22 +897,8 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                                 0,
                                 isMenuIconAtStart())));
 
-        // Universal Install / Open Web APK
+        // Universal Install
         if (WebappsUtils.isAddToHomeIntentSupported()) {
-            // This is the 'webapp is already installed' case, so we offer to open the webapp.
-            String appName = mContext.getString(R.string.webapp);
-            modelList.add(
-                    new MVCListAdapter.ListItem(
-                            AppMenuItemType.STANDARD,
-                            AppMenuItemUtils.buildBaseModelForTextItem(
-                                            mAppMenuItemTheme,
-                                            R.id.open_webapk_id,
-                                            isMenuIconAtStart())
-                                    .with(
-                                            AppMenuItemProperties.TITLE,
-                                            mContext.getString(R.string.menu_open_webapk, appName))
-                                    .build()));
-
             modelList.add(
                     new MVCListAdapter.ListItem(
                             AppMenuItemType.STANDARD,
@@ -1015,6 +1013,7 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
         if (!mIsTablet) {
             maybeRemoveMenuItems(modelList, R.id.share_menu_id);
         }
+        putShareIconIntoIconRow(modelList);
 
         // Shred
         if (ChromeFeatureList.isEnabled(BraveFeatureList.BRAVE_SHRED)) {
@@ -1056,14 +1055,46 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                             R.id.brave_wallet_id,
                             R.id.all_bookmarks_menu_id));
         }
-        if (!BraveSetDefaultBrowserUtils.isBraveSetAsDefaultBrowser(mBraveContext)) {
-            modelList.add(buildSetDefaultBrowserItem());
-        }
         // Policy-controlled items (Leo, Rewards, News, VPN) are handled by
         // updateMenuItemsBasedOnPolicy() - they are not added here to avoid showing them
         // if policy disables them
         modelList.add(buildCustomMenuItem());
         modelList.add(buildExitItem());
+    }
+
+    /**
+     * Puts Brave's share icon into the app menu icon row, in place of the forward icon.
+     *
+     * <p>The row renders five icons at most, and forward stays reachable from the menu footer, so
+     * it is the one that gives way. The page info icon is dropped as well, as Brave keeps page info
+     * in the menu list instead.
+     */
+    private void putShareIconIntoIconRow(MVCListAdapter.ModelList modelList) {
+        for (int i = 0; i < modelList.size(); ++i) {
+            Integer itemId = modelList.get(i).model.get(AppMenuItemProperties.MENU_ITEM_ID);
+            if (itemId == null || itemId != R.id.icon_row_menu_id) continue;
+
+            MVCListAdapter.ModelList icons =
+                    modelList.get(i).model.get(AppMenuItemProperties.ADDITIONAL_ICONS);
+            maybeRemoveMenuItems(icons, R.id.forward_menu_id, R.id.info_menu_id);
+
+            PropertyModel shareIcon =
+                    AppMenuItemUtils.buildModelForIcon(
+                            mContext,
+                            R.id.share_menu_id,
+                            R.string.share,
+                            R.string.share,
+                            R.drawable.ic_share_white_24dp);
+            Tab currentTab = mActivityTabProvider.get();
+            shareIcon.set(
+                    AppMenuItemProperties.ENABLED,
+                    currentTab != null && !UrlUtilities.isNtpUrl(currentTab.getUrl().getSpec()));
+            // Keep reload last, as upstream does.
+            icons.add(icons.size() - 1, new MVCListAdapter.ListItem(0, shareIcon));
+            return;
+        }
+
+        assert !shouldShowIconRow() : "No icon row found in the app menu.";
     }
 
     private void maybeRemoveMenuItems(MVCListAdapter.ModelList modelList, int... itemIds) {
@@ -1109,15 +1140,24 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
         return super.shouldShowIconRow();
     }
 
-    private MVCListAdapter.ListItem buildSetDefaultBrowserItem() {
+    /**
+     * Shows the upstream default browser menu item whenever Brave is not the default browser,
+     * instead of following the upstream promo state and its feature flag.
+     */
+    @Override
+    protected boolean shouldShowDefaultBrowserPromo() {
+        return !BraveSetDefaultBrowserUtils.isBraveSetAsDefaultBrowser(mBraveContext);
+    }
+
+    private MVCListAdapter.ListItem buildDefaultBrowserItem() {
         return new MVCListAdapter.ListItem(
                 AppMenuHandler.AppMenuItemType.STANDARD,
                 AppMenuItemUtils.buildModelForStandardMenuItem(
                         mContext,
                         mAppMenuItemTheme,
-                        R.id.set_default_browser,
-                        R.string.menu_set_default_browser,
-                        shouldShowIconBeforeItem() ? R.drawable.ic_set_as_default : 0,
+                        R.id.default_browser_promo_menu_id,
+                        R.string.make_chrome_default,
+                        0,
                         isMenuIconAtStart()));
     }
 
@@ -1278,22 +1318,6 @@ public class BraveTabbedAppMenuPropertiesDelegate extends TabbedAppMenuPropertie
                         BraveVpnPrefUtils.getRegionIsoCode(),
                         regionName));
         return new MVCListAdapter.ListItem(AppMenuItemType.TITLE_BUTTON, model);
-    }
-
-    @Override
-    protected PropertyModel buildPageInfoModel(@Nullable Tab currentTab) {
-        // Instead of the info button, we show the share button in Brave.
-        PropertyModel shareButton =
-                AppMenuItemUtils.buildModelForIcon(
-                        mContext,
-                        R.id.info_menu_id,
-                        R.string.share,
-                        R.string.share,
-                        R.drawable.ic_share_white_24dp);
-        shareButton.set(
-                AppMenuItemProperties.ENABLED,
-                (currentTab != null && !UrlUtilities.isNtpUrl(currentTab.getUrl().getSpec())));
-        return shareButton;
     }
 
     /**

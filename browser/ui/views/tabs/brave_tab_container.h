@@ -14,6 +14,7 @@
 #include "base/callback_list.h"
 #include "base/containers/flat_map.h"
 #include "base/gtest_prod_util.h"
+#include "base/memory/weak_ptr.h"
 #include "chrome/browser/ui/tabs/tab_style.h"
 #include "chrome/browser/ui/views/tabs/dragging/tab_drag_context.h"
 #include "chrome/browser/ui/views/tabs/tab_container_impl.h"
@@ -175,6 +176,8 @@ class BraveTabContainer : public TabContainerImpl,
                            OriginNewPageFollowsPageRows);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginPinnedTilesClipScrollingRows);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           ScrollFastPathMatchesFullLayout);
 
   class DropArrow {
    public:
@@ -251,6 +254,12 @@ class BraveTabContainer : public TabContainerImpl,
   // Sets the scroll offset for unpinned tabs. If the offset changes, triggers
   // a layout.
   void SetScrollOffset(int offset);
+
+  // Applies a scroll of |delta| to a settled vertical strip by shifting the
+  // existing ideal bounds and re-snapping the slot views, instead of running
+  // the full layout pipeline. Returns false when the strip is not in a state
+  // where that is safe; the caller then runs the full layout.
+  bool ScrollByDelta(int delta);
 
   // Returns the maximum scroll offset for unpinned tabs.
   int GetMaxScrollOffset() const;
@@ -393,6 +402,7 @@ class BraveTabContainer : public TabContainerImpl,
   raw_ptr<views::View> origin_pinned_section_header_ = nullptr;
   raw_ptr<views::View> origin_split_section_header_ = nullptr;
   raw_ptr<views::View> origin_new_page_button_ = nullptr;
+  base::WeakPtrFactory<BraveTabContainer> weak_factory_{this};
 };
 
 #endif  // BRAVE_BROWSER_UI_VIEWS_TABS_BRAVE_TAB_CONTAINER_H_

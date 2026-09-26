@@ -19,6 +19,7 @@ source_set("misc_metrics") {
     "//brave/components/ai_chat/core/common/buildflags",
     "//brave/components/misc_metrics",
     "//brave/components/time_period_storage",
+    "//chrome/browser/profiles:profile",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
     "//components/prefs",
@@ -33,8 +34,15 @@ static_library("misc_metrics_impl") {
     "//brave/browser:core",
     "//brave/browser/misc_metrics/*",
   ]
+  if (!is_android) {
+    visibility += [ "//brave/browser/ui/tabs:impl" ]
+  } else {
+    visibility += [ "//brave/browser/android:tabs_impl" ]
+  }
 
   sources = [
+    "//brave/browser/misc_metrics/captcha_metrics.cc",
+    "//brave/browser/misc_metrics/captcha_metrics.h",
     "//brave/browser/misc_metrics/doh_metrics.cc",
     "//brave/browser/misc_metrics/doh_metrics.h",
     "//brave/browser/misc_metrics/fingerprint_frequency_metrics.cc",
@@ -53,6 +61,7 @@ static_library("misc_metrics_impl") {
     "//brave/browser/brave_stats",
     "//brave/browser/misc_metrics",
     "//brave/browser/profiles:util",
+    "//brave/browser/serp_metrics",
     "//brave/components/brave_shields/core/common",
     "//brave/components/constants",
     "//brave/components/misc_metrics",
@@ -63,14 +72,17 @@ static_library("misc_metrics_impl") {
     "//chrome/browser:browser_process",
     "//chrome/browser:shell_integration",
     "//chrome/browser/autofill",
+    "//chrome/browser/page_load_metrics",
     "//chrome/browser/profiles",
     "//chrome/browser/search_engines",
     "//chrome/browser/ui",
     "//chrome/browser/ui/browser_window",
+    "//chrome/browser/ui/tabs:tabs_public",
     "//chrome/common:constants",
     "//components/keyed_service/content",
     "//components/keyed_service/core",
     "//components/language/core/browser",
+    "//components/page_load_metrics/browser",
     "//components/prefs",
     "//components/tabs:public",
     "//components/user_prefs",
@@ -81,6 +93,7 @@ static_library("misc_metrics_impl") {
     "//third_party/blink/public/common",
     "//ui/base",
     "//ui/gfx/geometry",
+    "//url",
   ]
 
   if (enable_ai_chat) {
@@ -139,6 +152,7 @@ source_set("unit_tests") {
   testonly = true
 
   sources = [
+    "captcha_metrics_unittest.cc",
     "doh_metrics_unittest.cc",
     "fingerprint_frequency_metrics_unittest.cc",
     "media_session_metrics_impl_unittest.cc",
@@ -196,7 +210,10 @@ source_set("unit_tests") {
 source_set("browser_tests") {
   testonly = true
 
-  sources = [ "fingerprint_frequency_metrics_browsertest.cc" ]
+  sources = [
+    "captcha_metrics_browsertest.cc",
+    "fingerprint_frequency_metrics_browsertest.cc",
+  ]
 
   # The web3 proxy is only injected alongside a wallet provider.
   if (enable_brave_wallet) {
@@ -204,24 +221,25 @@ source_set("browser_tests") {
   }
 
   if (!is_android) {
-    sources += [
-      "profile_misc_metrics_service_browsertest.cc",
-      "vertical_tab_metrics_browsertest.cc",
-    ]
+    sources += [ "vertical_tab_metrics_browsertest.cc" ]
   }
 
   deps = [
     "//base",
     "//base/test:test_support",
+    "//brave/browser:browser_process",
     "//brave/browser/misc_metrics",
     "//brave/browser/misc_metrics:misc_metrics_impl",
     "//brave/components/constants",
     "//brave/components/misc_metrics",
+    "//chrome/browser:browser_process",
+    "//chrome/browser/page_load_metrics",
     "//chrome/browser/profiles:profile",
     "//chrome/browser/tab_group_sync:factories",
     "//chrome/test:test_support",
-    "//components/keyed_service/core",
     "//components/language/core/browser",
+    "//components/page_load_metrics/browser:test_support",
+    "//components/prefs",
     "//components/prefs:test_support",
     "//content/test:test_support",
     "//net:test_support",

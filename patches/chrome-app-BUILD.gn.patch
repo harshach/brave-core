@@ -1,5 +1,5 @@
 diff --git a/chrome/app/BUILD.gn b/chrome/app/BUILD.gn
-index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..14c3c6e8d666d4e7f3565346ac9beae55111b75e 100644
+index eddd25c932ddba98c1a6985fc2810555c2463e45..e67a29ca3a01341ce39db4cf8f22cb15502ebf6f 100644
 --- a/chrome/app/BUILD.gn
 +++ b/chrome/app/BUILD.gn
 @@ -7,6 +7,7 @@ import("//build/config/chromebox_for_meetings/buildflags.gni")
@@ -26,7 +26,7 @@ index 07e4d3aa8789b0a9631bb84312b0e22916b2c3b5..14c3c6e8d666d4e7f3565346ac9beae5
  }
  
  if (is_android) {
-@@ -180,6 +183,13 @@ static_library("test_support") {
+@@ -183,6 +186,13 @@ static_library("test_support") {
      "//ui/base",
      "//v8:v8_headers",
    ]

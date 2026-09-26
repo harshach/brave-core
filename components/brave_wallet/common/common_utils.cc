@@ -25,6 +25,10 @@
 
 namespace brave_wallet {
 
+bool IsFilecoinLedgerEnabled() {
+  return base::FeatureList::IsEnabled(features::kBraveWalletFilecoinLedger);
+}
+
 bool IsBitcoinEnabled() {
   return base::FeatureList::IsEnabled(features::kBraveWalletBitcoinFeature);
 }
@@ -56,7 +60,8 @@ bool IsZCashShieldedTransactionsEnabled() {
 }
 
 bool IsZCashIronwoodEnabled() {
-  return IsZCashEnabled() && features::kZCashIronwoodEnabled.Get();
+  return IsZCashEnabled() && IsZCashShieldedTransactionsEnabled() &&
+         features::kZCashIronwoodEnabled.Get();
 }
 
 bool IsPolkadotEnabled() {
@@ -67,6 +72,10 @@ bool IsPolkadotAssetDiscoveryEnabled() {
   return IsPolkadotEnabled() && features::kPolkadotAssetDiscovery.Get();
 }
 
+bool IsPolkadotDAppSupportEnabled() {
+  return IsPolkadotEnabled() && features::kPolkadotDAppSupport.Get();
+}
+
 bool IsWalletDebugEnabled() {
 #if !defined(OFFICIAL_BUILD)
   return base::FeatureList::IsEnabled(features::kBraveWalletDebugFeature);
@@ -75,9 +84,9 @@ bool IsWalletDebugEnabled() {
 #endif
 }
 
-bool IsMojoForHardwareWalletEnabled() {
+bool IsMojoForLedgerEnabled() {
   return base::FeatureList::IsEnabled(
-      features::kBraveWalletMojoForHardwareWalletFeature);
+      features::kBraveWalletMojoForLedgerFeature);
 }
 
 bool IsAnkrBalancesEnabled() {
@@ -95,9 +104,9 @@ bool IsAccountHidingEnabled() {
       features::kBraveWalletAccountHidingFeature);
 }
 
-bool IsSnapsFeatureEnabled() {
-#if BUILDFLAG(ENABLE_SNAPS)
-  return base::FeatureList::IsEnabled(features::kBraveWalletSnapsFeature);
+bool IsSnapFeatureEnabled() {
+#if BUILDFLAG(ENABLE_SNAP)
+  return base::FeatureList::IsEnabled(features::kBraveWalletSnapFeature);
 #else
   return false;
 #endif

@@ -75,7 +75,7 @@ const MODELS: Mojom.Model[] = [
     audioSupport: false,
     videoSupport: false,
     supportsTools: false,
-    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+    supportedCapabilities: [],
     isSuggestedModel: true,
     isNearModel: false,
     supportsPrivateInference: false,
@@ -99,10 +99,7 @@ const MODELS: Mojom.Model[] = [
     audioSupport: false,
     videoSupport: false,
     supportsTools: true,
-    supportedCapabilities: [
-      Mojom.ConversationCapability.CHAT,
-      Mojom.ConversationCapability.CONTENT_AGENT,
-    ],
+    supportedCapabilities: [Mojom.ConversationCapability.CONTENT_AGENT],
     isSuggestedModel: true,
     isNearModel: false,
     supportsPrivateInference: false,
@@ -126,7 +123,7 @@ const MODELS: Mojom.Model[] = [
     audioSupport: false,
     videoSupport: false,
     supportsTools: false,
-    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+    supportedCapabilities: [],
     isSuggestedModel: false,
     isNearModel: false,
     supportsPrivateInference: false,
@@ -150,7 +147,7 @@ const MODELS: Mojom.Model[] = [
     audioSupport: false,
     videoSupport: false,
     supportsTools: true,
-    supportedCapabilities: [Mojom.ConversationCapability.CHAT],
+    supportedCapabilities: [],
     isSuggestedModel: false,
     isNearModel: false,
     supportsPrivateInference: false,
@@ -219,16 +216,19 @@ const SAMPLE_CONTENT_TOOLS: Mojom.ToolInfo[] = [
       + ' an invoice). With navigate=false (default), returns invoice data'
       + ' without changing the page — use this only when the user is asking a'
       + ' question about their invoices, not asking to view one.',
+    permission: Mojom.ToolPermission.kAsk,
   },
   {
     name: 'create_invoice',
     description: 'Create a new draft invoice for a given customer and amount.',
+    permission: Mojom.ToolPermission.kAllowSession,
   },
   {
     name: 'send_invoice',
     description:
       'Email an existing draft invoice to its customer. Verifies the invoice'
       + ' has a customer and at least one line item first.',
+    permission: Mojom.ToolPermission.kNeverAllow,
   },
 ]
 
@@ -237,7 +237,7 @@ const SAMPLE_SKILLS: Mojom.Skill[] = [
     id: 'translate-mode',
     shortcut: 'translate',
     prompt: 'Translate the following text to English',
-    model: 'claude-3-haiku',
+    model: 'automatic',
     createdTime: { internalValue: BigInt(Date.now() * 1000) },
     lastUsed: { internalValue: BigInt(Date.now() * 1000) },
   },
@@ -404,7 +404,7 @@ const args: CustomArgs = {
   inputText: [
     `Write a Star Trek poem about Data's life on board the Enterprise`,
   ],
-  capabilitiesEnabled: ['CHAT'],
+  capabilitiesEnabled: [],
   conversationListCount: CONVERSATIONS.length,
   hasSuggestedQuestions: true,
   hasAssociatedContent: true,

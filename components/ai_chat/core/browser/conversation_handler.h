@@ -175,7 +175,10 @@ class ConversationHandler : public mojom::ConversationHandler,
 
   // mojom::ConversationHandler
   void GetState(GetStateCallback callback) override;
-  void GetConversationHistory(GetConversationHistoryCallback callback) override;
+  void GetConversationHistory(
+      mojom::ConversationHandler::GetConversationHistoryCallback callback)
+      override;
+  void GetConversationThreads(GetConversationThreadsCallback callback) override;
   void SetTemporary(bool temporary) override;
   void PauseTask() override;
   void ResumeTask() override;
@@ -184,6 +187,9 @@ class ConversationHandler : public mojom::ConversationHandler,
                         bool tools_attached) override;
   void GetContentTools(const std::string& content_uuid,
                        GetContentToolsCallback callback) override;
+  void SetContentToolPermission(const std::string& content_uuid,
+                                const std::string& tool_name,
+                                mojom::ToolPermission permission) override;
   void RateMessage(bool is_liked,
                    const std::string& turn_uuid,
                    RateMessageCallback callback) override;
@@ -198,17 +204,18 @@ class ConversationHandler : public mojom::ConversationHandler,
   void GetIsRequestInProgress(GetIsRequestInProgressCallback callback) override;
   void SubmitHumanConversationEntry(
       const std::string& input,
-      std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files)
-      override;
+      std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files,
+      const std::optional<std::string>& thread_uuid = std::nullopt) override;
   void SubmitHumanConversationEntry(mojom::ConversationTurnPtr turn);
   void SubmitHumanConversationEntryWithAction(
       const std::string& input,
-      mojom::ActionType action_type) override;
+      mojom::ActionType action_type,
+      const std::optional<std::string>& thread_uuid = std::nullopt) override;
   void SubmitHumanConversationEntryWithSkill(
       const std::string& input,
       const std::string& skill_id,
-      std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files)
-      override;
+      std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files,
+      const std::optional<std::string>& thread_uuid = std::nullopt) override;
   void ModifyConversation(
       const std::string& entry_uuid,
       const std::string& new_text,
@@ -239,19 +246,29 @@ class ConversationHandler : public mojom::ConversationHandler,
                                   mojom::ActionType action_type,
                                   mojom::APIError error);
   void OnAssociatedContentUpdated();
+  void OnContentToolsChanged(const std::string& content_uuid,
+                             std::vector<mojom::ToolInfoPtr> tools);
 
   void OnUserOptedIn();
   size_t GetConversationHistorySize() override;
   void GetScreenshots(GetScreenshotsCallback callback) override;
 
   // mojom::UntrustedConversationHandler
+  void GetConversationHistory(
+      const std::optional<std::string>& thread_uuid,
+      mojom::UntrustedConversationHandler::GetConversationHistoryCallback
+          callback) override;
   void SwitchToNonPremiumModel() override;
   void RespondToToolUseRequest(
       const std::string& tool_id,
       std::vector<mojom::ContentBlockPtr> output_json,
       std::vector<mojom::ToolArtifactPtr> artifacts) override;
-  void ProcessPermissionChallenge(const std::string& tool_use_id,
-                                  bool user_result) override;
+  void ProcessPermissionChallenge(
+      const std::string& tool_use_id,
+      mojom::PermissionChallengeDecision decision) override;
+  void CreateConversationThread(
+      const std::string& origin_entry_uuid,
+      CreateConversationThreadCallback callback) override;
 
   // Some associated content may provide some conversation that the user wants
   // to continue, e.g. Brave Search.

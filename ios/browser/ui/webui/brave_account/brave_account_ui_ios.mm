@@ -8,7 +8,11 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/strings/sys_string_conversions.h"
 #include "brave/components/password_strength_meter/password_strength_meter.mojom.h"
+#include "brave/ios/browser/brave_account/brave_account_dialog_opener_bridge.h"
+#include "brave/ios/browser/brave_account/dialog_mode_holder.h"
+#include "brave/ios/browser/brave_account/dialog_opener_bridge_holder.h"
 #include "ios/chrome/browser/shared/model/profile/profile_ios.h"
 #include "ios/web/public/web_state.h"
 #include "ios/web/public/webui/web_ui_ios.h"
@@ -28,8 +32,33 @@ BraveAccountUIIOS::~BraveAccountUIIOS() {
   RemoveInterface<password_strength_meter::mojom::PasswordStrengthMeter>();
 }
 
+void BraveAccountUIIOS::OpenDialog(
+    const std::string& initiating_service_name,
+    brave_account::mojom::DialogMode dialog_mode) {
+  auto* holder = brave_account::DialogOpenerBridgeHolder::FromWebState(
+      web_ui()->GetWebState());
+  if (!holder) {
+    return;
+  }
+
+  [holder->bridge()
+      openBraveAccountDialogWithInitiatingServiceName:
+          base::SysUTF8ToNSString(initiating_service_name)
+                                           dialogMode:
+                                               static_cast<
+                                                   BraveAccountDialogMode>(
+                                                   dialog_mode)];
+}
+
 void BraveAccountUIIOS::CloseDialog() {
   web_ui()->GetWebState()->CloseWebState();
+}
+
+void BraveAccountUIIOS::GetDialogMode(GetDialogModeCallback callback) {
+  auto* holder =
+      brave_account::DialogModeHolder::FromWebState(web_ui()->GetWebState());
+  std::move(callback).Run(holder ? holder->dialog_mode()
+                                 : brave_account::mojom::DialogMode::kDefault);
 }
 
 void BraveAccountUIIOS::BindInterface(

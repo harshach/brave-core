@@ -41,8 +41,6 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kBraveDomainBlock;
 @property(class, nonatomic, readonly) Feature* kBraveDomainBlock1PES;
 @property(class, nonatomic, readonly) Feature* kBraveNTPBrandedWallpaper;
-@property(class, nonatomic, readonly)
-    Feature* kBraveNTPBrandedWallpaperSurveyPanelist;
 @property(class, nonatomic, readonly) Feature* kBraveNewsCardPeekFeature;
 @property(class, nonatomic, readonly) Feature* kBraveNewsFeedUpdate;
 @property(class, nonatomic, readonly) Feature* kBraveReduceLanguage;
@@ -53,6 +51,8 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kShowUpdatedShieldsPanel;
 @property(class, nonatomic, readonly) Feature* kBraveIOSDebugAdblock;
 @property(class, nonatomic, readonly) Feature* kBraveIOSEnableFarblingPlugins;
+@property(class, nonatomic, readonly)
+    Feature* kTransitionToUpstreamHttpsUpgrades;
 @property(class, nonatomic, readonly)
     Feature* kBraveShowStrictFingerprintingMode;
 @property(class, nonatomic, readonly) Feature* kBraveSync;
@@ -85,6 +85,7 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kBraveSyncDefaultPasswords;
 @property(class, nonatomic, readonly)
     Feature* kWebKitAdvancedPrivacyProtections;
+@property(class, nonatomic, readonly) Feature* kWebKitGlobalPrivacyControl;
 @property(class, nonatomic, readonly) Feature* kBraveOrigin;
 @property(class, nonatomic, readonly, nullable)
     Feature* kBraveWalletCardanoEnabled;
@@ -94,6 +95,8 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kPlaylist;
 @property(class, nonatomic, readonly) Feature* kPlaylistOfflineCacheEnabled;
 @property(class, nonatomic, readonly) Feature* kPlaylistCacheFirstEnabled;
+@property(class, nonatomic, readonly) Feature* kTopsitesEnabled;
+@property(class, nonatomic, readonly) Feature* kBrowserToolbarRefactorEnabled;
 @end
 
 NS_ASSUME_NONNULL_END

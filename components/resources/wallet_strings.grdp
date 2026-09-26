@@ -1121,6 +1121,9 @@
   <message name="IDS_BRAVE_WALLET_TOKEN_SYMBOL_IS_REQUIRED_ERROR" desc="Error explaining that a Token symbol value has not been entered" formatter_data="webui=Wallet">Token symbol is required</message>
   <message name="IDS_BRAVE_WALLET_TOKEN_DECIMALS_IS_REQUIRED_ERROR" desc="Error explaining that a Token decimals value has not been entered" formatter_data="webui=Wallet">Token decimals of precision value is required</message>
   <message name="IDS_BRAVE_WALLET_TOKEN_MINT_ADDRESS" desc="A title that will be displayed on top of the text field for users to input the custom token mint address" formatter_data="webui=Wallet">Mint address</message>
+  <message name="IDS_BRAVE_WALLET_TOKEN_ASSET_ID" desc="A title that will be displayed on top of the text field for users to input the custom Polkadot token asset ID" formatter_data="webui=Wallet">Asset ID</message>
+  <message name="IDS_BRAVE_WALLET_INVALID_TOKEN_ASSET_ID_ERROR" desc="Error explaining that an invalid or empty Polkadot token asset ID has been entered as a form value" formatter_data="webui=Wallet">Invalid or empty token asset ID</message>
+  <message name="IDS_BRAVE_WALLET_UNSUPPORTED_NETWORK_FOR_CUSTOM_ASSET_ERROR" desc="Error explaining that the selected network cannot hold custom assets" formatter_data="webui=Wallet">Custom assets aren't supported on this network</message>
   <message name="IDS_BRAVE_WALLET_GAS_FEE_LIMIT_LOWER_THAN_BASE_FEE_WARNING" desc="Warning to indicate that a transaction may fail or take a long time if submitted with the current per-gas price limit value" formatter_data="webui=Wallet">Fee limit is set lower than the base fee. Your transaction may take a long time or fail.</message>
   <message name="IDS_BRAVE_WALLET_TRANSACTION_HAS_FEE_ESTIMATES_ERROR" desc="Error message explaining that fee estimates are unavailable for the current pending transaction" formatter_data="webui=Wallet">Unable to fetch fee estimates</message>
 
@@ -1286,4 +1289,15 @@
   <message name="IDS_BRAVE_WALLET_GO_TO_PORTFOLIO" desc="Go to portfolio button text" formatter_data="webui=Wallet">Go to Portfolio</message>
   <message name="IDS_BRAVE_WALLET_ADD_TOKEN" desc="Add token button text" formatter_data="webui=Wallet">Add token</message>
   <message name="IDS_BRAVE_WALLET_UTILITY_PROCESS_WALLET_UTILS_NAME" desc="The display name (in the system task manager, etc) of the service process used for running wallet utils">Brave Wallet Utility Service</message>
+  <message name="IDS_BRAVE_WALLET_CRYPTO" desc="Title for the crypto card in the wallet card hub" formatter_data="webui=Wallet">Crypto</message>
+  <message name="IDS_BRAVE_WALLET_GET_YOUR_CARD" desc="Title on the wallet card hub card prompting the user to get a Brave card" formatter_data="webui=Wallet">Get your card</message>
+  <message name="IDS_BRAVE_WALLET_GET_YOUR_CARD_DESCRIPTION" desc="Description on the wallet card hub card explaining identity verification is required to use the Brave card" formatter_data="webui=Wallet">Verify your identity to see card numbers and start spending.</message>
+  <message name="IDS_BRAVE_WALLET_TAP_TO_VERIFY" desc="Action label on the wallet card hub card to start identity verification" formatter_data="webui=Wallet">Tap to verify</message>
+  <message name="IDS_BRAVE_WALLET_ENABLE_REWARDS" desc="Action label on the wallet card hub rewards card to enable Brave Rewards" formatter_data="webui=Wallet">Enable Rewards</message>
+  <message name="IDS_BRAVE_WALLET_HIDE_BALANCES" desc="Action label on the wallet card hub menu to hide balances" formatter_data="webui=Wallet">Hide balances</message>
+  <message name="IDS_BRAVE_WALLET_SHOW_BALANCES" desc="Action label on the wallet card hub menu to show balances" formatter_data="webui=Wallet">Show balances</message>
+  <message name="IDS_BRAVE_WALLET_BRAVE_REWARDS_CARD" desc="Label for the Brave Rewards card in the wallet card hub" formatter_data="webui=Wallet">Brave Rewards Card</message>
+  <message name="IDS_BRAVE_WALLET_APPEARANCE" desc="Section label for appearance settings in the wallet card hub settings screen" formatter_data="webui=Wallet">Appearance</message>
+  <message name="IDS_BRAVE_WALLET_SECURITY" desc="Section label for security settings in the wallet card hub settings screen" formatter_data="webui=Wallet">Security</message>
+  <message name="IDS_BRAVE_WALLET_REQUIRE_UNLOCK_NEXT_TIME" desc="Description under the lock wallet button in the wallet card hub settings screen" formatter_data="webui=Wallet">Require unlock next time</message>
 </grit-part>

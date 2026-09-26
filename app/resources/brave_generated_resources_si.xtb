@@ -111,6 +111,9 @@
 <translation id="3114478090884951591">පෙනෙන ප්‍රදේශය</translation>
 <translation id="2026367923222947564">සම්පූර්ණ පිටුව</translation>
 <translation id="4218885227032158909">තේරූ ප්‍රදේශය</translation>
+<translation id="2586386106930448447">තිර රුවෙහි පෙරදසුන</translation>
+<translation id="7514365320538308">බාගන්න</translation>
+<translation id="2743387203779672305">ක්ලිප්බෝඩ් එකට පිටපත් කරන්න</translation>
 <translation id="4928988318462976765">වියමන දිගු ගබඩාව</translation>
 <translation id="9181207987584064303">වියමන දිගු ගබඩාවේ බලන්න</translation>
 <translation id="3161744659507801211">අවවාදයයි: Brave මගින් දිගු ඔබගේ පිරික්සුම් ඉතිහාසය පටිගතය වැළැක්වීමට නොහැකිය.</translation>
@@ -211,11 +214,12 @@
 <translation id="8707615221880318679">මෙම පෞද්ගලික ප්‍රතිචාර සමහර බ්‍රේව් විශේෂාංග වල සමස්ත භාවිතය තක්සේරුවට සහ ඒවා හොඳින් සංවර්ධනයට උපකාරී වේ.</translation>
 <translation id="193368604235852218">වෙබ්3</translation>
 <translation id="4738583579791001083">වෙබ්3 වසම්</translation>
-<translation id="4552520379838695057">කණගාටුයි, එම පිටුව දක්නට නැත.</translation>
-<translation id="7299769530898469069">සුරැකි අනුවාදය පූරණයට නොහැකි විය</translation>
-<translation id="2609895996619941644">ඔබට Wayback යන්ත්‍රයේ සුරැකි අනුවාදයක් තිබේදැයි පරීක්‍ෂාවට වුවමනා ද?</translation>
-<translation id="8010675257566903381">Wayback යන්ත්‍රයේ මෙම අඩවියේ සුරැකි අනුවාදයක් හමු නොවිණි.</translation>
-<translation id="1207694258341311738">සුරැකි අනුවාදය පරීක්ෂා කරන්න</translation>
+<translation id="1458638489455808030">Wayback Machine</translation>
+<translation id="8039999492770627305">කණගාටුයි, එම පිටුව දක්නට නැත.</translation>
+<translation id="208311458690012764">සුරැකි අනුවාදය පූරණයට නොහැකි විය</translation>
+<translation id="4515057635283480525">ඔබට Wayback යන්ත්‍රයේ සුරැකි අනුවාදයක් තිබේදැයි පරීක්‍ෂාවට වුවමනා ද?</translation>
+<translation id="8252977752585110703">Wayback යන්ත්‍රයේ මෙම අඩවියේ සුරැකි අනුවාදයක් හමු නොවිණි.</translation>
+<translation id="8748778103033196270">සුරැකි අනුවාදය පරීක්ෂා කරන්න</translation>
 <translation id="191143826155037518"><ph name="BEGIN_LINK_MPL"/>මොසිල්ලා පොදු බලපත්‍රය 2.0<ph name="END_LINK_MPL"/> (MPL) යටතේ බ්‍රේව් ලද හැකි අතර වෙනත් විවිධ බලපත්‍ර යටතේ <ph name="BEGIN_LINK_OSS"/>විවෘත මූලාශ්‍ර මෘදුකාංග<ph name="END_LINK_OSS"/> ඇතුළත් වේ.
         මෙම <ph name="BEGIN_LINK_SOURCE_CODE"/>පිටපත සෑදීමට<ph name="END_LINK_SOURCE_CODE"/> භාවිතා කළ <ph name="BEGIN_LINK_BUILD_INSTRUCTIONS"/>මූලාශ්‍ර කේත බාගෙන ඔබම තනන්නේ කෙසේදැයි<ph name="END_LINK_BUILD_INSTRUCTIONS"/> පිළිබඳ උපදෙස් කියවීමට හැකිය.</translation>
 <translation id="4474155171896946103">සියලු පටිති වලට පොත්යොමු තබන්න...</translation>
@@ -246,6 +250,7 @@
 <translation id="1185644444415356776">අඩංගුව තුළ සබැඳිය විවෘත කරන්න</translation>
 <translation id="6745991613881384719">අඩංගු විවෘත කිරීම් කළමනාකරණය</translation>
 <translation id="8523788649219117880">නව තාවකාලික බහාලුම</translation>
+<translation id="6738770788727894934"><ph name="TOOLTIP"/> - <ph name="CONTAINER_NAME"/> බහාලුම</translation>
 <translation id="3704707436873245822">රූපයෙන් පෙළ පිටපත් කරන්න</translation>
 <translation id="5268098808165185458">රූපයෙන් පෙළ පිටපත් වෙමින්...</translation>
 <translation id="4046485130884276245">රූපයෙන් පෙළ පිටපත් වී ඇත</translation>
@@ -361,6 +366,7 @@
 <translation id="6847541693235449912">යන්න</translation>
 <translation id="2079545284768500474">පෙරසේ</translation>
 <translation id="1533980864758658574"><ph name="TOPIC"/>සඳහා නව කවුළුවක් නිර්මාණය කරන ලදී.</translation>
+<translation id="530437350080973527">එම මාතෘකාවට කිසිදු පටිත්තක් ගැළපුණේ නැත. එය වෙනස් ලෙස විස්තර කිරීමට උත්සාහ කරන්න.</translation>
 <translation id="7985042437720138349">මෙම විශේෂාංගය ඔබගේ විවෘත ටැබ් පිළිබඳ දත්ත Brave හි AI බලයෙන් ක්‍රියාත්මක වන බ්‍රව්සර් සහායක Leo වෙත යවයි.</translation>
 <translation id="6165508094623778733">තව දැනගන්න</translation>
 <translation id="7557539689487606886">ආධික්‍ය ගන්න</translation>
@@ -377,6 +383,7 @@
 <translation id="6724227215236550330">මෙම උපාංගයේ <ph name="BRAND"/> වෙත මුරපද ආයාත කිරීමට CSV ගොනුවක් <ph name="BEGIN_LINK"/> තෝරන්න<ph name="END_LINK"/>.</translation>
 <translation id="3575561030014162610">මෙම උපාංගයේ <ph name="BRAND"/> වෙත මුරපද ආයාත කිරීමට, CSV ගොනුවක් තෝරන්න</translation>
 <translation id="8570228839666486945">උපාංග මත AI</translation>
+<translation id="7447041379556102185">උපාංගය මත කථන හඳුනාගැනීම</translation>
 <translation id="3456536577668402695">ඔබගේ සෙවුම් සහ පිටු අන්තර්ගතයන් මෙම උපාංගය තුළ සැකසේ. කිසිවක් බ්‍රේව් වෙත නොයවන අතර මානව සමාලෝචකයන් විසින් නොදැකේ.</translation>
 <translation id="4751537843966994505">අර්ථමය ඉතිහාස සෙවීම</translation>
 <translation id="6175973371938222040">ඔබ ප්‍රාදේශීයව පිවිසෙන පිටු සුචිගත කරන්න එවිට ඔබට ඔබේ ඉතිහාසය අර්ථය අනුව සෙවිය හැක. සියලු සැකසුම් මෙම උපාංගයේ පවතී.</translation>
@@ -407,6 +414,7 @@
 <translation id="6017560037265964523">අඩංගුව</translation>
 <translation id="3718176486689879621">බහාලුම් යනු ඔබගේ බ්‍රවුස් කිරීමේ දත්ත, එනම් කුකී, කෑෂ්, සහ වෙබ් අඩවි ගබඩාව වැනි දේවල් වෙන වෙන සන්දර්භ වලට හුදකලා කරන වර්ණ-කේතගත කරන ලද බ්‍රවුසර ටැබ වේ. <ph name="BEGIN_LINK"/>තවත් දැනගන්න<ph name="END_LINK"/></translation>
 <translation id="3721778624267551248">බහාලුම් සක්‍රීය කරන්න</translation>
+<translation id="4858772568604670131">බහාලුම් සඳහා සැමවිටම කුඩා අයිකනය භාවිත කරන්න</translation>
 <translation id="7773735778926921278">නව අඩංගු එකතු කරන්න</translation>
 <translation id="8900907990448657776">අඩංගුව සංස්කරණය කරන්න</translation>
 <translation id="7900511996284443779">අඩංගුව මකන්න</translation>
@@ -416,6 +424,23 @@
 <translation id="4328541188421002379">ඔබගේ අඩංගුවට වැඩ/පෞද්ගලික ලෙස නමක් දිය හැක</translation>
 <translation id="4976989127264491396">දෝෂය: <ph name="ERROR_MESSAGE"/></translation>
 <translation id="5436069931267876389">අඩංගුව හමු නොවිණි</translation>
+<translation id="6055154402239241620">තදබදය පාලනය</translation>
+<translation id="8134521925475508805">ඔබගේ බ්‍රවුස් සැසි අතර වෙන්වීමක් ඇති කරමින්, විශේෂිත සන්දර්භයක ස්වයංක්‍රීයව විවෘත වීමට නිශ්චිත අඩවි වින්‍යාස කරන්න. <ph name="BEGIN_LINK"/>තව දැනගන්න<ph name="END_LINK"/></translation>
+<translation id="6944848312867106540">තදබදය පාලනය සබල කරන්න</translation>
+<translation id="1358255827354528344">නව රීතියක් එක් කරන්න</translation>
+<translation id="7183128985801806752">නව තදබදය පාලන රීතිය</translation>
+<translation id="2474694032500407328">තදබදය පාලන රීතිය සංස්කරණය කරන්න</translation>
+<translation id="5543417389274097206">රීතිය සාදන්න</translation>
+<translation id="6532106788206463496">වෙනස්කම් සුරකින්න</translation>
+<translation id="1172800769374812685">රීතිය මකන්න</translation>
+<translation id="2389682807835777591">ඔබට <ph name="RULE_LABEL"/> රීතිය මැකීමට වුවමනා ද?</translation>
+<translation id="4853129331778360252">කළමනාකරණය කිරීමට සහ සැම විටම විශේෂිත බ්‍රවුස් සන්දර්භයක විවෘත කිරීමට ඒ.ස.නි. ඇතුළත් කරන්න.</translation>
+<translation id="1173480005453148926">කළමනාකරණය කළ යුතු ඒ.ස.නි.</translation>
+<translation id="6217532416180299470">තදබදය පාලනය සමඟ කළමනාකරණය කිරීමට ඒ.ස.නි. ඇතුළත් කරන්න</translation>
+<translation id="4285483487802779797"><ph name="BEGIN_FILTER_EXAMPLE"/>example.com<ph name="END_FILTER_EXAMPLE"/> අඩවිය සහ එහි උපවසම් ගැළපේ; <ph name="BEGIN_FILTER_EXAMPLE2"/>.example.com<ph name="END_FILTER_EXAMPLE2"/> නිශ්චිත අඩවිය ගැළපේ; <ph name="BEGIN_FILTER_EXAMPLE3"/>*<ph name="END_FILTER_EXAMPLE3"/> සියලුම අඩවි ගැළපේ; <ph name="BEGIN_FILTER_EXAMPLE4"/>#<ph name="END_FILTER_EXAMPLE4"/> යනු අදහසකි.</translation>
+<translation id="8469274046717871838"><ph name="FIRST_URL"/> (සහ තවත් ඒ.ස.නි. <ph name="COUNT"/>ක්)</translation>
+<translation id="3700798663085748181">රීතිය සබල කරන්න</translation>
+<translation id="2967480878853054068">ඒ.ස.නි. පෙරහන වලංගු නොවේ</translation>
 <translation id="2263346047290834619">ගස පටිති භාවිතා කරන්න</translation>
 <translation id="5860254591544742609">සිරැසි තීරුව පෙන්වන්න</translation>
 <translation id="4691131445504068802">කුඩා කර ඇති විට සම්පූර්ණයෙන් සැඟවෙන්න</translation>
@@ -523,7 +548,6 @@
 <translation id="6745592621698551453">යාවත්කාල කරන්න</translation>
 <translation id="5334844597069022743">මූලාශ්‍රය බලන්න</translation>
 <translation id="4720556299488643018">දායක නොවන්න</translation>
-<translation id="6532106788206463496">වෙනස්කම් සුරකින්න</translation>
 <translation id="4516904298421534459">පෙරහන් ලැයිස්තු</translation>
 <translation id="4435215931544457255">අතිරේක ජනප්‍රිය ප්‍රජා ලැයිස්තු. බොහෝ පෙරහන් සබල කළහොත් පිරික්සුම් වේගය මන්දගාමී වන බව සලකන්න.</translation>
 <translation id="802154636333426148">බාගැනීමට අසමත් විය</translation>
@@ -555,7 +579,6 @@
 <translation id="1799030480311994998">විශේෂාංග</translation>
 <translation id="6709133671862442373">පුවත්</translation>
 <translation id="6297791103122079275">කතා</translation>
-<translation id="1458638489455808030">Wayback Machine</translation>
 <translation id="4590997608186539865">වාදන ලැයිස්තුව</translation>
 <translation id="1199170151481311646">පෞද්ගලිකත්වය ආරක්ෂා කරන විශ්ලේෂණය</translation>
 <translation id="5990642573624858459">සංඛ්‍යාන වාර්තාවීම්</translation>
@@ -603,11 +626,16 @@
 <translation id="4891600875049212418">සංවේදී අඩවි වලට පිවිසීමේදී වාර්තාගත නොවන ස්ථානයට යන්න</translation>
 <translation id="1022603984240541480">අනුකූල අඩවිවල පෞද්ගලිකත්ව සැකසුම් සුසර කිරීමේ දැනුම්දීම පෙන්වන්න</translation>
 <translation id="3528176629974273019">අඩවියට විශේෂිත පෞද්ගලිකත්ව සැකසුම් ස්වයංක්‍රීයව යෝජනා කිරීමට (සහ සකසන්නට) Brave හට ඉඩ දෙයි.</translation>
+<translation id="2740687181110647855">පෞද්ගලිකත්ව සැකසුම් සකස් කිරීමේ මෙවලම</translation>
 <translation id="509873765238158442">Microsoft Recall අවහිර කරන්න</translation>
 <translation id="4763421121695677716">Brave පටිත්තවලට ඔට්ටු ගත කීර්ති ඇණවුමක් ගෙන පටිත්තවලගේ ස්ක්‍රීන්ෂොට්ස් ස්වයංක්‍රීයව ගන්නා Microsoft Windows පටිත්ත සිසු විශේෂාංගය ලාභදායක කරන්නේ නැත.</translation>
 <translation id="1968895725257436430">දත්ත එකතුව</translation>
+<translation id="5668852698659986622">අනුග්‍රාහක දැන්වීම් සබල කරන්න</translation>
+<translation id="431194936581466649">අනුග්‍රාහක දැන්වීම් සමඟ ස්වාධීන, පරිශීලක-මුල්‍ය වෙබයක් තැනීමට Brave හි මෙහෙයුමට උදව් කරන්න. අපි ඔබව හඳුනා නොගෙන දැන්වීම් කාර්ය සාධනය පෞද්ගලිකව මනිමු.</translation>
 <translation id="1700052872056357670">පිටවීමේදී දත්ත මකන්න</translation>
 <translation id="216468847346280584">Brave දැන්වීම් දත්ත මකන්න...</translation>
+<translation id="96212973142796240">Brave දැන්වීම් දත්ත ඉවත් කරන ලදී</translation>
+<translation id="6665923829462527507">Brave දැන්වීම් දත්ත ඉවත් කළ නොහැකි විය. නැවත උත්සාහ කරන්න.</translation>
 <translation id="2808630562319398131">Brave පාරිතෝෂික දත්ත යළි සකසන්න...</translation>
 <translation id="6438096877646138757">ඔබ වැසූ පසු දත්තකඩ හිස් කරන අඩවි</translation>
 <translation id="2988792685798128092">අඩවිය වසන විට මකන්න</translation>
@@ -874,6 +902,7 @@
 <translation id="8631951653187535788">ඔබට මෙම ආකෘතිය මැකීමට අවශ්‍ය බව විශ්වාසද? මෙම ආකෘතිය ඕනෑම සක්‍රිය සංවාදයක භාවිතා කරන්නේ නම්, එම සංවාදය ලියෝගේ පෙරනිමි ආකෘතිය භාවිතා කිරීමට වෙනස් වේ.</translation>
 <translation id="1907126221851170941">ආකෘතිය එකතු කරන්න</translation>
 <translation id="8346224718149026088">ආකෘතිය සංස්කරණය කරන්න</translation>
+<translation id="3914173277599553213">අවශ්‍යය</translation>
 <translation id="3468298837301810372">නම්පත</translation>
 <translation id="3553035516792776805">ආකෘති ඉල්ලීමේ නම</translation>
 <translation id="7634775528597575156">සේවාදායක අන්ත ලක්ෂ්‍යය</translation>
@@ -982,4 +1011,12 @@
 <translation id="154702742922788359">අරින්න ප්‍රකාරය</translation>
 <translation id="2249111429176737533">ටැබ් කවුළුවක් ලෙස අරිනවා</translation>
 <translation id="7022756207310403729">බ්‍රවුසරය තුළ විවෘත කරන්න</translation>
+<translation id="1916785651473363467">අභිරුචි පැතිකඩ රූපය</translation>
+<translation id="5336092064678832560">අභිරුචි රූපය උඩුගත කරන්න</translation>
+<translation id="1062407476771304334">ප්‍රතිස්ථාපනය කරන්න</translation>
+<translation id="1428299461403073820">අභිරුචි පැතිකඩ රූපය ප්‍රතිස්ථාපනය කරන්න</translation>
+<translation id="7994453838803296517">අභිරුචි පැතිකඩ රූප පෙරදසුන, තෝරා ඇත</translation>
+<translation id="6578040791557152233">අභිරුචි පැතිකඩ රූපයක් උඩුගත කරන්න</translation>
+<translation id="9222124079546967592">අභිරුචි පැතිකඩ රූපය ඉවත් කරන්න</translation>
+<translation id="6058660912941570282">Brave හට මෙම ගොනුව භාවිත කළ නොහැක. වෙනත් රූපයක් තෝරා නැවත උත්සාහ කරන්න.</translation>
 </translationbundle>

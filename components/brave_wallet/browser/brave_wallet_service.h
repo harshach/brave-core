@@ -60,6 +60,7 @@ class SwapService;
 class MeldIntegrationService;
 class SimulationService;
 class BraveWalletIpfsService;
+class SnapService;
 template <typename Request, typename Callback>
 struct PendingRequest;
 struct PendingDecryptRequest;
@@ -284,9 +285,6 @@ class BraveWalletService : public KeyedService,
   void GenerateReceiveAddress(mojom::AccountIdPtr account_id,
                               GenerateReceiveAddressCallback callback) override;
 
-  void GetAnkrSupportedChainIds(
-      GetAnkrSupportedChainIdsCallback callback) override;
-
   void IsPrivateWindow(IsPrivateWindowCallback callback) override;
 
   void GetTransactionSimulationOptInStatus(
@@ -399,6 +397,10 @@ class BraveWalletService : public KeyedService,
   ZCashWalletService* GetZcashWalletService();
   // Might return nullptr.
   CardanoWalletService* GetCardanoWalletService();
+#if BUILDFLAG(ENABLE_SNAP)
+  // Might return nullptr.
+  SnapService* snap_service() { return snap_service_.get(); }
+#endif
 
  protected:
   // For tests
@@ -542,6 +544,9 @@ class BraveWalletService : public KeyedService,
   std::unique_ptr<MeldIntegrationService> meld_integration_service_;
   std::unique_ptr<SimulationService> simulation_service_;
   std::unique_ptr<BraveWalletIpfsService> ipfs_service_;
+#if BUILDFLAG(ENABLE_SNAP)
+  std::unique_ptr<SnapService> snap_service_;
+#endif
   mojo::ReceiverSet<mojom::BraveWalletService> receivers_;
   mojo::Receiver<brave_wallet::mojom::KeyringServiceObserver>
       keyring_observer_receiver_{this};

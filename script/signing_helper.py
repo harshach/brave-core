@@ -45,7 +45,6 @@ def BraveModifyPartsForSigning(parts, config):
     # is_chrome_branded() to True.
     del parts['libchromecompaneros.dylib']
     del parts['liboptimization_guide_internal.dylib']
-    del parts['libsapisid.dylib']
 
     # Developer ID releases do not require a provisioning profile. Use the
     # signing configuration's explicit development entitlement instead of the

@@ -67,6 +67,10 @@ class MockPageContentExtractor : public mojom::PageContentExtractor {
                const std::string& input_json,
                ExecuteContentToolCallback),
               (override));
+  MOCK_METHOD(void,
+              SetContentToolsListener,
+              (mojo::PendingRemote<mojom::ContentToolsListener>),
+              (override));
 
   void Bind(mojo::ScopedMessagePipeHandle handle) {
     receiver_.Bind(
@@ -230,12 +234,29 @@ TEST_F(ContentToolTest, RequiresPermissionChallengeUntilGranted) {
   EXPECT_EQ(challenge->description,
             "Brave AI would like to execute **echo** on "
             "**https\\:\\/\\/example\\.com**");
+  EXPECT_TRUE(challenge->supports_allow_session);
 
   tool.UserPermissionGranted(/*tool_use_id=*/"any");
 
   auto after = tool.RequiresUserInteractionBeforeHandling(*tool_use);
   ASSERT_TRUE(std::holds_alternative<bool>(after));
   EXPECT_FALSE(std::get<bool>(after));
+}
+
+TEST_F(ContentToolTest, AllowSessionSkipsPermissionChallenge) {
+  auto mojo_tool = MakeScriptTool("echo", "");
+  ContentTool tool(*mojo_tool, weak_document());
+
+  auto tool_use = mojom::ToolUseEvent::New();
+  tool.SetUserPermissionStrategy(mojom::ToolPermission::kAllowSession);
+
+  auto result = tool.RequiresUserInteractionBeforeHandling(*tool_use);
+  ASSERT_TRUE(std::holds_alternative<bool>(result));
+  EXPECT_FALSE(std::get<bool>(result));
+
+  tool.SetUserPermissionStrategy(mojom::ToolPermission::kAsk);
+  EXPECT_TRUE(std::holds_alternative<mojom::PermissionChallengePtr>(
+      tool.RequiresUserInteractionBeforeHandling(*tool_use)));
 }
 
 TEST_F(ContentToolTest, PermissionChallengeDescriptionEscapesToolName) {

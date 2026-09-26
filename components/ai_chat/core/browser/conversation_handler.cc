@@ -48,6 +48,7 @@
 #include "brave/components/ai_chat/core/browser/tools/tool.h"
 #include "brave/components/ai_chat/core/browser/types.h"
 #include "brave/components/ai_chat/core/browser/utils.h"
+#include "brave/components/ai_chat/core/common/constants.h"
 #include "brave/components/ai_chat/core/common/features.h"
 #include "brave/components/ai_chat/core/common/mojom/ai_chat.mojom.h"
 #include "brave/components/ai_chat/core/common/mojom/common.mojom.h"
@@ -182,7 +183,6 @@ void ConversationHandler::BuildCapabilitiesSet() {
   // we should have some client function that changes the conversation
   // capability. And when this is not global to a Profile, we should not have
   // the service make the determination.
-  conversation_capabilities_.insert(mojom::ConversationCapability::CHAT);
   if (ai_chat_service_->GetIsContentAgentAllowed()) {
     conversation_capabilities_.insert(
         mojom::ConversationCapability::CONTENT_AGENT);
@@ -360,6 +360,14 @@ void ConversationHandler::OnAssociatedContentUpdated() {
   }
 }
 
+void ConversationHandler::OnContentToolsChanged(
+    const std::string& content_uuid,
+    std::vector<mojom::ToolInfoPtr> tools) {
+  for (auto& client : conversation_ui_handlers_) {
+    client->OnContentToolsChanged(content_uuid, mojo::Clone(tools));
+  }
+}
+
 bool ConversationHandler::IsAnyClientConnected() {
   return !receivers_.empty() || !conversation_ui_handlers_.empty();
 }
@@ -418,15 +426,14 @@ const mojom::Model& ConversationHandler::GetCurrentModel() {
   const mojom::Model* model = model_service_->GetModel(model_key_);
   if (!model) {
     DVLOG(1) << "Model " << model_key_
-             << " no longer exists, falling back to default model";
-    model_key_ = features::kAIModelsDefaultKey.Get();
+             << " no longer exists, falling back to automatic model";
+    model_key_ = kChatAutomaticModelKey;
     model = model_service_->GetModel(model_key_);
   }
   if (!model) {
-    // default_model is read live from config; failing here means it's
-    // currently misconfigured.
+    // Automatic must always be present in the built-in model list.
     SCOPED_CRASH_KEY_STRING1024("BraveAIChatModel", "key",
-                                features::kAIModelsDefaultKey.Get());
+                                kChatAutomaticModelKey);
     DUMP_WILL_BE_NOTREACHED();
     const auto& all_models = model_service_->GetModels();
     model = all_models.at(0).get();
@@ -442,7 +449,14 @@ ConversationHandler::GetConversationHistory() const {
 }
 
 void ConversationHandler::GetConversationHistory(
-    GetConversationHistoryCallback callback) {
+    mojom::ConversationHandler::GetConversationHistoryCallback callback) {
+  GetConversationHistory(std::nullopt, std::move(callback));
+}
+
+void ConversationHandler::GetConversationHistory(
+    const std::optional<std::string>& thread_uuid,
+    mojom::UntrustedConversationHandler::GetConversationHistoryCallback
+        callback) {
   std::vector<mojom::ConversationTurnPtr> history;
   for (const auto& turn : chat_history_) {
     history.emplace_back(turn->Clone());
@@ -453,6 +467,12 @@ void ConversationHandler::GetConversationHistory(
   }
 
   std::move(callback).Run(std::move(history));
+}
+
+void ConversationHandler::GetConversationThreads(
+    GetConversationThreadsCallback callback) {
+  // TODO(https://github.com/brave/brave-browser/issues/57705)
+  std::move(callback).Run({});
 }
 
 void ConversationHandler::GetState(GetStateCallback callback) {
@@ -615,7 +635,8 @@ void ConversationHandler::GetIsRequestInProgress(
 
 void ConversationHandler::SubmitHumanConversationEntry(
     const std::string& input,
-    std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files) {
+    std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files,
+    const std::optional<std::string>& thread_uuid) {
   DCHECK(!is_request_in_progress_)
       << "Should not be able to submit more"
       << "than a single human conversation turn at a time.";
@@ -710,7 +731,8 @@ void ConversationHandler::SubmitHumanConversationEntry(
 
 void ConversationHandler::SubmitHumanConversationEntryWithAction(
     const std::string& input,
-    mojom::ActionType action_type) {
+    mojom::ActionType action_type,
+    const std::optional<std::string>& thread_uuid) {
   DCHECK(!is_request_in_progress_)
       << "Should not be able to submit more"
       << "than a single human conversation turn at a time.";
@@ -721,7 +743,8 @@ void ConversationHandler::SubmitHumanConversationEntryWithAction(
 void ConversationHandler::SubmitHumanConversationEntryWithSkill(
     const std::string& input,
     const std::string& skill_id,
-    std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files) {
+    std::optional<std::vector<mojom::UploadedFilePtr>> uploaded_files,
+    const std::optional<std::string>& thread_uuid) {
   DCHECK(!is_request_in_progress_)
       << "Should not be able to submit more"
       << "than a single human conversation turn at a time.";
@@ -1210,7 +1233,7 @@ void ConversationHandler::RespondToToolUseRequest(
 
 void ConversationHandler::ProcessPermissionChallenge(
     const std::string& tool_use_id,
-    bool user_result) {
+    mojom::PermissionChallengeDecision decision) {
   auto* tool_use = GetToolUseEventForLastResponse(tool_use_id);
   if (!tool_use) {
     DLOG(ERROR) << "Tool use event not found: " << tool_use_id;
@@ -1222,10 +1245,10 @@ void ConversationHandler::ProcessPermissionChallenge(
     return;
   }
 
-  DVLOG(0) << __func__ << " user " << (user_result ? "approved" : "denied")
-           << " permission for: " << tool_use->tool_name;
+  DVLOG(0) << __func__ << " user answered " << decision
+           << " for permission for: " << tool_use->tool_name;
 
-  if (!user_result) {
+  if (decision == mojom::PermissionChallengeDecision::kDeny) {
     // User declined - send rejection output and stop tool loop
     std::vector<mojom::ContentBlockPtr> result;
     result.push_back(mojom::ContentBlock::NewTextContentBlock(
@@ -1242,6 +1265,14 @@ void ConversationHandler::ProcessPermissionChallenge(
         << "Permission denied, stopping tool loop and performing generation";
     PerformPostToolAssistantGeneration();
     return;
+  }
+
+  // A challenge from the server's alignment check is shown however the user
+  // answered before, so a client can't record a standing choice against one.
+  if (decision == mojom::PermissionChallengeDecision::kAllowSession &&
+      tool_use->permission_challenge->supports_allow_session) {
+    associated_content_manager_->SetToolPermissionForModelToolName(
+        tool_use->tool_name, mojom::ToolPermission::kAllowSession);
   }
 
   // User approved - clear the permission challenge
@@ -1271,6 +1302,13 @@ void ConversationHandler::ProcessPermissionChallenge(
 
   // Continue with tool execution
   MaybeRespondToNextToolUseRequest();
+}
+
+void ConversationHandler::CreateConversationThread(
+    const std::string& origin_entry_uuid,
+    CreateConversationThreadCallback callback) {
+  // TODO(https://github.com/brave/brave-browser/issues/57705)
+  std::move(callback).Run(std::nullopt);
 }
 
 void ConversationHandler::AddToConversationHistory(
@@ -1833,7 +1871,8 @@ void ConversationHandler::CompleteGeneration(bool success) {
     if (engine_->RequiresClientSideTitleGeneration() &&
         chat_history_.size() == 2) {
       engine_->GenerateConversationTitle(
-          associated_content_manager_->GetCachedContentsMap(), chat_history_,
+          associated_content_manager_->GetCachedContentsMap(),
+          EngineConsumer::ToHistoryView(chat_history_),
           base::BindOnce(&ConversationHandler::OnTitleGenerated,
                          weak_ptr_factory_.GetWeakPtr()));
     }
@@ -1992,6 +2031,14 @@ void ConversationHandler::SetToolsAttached(mojom::AssociatedContentPtr content,
 void ConversationHandler::GetContentTools(const std::string& content_uuid,
                                           GetContentToolsCallback callback) {
   associated_content_manager_->GetToolInfos(content_uuid, std::move(callback));
+}
+
+void ConversationHandler::SetContentToolPermission(
+    const std::string& content_uuid,
+    const std::string& tool_name,
+    mojom::ToolPermission permission) {
+  associated_content_manager_->SetToolPermission(content_uuid, tool_name,
+                                                 permission);
 }
 
 void ConversationHandler::OnTaskStateChanged(ToolProvider* tool_provider) {
@@ -2324,6 +2371,18 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
       has_pending_tool_use_request = true;
       has_only_completed_tool_use_events = false;
 
+      // Initialize the task state for this tool loop if not already set. An
+      // unanswered tool use request means the loop is in flight, whether or
+      // not this particular tool needs the user first, so this has to happen
+      // before the user-interaction checks below - UI that must not change
+      // mid-loop (e.g. the website tools dialog's permission pickers) relies
+      // on the task state to know that. The cost is that a tool which only
+      // needs user interaction also puts the Task pause/stop UI up.
+      if (tool_use_task_state_ == mojom::TaskState::kNone) {
+        tool_use_task_state_ = mojom::TaskState::kRunning;
+        OnToolUseTaskStateChanged();
+      }
+
       // Now check if we're allowed to execute tools.
       if (tool_use_task_state_ == mojom::TaskState::kPaused ||
           tool_use_task_state_ == mojom::TaskState::kStopped) {
@@ -2414,18 +2473,6 @@ bool ConversationHandler::MaybeRespondToNextToolUseRequest() {
       }
 
       // No user interaction needed - execute tool
-
-      // Initialize the task state for this tool loop if not already set. We do
-      // this after checking for user interaction so that a tool requiring
-      // only user-interaction won't trigger a Task pause/stop UI. If we want
-      // the tool state to reset whenever there is a tool use that requires
-      // user interaction we should set it in the permission-challenge and
-      // user-output branches before they `break` (to kNone, or a new
-      // kWaitingForUser).
-      if (tool_use_task_state_ == mojom::TaskState::kNone) {
-        tool_use_task_state_ = mojom::TaskState::kRunning;
-        OnToolUseTaskStateChanged();
-      }
 
       is_tool_use_in_progress_ = true;
       OnAPIRequestInProgressChanged();

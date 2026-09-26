@@ -12,6 +12,7 @@
 
 #include "base/check.h"
 #include "base/check_deref.h"
+#include "base/check_is_test.h"
 #include "base/check_op.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
@@ -257,7 +258,8 @@ class BraveToolbarView::OriginPointerWatcher : public ui::EventObserver {
   std::unique_ptr<views::EventMonitor> monitor_;
 };
 
-BraveToolbarView::BraveToolbarView(Browser* browser, BrowserView* browser_view)
+BraveToolbarView::BraveToolbarView(BrowserWindowInterface* browser,
+                                   BrowserView* browser_view)
     : ToolbarView(browser, browser_view) {}
 
 BraveToolbarView::~BraveToolbarView() = default;
@@ -279,6 +281,14 @@ void BraveToolbarView::Init() {
   // For non-normal mode, we don't have to do any more work.
   if (display_mode_ != DisplayMode::kNormal) {
     brave_initialized_ = true;
+    return;
+  }
+
+  // `kWebUILocationBar` is force-disabled by us and today only ever enabled by
+  // browser tests, so this path isn't be reachable in production.
+  // TODO(https://github.com/brave/brave-browser/issues/54461)
+  if (!location_bar_view_) {
+    CHECK_IS_TEST();
     return;
   }
 
@@ -380,7 +390,7 @@ void BraveToolbarView::Init() {
 #endif  // BUILDFLAG(IS_LINUX)
   }
 
-  const auto callback = [](Browser* browser, int command,
+  const auto callback = [](BrowserWindowInterface* browser, int command,
                            const ui::Event& event) {
     chrome::ExecuteCommandWithDisposition(
         browser, command, ui::DispositionFromEventFlags(event.flags()));

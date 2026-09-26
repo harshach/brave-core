@@ -221,6 +221,29 @@ AdsServiceImpl::AdsServiceImpl(
 
 AdsServiceImpl::~AdsServiceImpl() = default;
 
+base::WeakPtr<AdsService> AdsServiceImpl::GetWeakPtr() {
+  return weak_ptr_factory_.GetWeakPtr();
+}
+
+bool AdsServiceImpl::IsIneligibleToStart() const {
+  return is_ineligible_to_start_;
+}
+
+bool AdsServiceImpl::IsInitialized() const {
+  return is_bat_ads_initialized_;
+}
+
+void AdsServiceImpl::Shutdown() {
+  // The profile is being destroyed and the service must never start again, so
+  // this is never reset to false.
+  is_shutting_down_ = true;
+
+  // Detach from PolicyService eagerly rather than waiting for the destructor.
+  policy_initialization_waiter_.reset();
+
+  ShutdownAdsService();
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -285,14 +308,14 @@ bool AdsServiceImpl::IsNotificationAdsEnabled() const {
 bool AdsServiceImpl::CanStartBatAdsService() const {
   if (!brave_rewards::IsSupported(&*prefs_)) {
     // Never start if Rewards is disabled by policy, feature flag, or
-    // unsupported region, regardless of which ad unit the user has opted into.
+    // unsupported region, regardless of which ad units are enabled.
     return false;
   }
 
   if (UserHasJoinedBraveRewards()) {
     // Always start the service to update brave://ads-internals,
     // brave://rewards, and brave://rewards-internals if the user has joined
-    // Brave Rewards, even if all ad units are opted out.
+    // Brave Rewards, even if all ad units are disabled.
     return true;
   }
 
@@ -485,14 +508,6 @@ void AdsServiceImpl::InitializeBatAdsCallback(bool success) {
   CheckIdleStateAfterDelay();
 
   NotifyDidInitializeAdsService();
-}
-
-bool AdsServiceImpl::IsIneligibleToStart() const {
-  return is_ineligible_to_start_;
-}
-
-bool AdsServiceImpl::IsInitialized() const {
-  return is_bat_ads_initialized_;
 }
 
 void AdsServiceImpl::NotifyAdsServiceIneligibleToStart() {
@@ -730,9 +745,8 @@ void AdsServiceImpl::InitializeBraveRewardsPrefChangeRegistrar() {
 
   pref_change_registrar_.Add(
       brave_rewards::prefs::kEnabled,
-      base::BindRepeating(&AdsServiceImpl::NotifyPrefChanged,
-                          base::Unretained(this),
-                          brave_rewards::prefs::kEnabled));
+      base::BindRepeating(&AdsServiceImpl::OnAdsPrefChanged,
+                          base::Unretained(this)));
 }
 
 void AdsServiceImpl::InitializeSubdivisionTargetingPrefChangeRegistrar() {
@@ -777,7 +791,27 @@ void AdsServiceImpl::InitializeSponsoredAdsPrefChangeRegistrar() {
                           base::Unretained(this)));
 }
 
+bool AdsServiceImpl::ShouldClearAdsData(const std::string& path) const {
+  // Only clear ads data once neither Sponsored Ads nor Brave Rewards remain
+  // enabled, matching `CanStartBatAdsService`'s eligibility check. Clearing on
+  // either pref alone would wipe data the service is still using for the
+  // other ad unit.
+  return (path == prefs::kSponsoredEnabled ||
+          path == brave_rewards::prefs::kEnabled) &&
+         !IsSponsoredAdsEnabled() && !UserHasJoinedBraveRewards();
+}
+
 void AdsServiceImpl::OnAdsPrefChanged(const std::string& path) {
+  if (ShouldClearAdsData(path)) {
+    // Clear ads data now. Posted because `ClearData` can synchronously reach
+    // `ClearAdsPrefs`, which mutates `pref_change_registrar_` and must not do
+    // so re-entrantly from within this pref's own change notification.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE,
+        base::BindOnce(&AdsServiceImpl::MaybeClearAdsData,
+                       weak_ptr_factory_.GetWeakPtr(), path));
+  }
+
   if (!CanStartBatAdsService()) {
     // The pref change made the service ineligible to run, so tear it down and
     // release resource components that are no longer needed.
@@ -798,6 +832,18 @@ void AdsServiceImpl::OnAdsPrefChanged(const std::string& path) {
   MaybeStartBatAdsService();
 
   NotifyPrefChanged(path);
+}
+
+void AdsServiceImpl::MaybeClearAdsData(const std::string& path) {
+  if (!ShouldClearAdsData(path)) {
+    // The triggering pref was toggled back before this posted task ran, so
+    // the data is still relevant and the service may already be running
+    // again. Clearing it now would wipe live data and needlessly restart the
+    // service.
+    return;
+  }
+
+  ClearData(base::DoNothing());
 }
 
 void AdsServiceImpl::OnVariationsCountryPrefChanged() {
@@ -1009,6 +1055,11 @@ void AdsServiceImpl::OpenNewTabWithAdCallback(
   OpenNewTabWithUrl(notification_ad->target_url);
 }
 
+void AdsServiceImpl::RetryOpeningNewTabWithAd(const std::string& placement_id) {
+  VLOG(2) << "Retry opening new tab for ad with placement id " << placement_id;
+  retry_opening_new_tab_for_ad_with_placement_id_ = placement_id;
+}
+
 void AdsServiceImpl::OpenNewTabWithUrl(const GURL& url) {
   if (is_shutting_down_) {
     return;
@@ -1020,11 +1071,6 @@ void AdsServiceImpl::OpenNewTabWithUrl(const GURL& url) {
   }
 
   delegate_->OpenNewTabWithUrl(url);
-}
-
-void AdsServiceImpl::RetryOpeningNewTabWithAd(const std::string& placement_id) {
-  VLOG(2) << "Retry opening new tab for ad with placement id " << placement_id;
-  retry_opening_new_tab_for_ad_with_placement_id_ = placement_id;
 }
 
 void AdsServiceImpl::ShowScheduledCaptchaCallback(
@@ -1105,17 +1151,6 @@ void AdsServiceImpl::ShutdownAdsService() {
   }
 
   is_bat_ads_initialized_ = false;
-}
-
-void AdsServiceImpl::Shutdown() {
-  // The profile is being destroyed and the service must never start again, so
-  // this is never reset to false.
-  is_shutting_down_ = true;
-
-  // Detach from PolicyService eagerly rather than waiting for the destructor.
-  policy_initialization_waiter_.reset();
-
-  ShutdownAdsService();
 }
 
 void AdsServiceImpl::AddBatAdsObserver(
@@ -1205,6 +1240,28 @@ void AdsServiceImpl::GetDiagnostics(GetDiagnosticsCallback callback) {
       mojo::WrapCallbackWithDefaultInvokeIfNotRun(
           std::move(callback),
           /*diagnostics=*/std::nullopt));
+}
+
+void AdsServiceImpl::EvaluateConditionMatcher(
+    const std::string& pref_path,
+    const std::string& condition,
+    std::optional<std::string> test_value,
+    EvaluateConditionMatcherCallback callback) {
+  if (!bat_ads_associated_remote_.is_bound()) {
+    return std::move(callback).Run(/*current_value=*/"Unknown",
+                                   /*matches=*/"N/A");
+  }
+
+  bat_ads_associated_remote_->EvaluateConditionMatcher(
+      pref_path, condition, std::move(test_value),
+      mojo::WrapCallbackWithDefaultInvokeIfNotRun(
+          base::BindOnce(
+              [](EvaluateConditionMatcherCallback callback,
+                 const std::string& current_value, const std::string& matches) {
+                std::move(callback).Run(current_value, matches);
+              },
+              std::move(callback)),
+          /*current_value=*/"Unknown", /*matches=*/"N/A"));
 }
 
 void AdsServiceImpl::GetStatementOfAccounts(
@@ -1577,7 +1634,8 @@ void AdsServiceImpl::LoadResourceComponent(
   std::optional<base::FilePath> file_path =
       resource_component_->MaybeGetPath(id, version);
   if (!file_path) {
-    return std::move(callback).Run({});
+    return std::move(callback).Run(/*file=*/{},
+                                   /*exists=*/false);
   }
 
   file_task_runner_->PostTaskAndReplyWithResult(
@@ -1596,7 +1654,8 @@ void AdsServiceImpl::LoadResourceComponent(
           [](LoadResourceComponentCallback callback,
              std::unique_ptr<base::File, base::OnTaskRunnerDeleter> file) {
             CHECK(file);
-            std::move(callback).Run(std::move(*file));
+            std::move(callback).Run(std::move(*file),
+                                    /*exists=*/true);
           },
           std::move(callback)));
 }

@@ -1351,11 +1351,14 @@ BraveVerticalTabStripRegionView::~BraveVerticalTabStripRegionView() {
     origin_media_monitor_->RemoveObserver(this);
   }
 #endif
-  auto* container =
-      views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_);
-  CHECK(container);
-  // This view can be destroyed before the tab container is destroyed.
-  container->SetVerticalTabStripRegionView(nullptr);
+  // The tab container can be null here: upstream's own vertical tabs feature
+  // resets `tab_container_` whenever `prefs::kVerticalTabsEnabled` toggles on,
+  // regardless of whether our own vertical tab strip is what's actually shown.
+  // Nothing to unlink from in that case.
+  if (auto* container =
+          views::AsViewClass<BraveTabContainer>(tab_strip()->tab_container_)) {
+    container->SetVerticalTabStripRegionView(nullptr);
+  }
 
   // We need to move tab strip region to its original parent to avoid crash
   // during drag and drop session.
@@ -2290,8 +2293,7 @@ void BraveVerticalTabStripRegionView::StopListeningFullscreenChanges() {
 
 FullscreenController* BraveVerticalTabStripRegionView::GetFullscreenController()
     const {
-  auto* exclusive_access_manager =
-      browser_->GetFeatures().exclusive_access_manager();
+  auto* exclusive_access_manager = ExclusiveAccessManager::From(browser_);
   if (!exclusive_access_manager) {
     return nullptr;
   }

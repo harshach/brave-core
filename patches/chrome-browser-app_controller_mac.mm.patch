@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/app_controller_mac.mm b/chrome/browser/app_controller_mac.mm
-index 51af775d30ce385bde20b47f84fbc43009cc1dd0..6b8ea46c3dca872c743b2607b1fd5166acd4face 100644
+index cb1b5aa8bed4a339b54da48375393af1e52fd938..d13199147763ac1cf27af13ac534a8bbfe9738d2 100644
 --- a/chrome/browser/app_controller_mac.mm
 +++ b/chrome/browser/app_controller_mac.mm
-@@ -793,7 +793,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
+@@ -794,7 +794,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
  
  + (AppController*)sharedController {
    static AppController* sharedController = [] {
@@ -11,7 +11,7 @@ index 51af775d30ce385bde20b47f84fbc43009cc1dd0..6b8ea46c3dca872c743b2607b1fd5166
      NSApp.delegate = sharedController;
      return sharedController;
    }();
-@@ -1548,7 +1548,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
+@@ -1544,7 +1544,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
    }
  
    auto it = _profileBookmarkMenuBridgeMap.find(profilePath);
@@ -20,7 +20,7 @@ index 51af775d30ce385bde20b47f84fbc43009cc1dd0..6b8ea46c3dca872c743b2607b1fd5166
        (!base::FeatureList::IsEnabled(features::kDestroyProfileOnBrowserClose) ||
         (it->second->GetProfile() && !isOffTheRecord))) {
      // Clean up the dangling Profile* in |_profileBookmarkMenuBridgeMap|.
-@@ -2072,7 +2072,7 @@ - (void)application:(NSApplication*)sender openURLs:(NSArray<NSURL*>*)urls {
+@@ -2075,7 +2075,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
                                 /*is_untrusted_launch=*/false);
      }
    }
@@ -29,7 +29,7 @@ index 51af775d30ce385bde20b47f84fbc43009cc1dd0..6b8ea46c3dca872c743b2607b1fd5166
    if (!startupTabs.empty()) {
      [self openStartupTabsReplacingNTP:std::move(startupTabs)];
    }
-@@ -2438,7 +2438,7 @@ - (BOOL)application:(NSApplication*)application
+@@ -2494,7 +2494,7 @@ class AppControllerProfileObserver : public ProfileAttributesStorage::Observer,
    GURL gurl(base::SysNSStringToUTF8([url absoluteString]));
    StartupTabs tabs;
    tabs.emplace_back(gurl, /*is_untrusted_launch=*/true);

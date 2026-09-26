@@ -179,6 +179,12 @@ class MockConversationHandlerClient : public mojom::ConversationUI {
               (std::vector<mojom::AssociatedContentPtr>),
               (override));
 
+  MOCK_METHOD(void,
+              OnContentToolsChanged,
+              (const std::string& content_uuid,
+               std::vector<mojom::ToolInfoPtr> tools),
+              (override));
+
   MOCK_METHOD(void, OnConversationDeleted, (), (override));
 
  private:
@@ -251,7 +257,8 @@ class ConversationHandlerUnitTest : public testing::Test {
         });
 
     model_service_ = std::make_unique<ModelService>(
-        &prefs_, os_crypt_.get(), network::NetworkContextGetter());
+        &prefs_, os_crypt_.get(), network::NetworkContextGetter(),
+        /*url_loader_factory=*/nullptr, base::FilePath());
 
     ai_chat_service_ = std::make_unique<AIChatService>(
         model_service_.get(), nullptr /* tab_tracker_service */,
@@ -3999,8 +4006,9 @@ TEST_F(ConversationHandlerUnitTest,
   // interaction.
   EXPECT_CALL(*tool1, UseTool).Times(0);
 
-  // State should not be running, since we're waiting
-  EXPECT_EQ(GetState()->tool_use_task_state, mojom::TaskState::kNone);
+  // The loop is in flight even though this tool is waiting on the user, so
+  // that UI which mustn't change mid-loop can tell.
+  EXPECT_EQ(GetState()->tool_use_task_state, mojom::TaskState::kRunning);
 
   // Verify the tool use event exists and has no output
   const auto& history_before = conversation_handler_->GetConversationHistory();
@@ -4400,12 +4408,6 @@ class ConversationHandlerUnitTest_AutoScreenshot
 // empty/whitespace-only
 TEST_P(ConversationHandlerUnitTest_AutoScreenshot,
        AutoScreenshotOnEmptyContent) {
-#if BUILDFLAG(IS_IOS)
-  // Set a vision support model to prevent model switching
-  // Remove this model switch once iOS set automatic as default
-  model_service_->SetDefaultModelKeyWithoutValidationForTesting(
-      kClaudeHaikuModelKey);
-#endif
   const EmptyContentTestData& test_data = GetParam();
 
   // Mock associated content to return the test content
@@ -4563,12 +4565,6 @@ TEST_F(ConversationHandlerUnitTest, NoScreenshotWhenScreenshotsAlreadyExist) {
 
 // Test that screenshots are appended to existing uploaded files
 TEST_F(ConversationHandlerUnitTest, ScreenshotsAppendToExistingFiles) {
-#if BUILDFLAG(IS_IOS)
-  // Set a vision support model to prevent model switching
-  // Remove this model switch once iOS set automatic as default
-  model_service_->SetDefaultModelKeyWithoutValidationForTesting(
-      kClaudeHaikuModelKey);
-#endif
   // Mock associated content to return empty text content
   associated_content_->SetTextContent("");
 
@@ -4740,11 +4736,6 @@ TEST_F(ConversationHandlerUnitTest_NoAssociatedContent,
 // Test that auto-screenshots apply MAX_IMAGES limit and trigger UI state change
 TEST_F(ConversationHandlerUnitTest,
        OnAutoScreenshotsTaken_AppliesMaxImagesLimit) {
-#if BUILDFLAG(IS_IOS)
-  // Set a vision support model to prevent model switching
-  model_service_->SetDefaultModelKeyWithoutValidationForTesting(
-      kClaudeHaikuModelKey);
-#endif
   // Mock associated content to return empty text content to trigger
   // auto-screenshots
   associated_content_->SetTextContent("");
@@ -4829,11 +4820,6 @@ TEST_F(ConversationHandlerUnitTest,
 // MAX_IMAGES
 TEST_F(ConversationHandlerUnitTest,
        OnAutoScreenshotsTaken_NoLimitWhenUnderMax) {
-#if BUILDFLAG(IS_IOS)
-  // Set a vision support model to prevent model switching
-  model_service_->SetDefaultModelKeyWithoutValidationForTesting(
-      kClaudeHaikuModelKey);
-#endif
   // Mock associated content to return empty text content to trigger
   // auto-screenshots
   associated_content_->SetTextContent("");
@@ -4912,12 +4898,6 @@ TEST_F(ConversationHandlerUnitTest,
 // percentage doesn't change (optimization test)
 TEST_F(ConversationHandlerUnitTest,
        OnAutoScreenshotsTaken_SamePercentageNoUIUpdate) {
-#if BUILDFLAG(IS_IOS)
-  // Set a vision support model to prevent model switching
-  model_service_->SetDefaultModelKeyWithoutValidationForTesting(
-      kClaudeHaikuModelKey);
-#endif
-
   // Simulate that we already have a visual content percentage set to 66
   // This mimics the state after a previous auto-screenshot operation
   // Currently autoscreenshots won't be triggered twice if there are already
@@ -5509,7 +5489,17 @@ struct SkillImageUploadScenario {
 
 class ConversationHandlerSkillImageUploadTest
     : public ConversationHandlerUnitTest,
-      public testing::WithParamInterface<SkillImageUploadScenario> {};
+      public testing::WithParamInterface<SkillImageUploadScenario> {
+ public:
+  ConversationHandlerSkillImageUploadTest() {
+    scoped_feature_list_.InitAndEnableFeatureWithParameters(
+        features::kAIChat,
+        {{features::kAIModelsVisionDefaultKey.name, kChatAutomaticModelKey}});
+  }
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
+};
 
 // Covers model resolution and file plumbing when a skill submission carries
 // an image attachment. Each case starts on a specific model and may have a
@@ -5610,28 +5600,28 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(
         // Unmodeled skill + image, starting non-vision: switch to vision.
         SkillImageUploadScenario{"UnmodeledFromNonVision", kNonVisionModelKey,
-                                 std::nullopt, kClaudeHaikuModelKey, true},
+                                 std::nullopt, kChatAutomaticModelKey, true},
         // Unmodeled skill + image, already on vision: no switch.
-        SkillImageUploadScenario{"UnmodeledFromVision", kClaudeHaikuModelKey,
-                                 std::nullopt, kClaudeHaikuModelKey, false},
+        SkillImageUploadScenario{"UnmodeledFromVision", kChatAutomaticModelKey,
+                                 std::nullopt, kChatAutomaticModelKey, false},
         // Pinned non-vision + image, on vision: vision wins, no switch
         // (validates the no-double-switch path).
         SkillImageUploadScenario{"PinnedNonVisionFromVision",
-                                 kClaudeHaikuModelKey, kNonVisionModelKey,
-                                 kClaudeHaikuModelKey, false},
+                                 kChatAutomaticModelKey, kNonVisionModelKey,
+                                 kChatAutomaticModelKey, false},
         // Pinned non-vision + image, on non-vision: switch once to vision
         // (NOT to the pinned non-vision model).
         SkillImageUploadScenario{"PinnedNonVisionFromNonVision",
                                  kNonVisionModelKey, kNonVisionModelKey,
-                                 kClaudeHaikuModelKey, true},
+                                 kChatAutomaticModelKey, true},
         // Pinned vision equals current + image: no switch.
         SkillImageUploadScenario{"PinnedVisionEqualsCurrent",
-                                 kClaudeHaikuModelKey, kClaudeHaikuModelKey,
-                                 kClaudeHaikuModelKey, false},
+                                 kChatAutomaticModelKey, kChatAutomaticModelKey,
+                                 kChatAutomaticModelKey, false},
         // Pinned vision different from current + image: switch to pin once.
         SkillImageUploadScenario{"PinnedVisionDifferentFromCurrent",
-                                 kNonVisionModelKey, kClaudeHaikuModelKey,
-                                 kClaudeHaikuModelKey, true}),
+                                 kNonVisionModelKey, kChatAutomaticModelKey,
+                                 kChatAutomaticModelKey, true}),
     [](const testing::TestParamInfo<SkillImageUploadScenario>& info) {
       return std::string(info.param.test_name);
     });
@@ -5741,7 +5731,8 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge) {
                         "Server determined this tool use "
                         "is off-topic",  // assessment
                         std::nullopt,    // plan
-                        std::nullopt),   // description
+                        std::nullopt,    // description
+                        /*supports_allow_session=*/false),
                     false);
                 callback.Run(EngineConsumer::GenerationResultData(
                     mojom::ConversationEntryEvent::NewToolUseEvent(
@@ -5817,7 +5808,8 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge) {
           testing::InvokeWithoutArgs([&second_loop]() { second_loop.Quit(); }));
 
   // User approves permission
-  conversation_handler_->ProcessPermissionChallenge("tool_id_1", true);
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kAllowOnce);
   second_loop.Run();
 
   // Verify both tools were executed and have outputs
@@ -5857,7 +5849,8 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge_ToolReturnsChallenge) {
             mojom::PermissionChallenge::New(
                 std::nullopt,                           // assessment
                 "This tool needs to manage your tabs",  // plan
-                std::nullopt));                         // description
+                std::nullopt,                           // description
+                /*supports_allow_session=*/false));
       });
 
   ON_CALL(*mock_tool_provider_, GetTools()).WillByDefault([&]() {
@@ -5914,6 +5907,85 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge_ToolReturnsChallenge) {
             "This tool needs to manage your tabs");
 }
 
+// Stages an assistant turn halted on |challenge|, as the tool loop would leave
+// it while waiting for the user's answer.
+void StageHaltedToolUse(ConversationHandler* conversation_handler,
+                        const std::string& tool_name,
+                        mojom::PermissionChallengePtr challenge) {
+  std::vector<mojom::ConversationEntryEventPtr> events;
+  events.push_back(mojom::ConversationEntryEvent::NewToolUseEvent(
+      mojom::ToolUseEvent::New(tool_name, "tool_id_1", "{}", std::nullopt,
+                               std::nullopt, std::move(challenge), false)));
+  std::vector<mojom::ConversationTurnPtr> history;
+  history.push_back(mojom::ConversationTurn::New(
+      "assistant-turn", std::nullopt, mojom::CharacterType::ASSISTANT,
+      mojom::ActionType::RESPONSE, "", std::nullopt, std::nullopt,
+      std::move(events), base::Time::Now(), std::nullopt, std::nullopt, nullptr,
+      false, std::nullopt, nullptr, std::vector<std::string>{}));
+  conversation_handler->SetChatHistoryForTesting(std::move(history));
+}
+
+TEST_F(ConversationHandlerUnitTest, PermissionChallenge_UserAllowsForSession) {
+  NiceMock<MockAssociatedContent> content;
+  content.SetUrl(GURL("https://example.com/cart"));
+  ON_CALL(content, GetContentTools)
+      .WillByDefault([](AssociatedContentDelegate::GetContentToolsCallback cb) {
+        std::vector<std::unique_ptr<Tool>> tools;
+        tools.push_back(std::make_unique<NiceMock<MockTool>>("cancel_cart"));
+        std::move(cb).Run(std::move(tools));
+      });
+  auto* manager = conversation_handler_->associated_content_manager();
+  manager->AddContent(&content);
+  base::test::TestFuture<void> loaded;
+  manager->UpdateToolsForNewGenerationLoop(loaded.GetCallback());
+  ASSERT_TRUE(loaded.Wait());
+
+  StageHaltedToolUse(
+      conversation_handler_.get(), "cancel_cart",
+      mojom::PermissionChallenge::New(std::nullopt, std::nullopt, std::nullopt,
+                                      /*supports_allow_session=*/true));
+
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kAllowSession);
+
+  base::test::TestFuture<std::vector<mojom::ToolInfoPtr>> infos;
+  manager->GetToolInfos(content.uuid(), infos.GetCallback());
+  ASSERT_EQ(1u, infos.Get().size());
+  EXPECT_EQ(mojom::ToolPermission::kAllowSession, infos.Get()[0]->permission);
+}
+
+TEST_F(ConversationHandlerUnitTest,
+       PermissionChallenge_AllowSessionNeedsTheChallengeToOfferIt) {
+  // The server's alignment check is shown however the user answered before, so
+  // a client asking to stop being asked records nothing.
+  NiceMock<MockAssociatedContent> content;
+  content.SetUrl(GURL("https://example.com/cart"));
+  ON_CALL(content, GetContentTools)
+      .WillByDefault([](AssociatedContentDelegate::GetContentToolsCallback cb) {
+        std::vector<std::unique_ptr<Tool>> tools;
+        tools.push_back(std::make_unique<NiceMock<MockTool>>("cancel_cart"));
+        std::move(cb).Run(std::move(tools));
+      });
+  auto* manager = conversation_handler_->associated_content_manager();
+  manager->AddContent(&content);
+  base::test::TestFuture<void> loaded;
+  manager->UpdateToolsForNewGenerationLoop(loaded.GetCallback());
+  ASSERT_TRUE(loaded.Wait());
+
+  StageHaltedToolUse(
+      conversation_handler_.get(), "cancel_cart",
+      mojom::PermissionChallenge::New("Off-topic", std::nullopt, std::nullopt,
+                                      /*supports_allow_session=*/false));
+
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kAllowSession);
+
+  base::test::TestFuture<std::vector<mojom::ToolInfoPtr>> infos;
+  manager->GetToolInfos(content.uuid(), infos.GetCallback());
+  ASSERT_EQ(1u, infos.Get().size());
+  EXPECT_EQ(mojom::ToolPermission::kAsk, infos.Get()[0]->permission);
+}
+
 TEST_F(ConversationHandlerUnitTest, PermissionChallenge_UserDeniesPermission) {
   // Test that when user denies permission, a denial response is sent to the
   // engine and pending tool requests are not processed.
@@ -5955,7 +6027,8 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge_UserDeniesPermission) {
                                 "Server determined this tool use "
                                 "is off-topic",  // assessment
                                 std::nullopt,    // plan
-                                std::nullopt),   // description
+                                std::nullopt,    // description
+                                /*supports_allow_session=*/false),
                             false)),
                     std::nullopt));
                 // Second tool use
@@ -6003,7 +6076,8 @@ TEST_F(ConversationHandlerUnitTest, PermissionChallenge_UserDeniesPermission) {
   EXPECT_CALL(*tool2, UseTool).Times(0);
 
   // User denies permission
-  conversation_handler_->ProcessPermissionChallenge("tool_id_1", false);
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kDeny);
   second_loop.Run();
 
   // Verify first tool has denial output, second tool was not processed
@@ -6039,7 +6113,8 @@ TEST_F(ConversationHandlerUnitTest,
             mojom::PermissionChallenge::New(
                 std::nullopt,  // assessment
                 "Client-side: This tool needs to access your tabs",  // plan
-                std::nullopt));  // description
+                std::nullopt,  // description
+                /*supports_allow_session=*/false));
       });
 
   ON_CALL(*mock_tool_provider_, GetTools()).WillByDefault([&]() {
@@ -6064,7 +6139,8 @@ TEST_F(ConversationHandlerUnitTest,
                     std::nullopt, std::nullopt,
                     mojom::PermissionChallenge::New(
                         "Server-side: This tool use needs alignment check",
-                        std::nullopt, std::nullopt),
+                        std::nullopt, std::nullopt,
+                        /*supports_allow_session=*/false),
                     false);
                 callback.Run(EngineConsumer::GenerationResultData(
                     mojom::ConversationEntryEvent::NewToolUseEvent(
@@ -6096,7 +6172,8 @@ TEST_F(ConversationHandlerUnitTest,
   // This should triggerRequiresUserInteractionBeforeHandling and get a new
   // client-side challenge.
   base::RunLoop second_loop;
-  conversation_handler_->ProcessPermissionChallenge("tool_id_1", true);
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kAllowOnce);
 
   // Verify Gate 2: Client permission challenge is now present
   const auto& history_after_gate2 =
@@ -6125,7 +6202,8 @@ TEST_F(ConversationHandlerUnitTest,
           testing::InvokeWithoutArgs([&second_loop]() { second_loop.Quit(); }));
 
   // User approves client-side challenge - tool should now execute
-  conversation_handler_->ProcessPermissionChallenge("tool_id_1", true);
+  conversation_handler_->ProcessPermissionChallenge(
+      "tool_id_1", mojom::PermissionChallengeDecision::kAllowOnce);
   second_loop.Run();
 
   // Verify tool executed and both permission challenges are cleared
@@ -6188,7 +6266,8 @@ TEST_F(ConversationHandlerUnitTest,
                     "test_tool", "tool_id_1", "{}", std::nullopt, std::nullopt,
                     mojom::PermissionChallenge::New(
                         "Server determined this tool use is off-topic",
-                        std::nullopt, std::nullopt),
+                        std::nullopt, std::nullopt,
+                        /*supports_allow_session=*/false),
                     false);
                 callback.Run(EngineConsumer::GenerationResultData(
                     mojom::ConversationEntryEvent::NewToolUseEvent(
@@ -6979,16 +7058,14 @@ TEST_F(ConversationHandlerUnitTest, ConversationCapabilities) {
           /*is_content_agent_allowed=*/false,
           /*deep_research_enabled=*/false,
           /*math_rendering_enabled=*/true,
-          {mojom::ConversationCapability::CHAT,
-           mojom::ConversationCapability::MATH_ML},
+          {mojom::ConversationCapability::MATH_ML},
       },
       {
           "ChatWithDeepResearch",
           /*is_content_agent_allowed=*/false,
           /*deep_research_enabled=*/true,
           /*math_rendering_enabled=*/true,
-          {mojom::ConversationCapability::CHAT,
-           mojom::ConversationCapability::DEEP_RESEARCH,
+          {mojom::ConversationCapability::DEEP_RESEARCH,
            mojom::ConversationCapability::MATH_ML},
       },
       {
@@ -6996,8 +7073,7 @@ TEST_F(ConversationHandlerUnitTest, ConversationCapabilities) {
           /*is_content_agent_allowed=*/true,
           /*deep_research_enabled=*/false,
           /*math_rendering_enabled=*/true,
-          {mojom::ConversationCapability::CHAT,
-           mojom::ConversationCapability::CONTENT_AGENT,
+          {mojom::ConversationCapability::CONTENT_AGENT,
            mojom::ConversationCapability::MATH_ML},
       },
       {
@@ -7005,8 +7081,7 @@ TEST_F(ConversationHandlerUnitTest, ConversationCapabilities) {
           /*is_content_agent_allowed=*/true,
           /*deep_research_enabled=*/true,
           /*math_rendering_enabled=*/true,
-          {mojom::ConversationCapability::CHAT,
-           mojom::ConversationCapability::CONTENT_AGENT,
+          {mojom::ConversationCapability::CONTENT_AGENT,
            mojom::ConversationCapability::DEEP_RESEARCH,
            mojom::ConversationCapability::MATH_ML},
       },
@@ -7017,7 +7092,7 @@ TEST_F(ConversationHandlerUnitTest, ConversationCapabilities) {
           /*is_content_agent_allowed=*/false,
           /*deep_research_enabled=*/false,
           /*math_rendering_enabled=*/false,
-          {mojom::ConversationCapability::CHAT},
+          {},
       },
   };
 
@@ -7094,70 +7169,13 @@ TEST_F(ConversationHandlerUnitTest, FallsBackWhenModelKeyNoLongerExists) {
   EXPECT_EQ(handler->GetCurrentModel().key, kChatAutomaticModelKey);
 }
 
-using ConversationHandlerDeathTest = ConversationHandlerUnitTest;
-
-// The configured default failing to resolve means it's actually broken, so
-// this case is a same-build internal-consistency violation, not a resolvable
-// fallback.
-//
-// DUMP_WILL_BE_NOTREACHED() is only guaranteed fatal outside official builds
-// or with DCHECKs enabled; skip this death test in the one configuration
-// (official build, DCHECKs off) where it wouldn't actually crash.
-#if !defined(OFFICIAL_BUILD) || DCHECK_IS_ON()
-TEST_F(ConversationHandlerDeathTest,
-       CrashesWhenConfiguredDefaultModelDoesNotExist) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kAIChat,
-      {{features::kAIModelsDefaultKey.name, "this-default-does-not-exist"}});
-
-  auto conversation = mojom::Conversation::New(
-      "stale-model-and-default-uuid", "title", base::Time::Now(), false,
-      "this-model-key-does-not-exist", 0, 0, false,
-      std::vector<mojom::AssociatedContentPtr>());
-
-  std::vector<std::unique_ptr<ToolProvider>> tool_providers;
-  tool_providers.push_back(std::make_unique<NiceMock<MockToolProvider>>());
-
-  EXPECT_NOTREACHED_DEATH(
-      auto handler = std::make_unique<ConversationHandler>(
-          conversation.get(), ai_chat_service_.get(), model_service_.get(),
-          ai_chat_service_->GetCredentialManagerForTesting(),
-          mock_feedback_api_.get(), &prefs_, shared_url_loader_factory_,
-          std::move(tool_providers)));
-}
-#endif  // !defined(OFFICIAL_BUILD) || DCHECK_IS_ON()
-
 // Bypasses InitEngine()'s up-front resolution to exercise GetCurrentModel()'s
 // own fallback.
-TEST_F(ConversationHandlerUnitTest,
-       GetCurrentModelFallsBackToConfiguredDefault) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kAIChat,
-      {{features::kAIModelsDefaultKey.name, kClaudeSonnetModelKey}});
-
+TEST_F(ConversationHandlerUnitTest, GetCurrentModelFallsBackToAutomatic) {
   conversation_handler_->SetModelKeyForTesting("this-model-key-does-not-exist");
 
   EXPECT_EQ(conversation_handler_->GetCurrentModel().key,
-            kClaudeSonnetModelKey);
+            kChatAutomaticModelKey);
 }
-
-// DUMP_WILL_BE_NOTREACHED() is only guaranteed fatal outside official builds
-// or with DCHECKs enabled; skip this death test in the one configuration
-// (official build, DCHECKs off) where it wouldn't actually crash.
-#if !defined(OFFICIAL_BUILD) || DCHECK_IS_ON()
-TEST_F(ConversationHandlerDeathTest,
-       CrashesWhenConfiguredDefaultModelAlsoMissingInGetCurrentModel) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kAIChat,
-      {{features::kAIModelsDefaultKey.name, "this-default-does-not-exist"}});
-
-  conversation_handler_->SetModelKeyForTesting("this-model-key-does-not-exist");
-
-  EXPECT_NOTREACHED_DEATH(conversation_handler_->GetCurrentModel());
-}
-#endif  // !defined(OFFICIAL_BUILD) || DCHECK_IS_ON()
 
 }  // namespace ai_chat

@@ -13,7 +13,6 @@ import Growth
 import Preferences
 import RuntimeWarnings
 import Shared
-import Storage
 import UIKit
 import UserAgent
 import os.log
@@ -26,6 +25,7 @@ private let adsRewardsLog = Logger(
 /// Class that does startup initialization
 /// Everything in this class can only be execute ONCE
 /// IE: BraveCore initialization, BuildChannel, Migrations, etc.
+@MainActor
 public class AppState {
   private let log = Logger(subsystem: Bundle.main.bundleIdentifier!, category: "app-state")
 
@@ -38,6 +38,8 @@ public class AppState {
   public let newsFeedDataSource: FeedDataSource
   public let uptimeMonitor = UptimeMonitor()
   public let defaultProfileLoader = DefaultProfileLoader()
+  public let downloadBackgroundTaskModel: DownloadBackgroundTaskScheduler?
+
   private var didBecomeActive = false
 
   public var state: State = .launching(options: [:], active: false) {
@@ -109,6 +111,18 @@ public class AppState {
     localStateMigration.launchMigrations()
 
     newsFeedDataSource = FeedDataSource()
+
+    #if !targetEnvironment(simulator)
+    if #available(iOS 26.0, *) {
+      downloadBackgroundTaskModel = DownloadBackgroundTaskScheduler(
+        taskIdentifier: "\(Bundle.main.bundleIdentifier!).download"
+      )
+    } else {
+      downloadBackgroundTaskModel = nil
+    }
+    #else
+    downloadBackgroundTaskModel = nil
+    #endif
 
     // Setup Custom URL scheme handlers
     setupCustomSchemeHandlers()

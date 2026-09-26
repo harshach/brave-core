@@ -16,7 +16,7 @@ declare_args() {
 }
 
 java_cpp_enum("brave_android_java_enums_srcjar") {
-  sources = [ "//brave/chromium_src/chrome/browser/notifications/notification_handler_impl.h" ]
+  sources = []
 
   if (enable_brave_wallet) {
     sources += [ "//brave/components/decentralized_dns/core/constants.h" ]
@@ -111,7 +111,6 @@ android_resources("java_resources") {
     "java/brave-res/drawable-hdpi/ic_ad_free_videos.png",
     "java/brave-res/drawable-hdpi/share_activity_background.png",
     "java/brave-res/drawable-hdpi/vpn_install_bg.png",
-    "java/brave-res/drawable-ldrtl/brave_modern_toolbar_text_box_background.xml",
     "java/brave-res/drawable-ldrtl/brave_rating_emoji_happy_bg.xml",
     "java/brave-res/drawable-ldrtl/brave_rating_emoji_sad_bg.xml",
     "java/brave-res/drawable-ldrtl/modern_toolbar_background_grey_end_segment.xml",
@@ -192,7 +191,6 @@ android_resources("java_resources") {
     "java/brave-res/drawable/brave_checkbox.xml",
     "java/brave-res/drawable/brave_icon_search.xml",
     "java/brave-res/drawable/brave_menu_new_private_tab.xml",
-    "java/brave-res/drawable/brave_modern_toolbar_text_box_background.xml",
     "java/brave-res/drawable/brave_new_group_tab.xml",
     "java/brave-res/drawable/brave_news_settings_list_divider.xml",
     "java/brave-res/drawable/brave_news_settings_publisher_bg.xml",
@@ -310,7 +308,6 @@ android_resources("java_resources") {
     "java/brave-res/drawable/ic_coinbase.xml",
     "java/brave-res/drawable/ic_disabled.xml",
     "java/brave-res/drawable/ic_discount.xml",
-    "java/brave-res/drawable/ic_drag.xml",
     "java/brave-res/drawable/ic_eth.xml",
     "java/brave-res/drawable/ic_eth_24.xml",
     "java/brave-res/drawable/ic_eth_color.xml",
@@ -491,7 +488,6 @@ android_resources("java_resources") {
     "java/brave-res/layout/bottom_toolbar_browsing.xml",
     "java/brave-res/layout/bottom_toolbar_menu_button.xml",
     "java/brave-res/layout/bottom_toolbar_tab_switcher.xml",
-    "java/brave-res/layout/brave_account_alert_dialog.xml",
     "java/brave-res/layout/brave_ads_existing_user_dialog_layout.xml",
     "java/brave-res/layout/brave_ads_new_user_dialog_layout.xml",
     "java/brave-res/layout/brave_ask_play_store_rating_dialog.xml",

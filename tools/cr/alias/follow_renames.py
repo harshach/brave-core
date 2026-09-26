@@ -71,7 +71,7 @@ def cmd_follow_renames(args: list[str]) -> int:
         '--no-format',
         action='store_true',
         dest='no_format',
-        help='Skip running `npm run format` after processing renames')
+        help='Skip running `pnpm run format` after processing renames')
     parser.add_argument('--verbose',
                         action='store_true',
                         help='Enable verbose logging')
@@ -99,15 +99,15 @@ def cmd_follow_renames(args: list[str]) -> int:
 
 
 def _run_format() -> None:
-    """Runs `npm run format` to clean up files touched by rename repairs.
+    """Runs `pnpm run format` to clean up files touched by rename repairs.
 
     Failures are downgraded to warnings: format must not block successful
     rename processing.
     """
     try:
-        terminal.run_npm_command('format')
+        terminal.run_pnpm_command('format')
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
-        logging.warning('npm run format failed: %s', e)
+        logging.warning('pnpm run format failed: %s', e)
 
 
 def _get_chromium_renames(ref_or_range: str) -> list[_RenamePair]:
@@ -210,8 +210,9 @@ def _repair_plaster_files(old_chromium: Path,
     else:
         terminal.run_git('mv', str(old_plaster), str(new_plaster))
 
-    patch_file = (repository.brave.root / 'patches' /
-                  patch_name_for(old_chromium))
+    # `resolve` reads the path, not the file, so the plaster just moved away
+    # still names the patch it generated.
+    patch_file = plaster.PlasterTarget.resolve(old_plaster).patch
     if not patch_file.exists():
         logging.warning(
             'Expected patch file not found: %s; skipping deletion.',
@@ -229,8 +230,7 @@ def _repair_plaster_files(old_chromium: Path,
         try:
             PlasterFile(new_plaster).apply()
             if not no_git:
-                new_patch = (repository.brave.root / 'patches' /
-                             patch_name_for(new_chromium))
+                new_patch = plaster.PlasterTarget.resolve(new_plaster).patch
                 if new_patch.exists():
                     terminal.run_git('add', str(new_patch))
         # TODO(https://github.com/brave/brave-browser/issues/55370): Eventually

@@ -724,6 +724,81 @@ extension Strings.Shields {
     comment:
       "An error message telling the user that a rule is invalid"
   )
+  /// An error message telling the user that a scriptlet's name is invalid
+  public static let customScriptletInvalidNameError = NSLocalizedString(
+    "CustomScriptletInvalidNameError",
+    tableName: "BraveShared",
+    bundle: .module,
+    value:
+      "Invalid scriptlet name",
+    comment:
+      "An error message telling the user that the name they gave their custom scriptlet is invalid."
+  )
+  /// An error message telling the user that a scriptlet has no content
+  public static let customScriptletEmptyContentError = NSLocalizedString(
+    "CustomScriptletEmptyContentError",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "The scriptlet must contain some javascript",
+    comment:
+      "An error message telling the user that the custom scriptlet they are trying to save has no content"
+  )
+  /// An error message telling the user that a scriptlet has no content
+  public static let customScriptletFailedToSaveError = NSLocalizedString(
+    "customScriptletFailedToSaveError",
+    bundle: .module,
+    value: "Failed to save custom scriptlet",
+    comment:
+      "An error message telling the user that the custom scriptlet failed to save to disk"
+  )
+}
+
+// MARK: - Custom scriptlets
+
+extension Strings.Shields {
+  /// A navigation title for the screen where a user creates a new custom scriptlet
+  public static let addNewScriptletTitle = NSLocalizedString(
+    "shields.addNewScriptletTitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Add New Scriptlet",
+    comment: "A navigation title for the screen where a user creates a new custom scriptlet"
+  )
+  /// A navigation title for the screen where a user edits an existing custom scriptlet
+  public static let editScriptletTitle = NSLocalizedString(
+    "shields.editScriptletTitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Edit Scriptlet",
+    comment: "A navigation title for the screen where a user edits an existing custom scriptlet"
+  )
+  /// A section header above the text field where a user enters the custom scriptlet's name
+  public static let customScriptletNameSectionTitle = NSLocalizedString(
+    "shields.customScriptletNameSectionTitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Name",
+    comment:
+      "A section header above the text field where a user enters the custom scriptlet's name"
+  )
+  /// A section header above the text editor where a user enters the custom scriptlet's JavaScript
+  public static let customScriptletContentSectionTitle = NSLocalizedString(
+    "shields.customScriptletContentSectionTitle",
+    tableName: "BraveShared",
+    bundle: .module,
+    value: "Content",
+    comment:
+      "A section header above the text editor where a user enters the custom scriptlet's JavaScript"
+  )
+  /// A warning shown in an empty custom scriptlet editor
+  public static let customScriptletContentWarning = NSLocalizedString(
+    "shields.customScriptletContentWarning",
+    tableName: "BraveShared",
+    bundle: .module,
+    value:
+      "Don’t paste code here that you don’t understand or haven’t reviewed yourself. This could allow attackers to steal your identity or take control of your device.",
+    comment: "A warning shown in an empty custom scriptlet editor"
+  )
 }
 
 // MARK: - HTTPS Upgrades
@@ -842,6 +917,54 @@ extension Strings.Shields {
     value: "Enable support for bypassing top-level redirect tracking URLs",
     comment:
       "This is a description for a setting toggle that enables/disables auto-redirect of tracking URLs (i.e. Debouncing)."
+  )
+}
+
+// MARK: Shields Panel
+extension Strings.Shields {
+  public static let shieldsUpForSite = NSLocalizedString(
+    "shields.shieldsUpForSite",
+    bundle: .module,
+    value: "Shields is **up** for this site",
+    comment: "A label displayed on Shields panel beside the toggle disabling shields."
+  )
+  public static let shieldsDownForSite = NSLocalizedString(
+    "shields.shieldsDownForSite",
+    bundle: .module,
+    value: "Shields is **down** for this site",
+    comment: "A label displayed on Shields panel beside the toggle enabling shields."
+  )
+  public static let trackersAdsAndMoreBlocked = NSLocalizedString(
+    "shields.trackersAdsAndMoreBlocked",
+    bundle: .module,
+    value: "trackers, ads, and more blocked",
+    comment: "A label displayed on Shields panel beside the number of blocked items."
+  )
+  public static let siteSeemsBroken = NSLocalizedString(
+    "shields.siteSeemsBroken",
+    bundle: .module,
+    value:
+      "If this site seems broken, try toggling Shields off. This may reduce Brave's privacy protections. [Learn more](%@)",
+    comment:
+      "A label displayed on Shields panel at the bottom. Learn more link is clickable, where `%@` will be replaced with the URL."
+  )
+  public static let shieldsGlobalSettingsButtonTitle = NSLocalizedString(
+    "shields.shieldsGlobalSettings",
+    bundle: .module,
+    value: "Shields Global Settings",
+    comment: "A button title displayed on Shields panel linking to Shields global settings."
+  )
+  public static let siteNotWorkingCorrectly = NSLocalizedString(
+    "shields.siteNotWorkingCorrectly",
+    bundle: .module,
+    value: "Is this site not working correctly with Shields up?",
+    comment: "A footer displayed on Shields panel when shields are down."
+  )
+  public static let reportBrokenSiteButtonTitle = NSLocalizedString(
+    "shields.reportBrokenSiteButtonTitle",
+    bundle: .module,
+    value: "Report",
+    comment: "A button title displayed on Shields panel linking to Webcompat Reporter."
   )
 }
 

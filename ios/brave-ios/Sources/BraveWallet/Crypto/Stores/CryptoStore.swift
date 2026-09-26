@@ -14,10 +14,10 @@ enum PendingRequest: Equatable {
   case addChain(BraveWallet.AddChainRequest)
   case switchChain(BraveWallet.SwitchChainRequest)
   case addSuggestedToken(BraveWallet.AddSuggestTokenRequest)
-  case signMessage([BraveWallet.SignMessageRequest])
+  case signMessage([SignMessageRequestItem])
   case signMessageError([BraveWallet.SignMessageError])
-  case getEncryptionPublicKey(BraveWallet.GetEncryptionPublicKeyRequest)
-  case decrypt(BraveWallet.DecryptRequest)
+  case getEncryptionPublicKey(GetEncryptionPublicKeyRequestItem)
+  case decrypt(DecryptRequestItem)
   case signTransactions([SignTransactionRequestItem])
 }
 
@@ -36,10 +36,10 @@ extension PendingRequest: Identifiable {
       return "signMessage-\(signRequests.map(\.id))"
     case .signMessageError(let signMessageErrorRequests):
       return "signMessageError-\(signMessageErrorRequests.map(\.id))"
-    case .getEncryptionPublicKey(let request):
-      return "getEncryptionPublicKey-\(request.accountId.uniqueKey)-\(request.requestId)"
-    case .decrypt(let request):
-      return "decrypt-\(request.accountId.uniqueKey)-\(request.requestId)"
+    case .getEncryptionPublicKey(let item):
+      return "getEncryptionPublicKey-\(item.request.accountId.uniqueKey)-\(item.request.requestId)"
+    case .decrypt(let item):
+      return "decrypt-\(item.request.accountId.uniqueKey)-\(item.request.requestId)"
     case .signTransactions(let requests):
       return "signTransactions-\(requests.map(\.id))"
     }
@@ -105,7 +105,6 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
   private let rpcService: BraveWalletJsonRpcService
   private let walletService: BraveWalletBraveWalletService
   private let assetRatioService: BraveWalletAssetRatioService
-  private let swapService: BraveWalletSwapService
   let blockchainRegistry: BraveWalletBlockchainRegistry
   private let txService: BraveWalletTxService
   private let ethTxManagerProxy: BraveWalletEthTxManagerProxy
@@ -129,7 +128,6 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
     rpcService: BraveWalletJsonRpcService,
     walletService: BraveWalletBraveWalletService,
     assetRatioService: BraveWalletAssetRatioService,
-    swapService: BraveWalletSwapService,
     blockchainRegistry: BraveWalletBlockchainRegistry,
     txService: BraveWalletTxService,
     ethTxManagerProxy: BraveWalletEthTxManagerProxy,
@@ -145,7 +143,6 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
     self.rpcService = rpcService
     self.walletService = walletService
     self.assetRatioService = assetRatioService
-    self.swapService = swapService
     self.blockchainRegistry = blockchainRegistry
     self.txService = txService
     self.ethTxManagerProxy = ethTxManagerProxy
@@ -169,7 +166,6 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
       keyringService: keyringService,
       rpcService: rpcService,
       walletService: walletService,
-      swapService: swapService,
       userAssetManager: userAssetManager,
       origin: origin
     )
@@ -303,7 +299,7 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
         Task { @MainActor [self] in
           if let addNetworkDappRequestCompletion = self?.addNetworkDappRequestCompletion[chainId] {
             if error.isEmpty {
-              let allNetworks = await self?.rpcService.allNetworks()
+              let allNetworks = await self?.rpcService.allNetworks().networks
               if let network = allNetworks?.first(where: {
                 $0.coin == .eth && $0.chainId == chainId
               }) {
@@ -371,7 +367,6 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
       walletService: walletService,
       rpcService: rpcService,
       assetRatioService: assetRatioService,
-      swapService: swapService,
       txService: txService,
       blockchainRegistry: blockchainRegistry,
       solTxManagerProxy: solTxManagerProxy,
@@ -452,7 +447,7 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
 
   private var signMessageRequestStore: SignMessageRequestStore?
   func signMessageRequestStore(
-    for requests: [BraveWallet.SignMessageRequest]
+    for requests: [SignMessageRequestItem]
   ) -> SignMessageRequestStore {
     if let store = signMessageRequestStore {
       DispatchQueue.main.async {  // don't update in view body computation
@@ -519,7 +514,7 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
   func fetchPendingTransactions() async -> [BraveWallet.TransactionInfo] {
     let allAccounts = await keyringService.allAccounts().accounts
     var allNetworksForCoin: [BraveWallet.CoinType: [BraveWallet.NetworkInfo]] = [:]
-    let allNetworks = await rpcService.allNetworks()
+    let allNetworks = await rpcService.allNetworks().networks
     for coin in WalletConstants.supportedCoinTypes() {
       allNetworksForCoin[coin] = allNetworks.filter({ $0.coin == coin })
     }
@@ -531,38 +526,60 @@ public class CryptoStore: ObservableObject, WalletObserverStore {
 
   @MainActor
   func fetchPendingWebpageRequest() async -> PendingRequest? {
+    let allAccounts = await keyringService.allAccounts().accounts
+
     if let chainRequest = await rpcService.pendingAddChainRequests().first {
       return .addChain(chainRequest)
-    } else if case let signSolTransactionsRequests =
-      await walletService.pendingSignSolTransactionsRequests(), !signSolTransactionsRequests.isEmpty
-    {
-      return .signTransactions(signSolTransactionsRequests.map { .solana($0) })
-    } else if case let signCardanoTransactionRequests =
-      await walletService.pendingSignCardanoTransactionRequests(),
-      !signCardanoTransactionRequests.isEmpty
-    {
-      return .signTransactions(signCardanoTransactionRequests.map { .cardano($0) })
-    } else if case let signMessageErrors = await walletService.pendingSignMessageErrors(),
+    } 
+
+    let signSolTransactionsItems = await walletService.pendingSignSolTransactionsRequests(
+      allAccounts: allAccounts
+    )
+    if !signSolTransactionsItems.isEmpty {
+      return .signTransactions(signSolTransactionsItems)
+    }
+
+    let signCardanoTransactionsItems = await walletService.pendingSignCardanoTransactionRequests(
+      allAccounts: allAccounts
+    )
+    if !signCardanoTransactionsItems.isEmpty {
+      return .signTransactions(signCardanoTransactionsItems)
+    }
+
+    if case let signMessageErrors = await walletService.pendingSignMessageErrors(),
       !signMessageErrors.isEmpty
     {
       return .signMessageError(signMessageErrors)
-    } else if case let signMessageRequests = await walletService.pendingSignMessageRequests(),
-      !signMessageRequests.isEmpty
-    {
-      return .signMessage(signMessageRequests)
-    } else if let switchRequest = await rpcService.pendingSwitchChainRequests().first {
-      return .switchChain(switchRequest)
-    } else if let addTokenRequest = await walletService.pendingAddSuggestTokenRequests().first {
-      return .addSuggestedToken(addTokenRequest)
-    } else if let getEncryptionPublicKeyRequest =
-      await walletService.pendingGetEncryptionPublicKeyRequests().first
-    {
-      return .getEncryptionPublicKey(getEncryptionPublicKeyRequest)
-    } else if let decryptRequest = await walletService.pendingDecryptRequests().first {
-      return .decrypt(decryptRequest)
-    } else {
-      return nil
     }
+
+    let signMessageItems = await walletService.pendingSignMessageRequests(
+      allAccounts: allAccounts
+    )
+    if !signMessageItems.isEmpty {
+      return .signMessage(signMessageItems)
+    }
+
+    if let switchRequest = await rpcService.pendingSwitchChainRequests().first {
+      return .switchChain(switchRequest)
+    }
+
+    if let addTokenRequest = await walletService.pendingAddSuggestTokenRequests().first {
+      return .addSuggestedToken(addTokenRequest)
+    }
+
+    if let item = await walletService.pendingGetEncryptionPublicKeyRequests(
+      allAccounts: allAccounts
+    ) {
+      return .getEncryptionPublicKey(item)
+    }
+
+    if let item = await walletService.pendingDecryptRequests(
+      allAccounts: allAccounts
+    ) {
+      return .decrypt(item)
+    }
+
+    return nil
   }
 
   /// Determines if a pending request is available. We cannot simply check `pendingRequest` as it will be nil when the request is dismissed without accept/reject.

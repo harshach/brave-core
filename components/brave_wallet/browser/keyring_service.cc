@@ -22,6 +22,7 @@
 #include "base/containers/span.h"
 #include "base/functional/callback_helpers.h"
 #include "base/json/json_reader.h"
+#include "base/metrics/histogram_macros.h"
 #include "base/notreached.h"
 #include "base/numerics/safe_conversions.h"
 #include "base/rand_util.h"
@@ -1248,6 +1249,8 @@ bool KeyringService::CreateWalletInternal(const std::string& mnemonic,
     return false;
   }
 
+  ReportUsageMetrics();
+
   for (const auto& observer : observers_) {
     if (from_restore) {
       observer->WalletRestored();
@@ -2339,6 +2342,11 @@ std::vector<mojom::AccountInfoPtr> KeyringService::GetHardwareAccountsSync(
     if (!account_value) {
       continue;
     }
+
+    if (IsFilecoinKeyring(keyring_id) && !IsFilecoinLedgerEnabled()) {
+      continue;
+    }
+
     SerializeHardwareAccounts(id, account_value, keyring_id, &accounts);
   }
 
@@ -2657,6 +2665,12 @@ void KeyringService::Lock() {
   StopAutoLockTimer();
 }
 
+void KeyringService::ReportUsageMetrics() {
+  UMA_HISTOGRAM_BOOLEAN(kWalletUsageDailyHistogramName, true);
+  UMA_HISTOGRAM_BOOLEAN(kWalletUsageWeeklyHistogramName, true);
+  UMA_HISTOGRAM_BOOLEAN(kWalletUsageMonthlyHistogramName, true);
+}
+
 void KeyringService::Unlock(const std::string& password,
                             KeyringService::UnlockCallback callback) {
   MaybeRunPasswordMigrations(profile_prefs_, password);
@@ -2688,10 +2702,17 @@ void KeyringService::Unlock(const std::string& password,
 
   UpdateLastUnlockPref(local_state_);
   request_unlock_pending_ = false;
+
+  ReportUsageMetrics();
+
   for (const auto& observer : observers_) {
     observer->Unlocked();
   }
   ResetAutoLockTimer();
+
+  // Defer BlockchainRegistry list parsing until unlock so startup does not
+  // pay for ParseLists when the wallet is never opened.
+  WalletDataFilesInstaller::GetInstance().OnWalletUnlocked();
 
   std::move(callback).Run(true);
 }

@@ -149,7 +149,7 @@ class TopToolbarView: UIView, ToolbarProtocol {
 
   private lazy var shortcutButton = ToolbarButton().then {
     $0.addTarget(self, action: #selector(didClickShortcutButton), for: .touchUpInside)
-    $0.contentEdgeInsets = .init(top: 4, left: 4, bottom: 4, right: 4)
+    $0.configuration?.contentInsets = .init(top: 4, leading: 4, bottom: 4, trailing: 4)
     $0.snp.makeConstraints {
       $0.size.greaterThanOrEqualTo(32)
     }
@@ -196,7 +196,7 @@ class TopToolbarView: UIView, ToolbarProtocol {
   var shareButton = ToolbarButton()
   var addTabButton = ToolbarButton()
   var searchButton = ToolbarButton()
-  lazy var menuButton = MenuButton().then {
+  lazy var menuButton = ToolbarButton().then {
     $0.accessibilityIdentifier = "topToolbarView-menuButton"
   }
 
@@ -300,18 +300,16 @@ class TopToolbarView: UIView, ToolbarProtocol {
     leadingItemsStackView.addArrangedSubview(shareButton)
 
     [backButton, forwardButton].forEach {
-      $0.contentEdgeInsets = UIEdgeInsets(
+      $0.configuration?.contentInsets = NSDirectionalEdgeInsets(
         top: 0,
-        left: UX.locationPadding,
+        leading: UX.locationPadding,
         bottom: 0,
-        right: UX.locationPadding
+        trailing: UX.locationPadding
       )
     }
 
-    if UIDevice.current.userInterfaceIdiom == .phone {
-      trailingItemsStackView.addArrangedSubview(addTabButton)
-    }
     trailingItemsStackView.addArrangedSubview(tabsButton)
+    trailingItemsStackView.addArrangedSubview(addTabButton)
     trailingItemsStackView.addArrangedSubview(menuButton)
 
     shieldsRewardsStack.addArrangedSubview(shieldsButton)
@@ -368,22 +366,21 @@ class TopToolbarView: UIView, ToolbarProtocol {
     self.displayTabTraySwipeGestureRecognizer = swipeGestureRecognizer
 
     updateColors()
+
+    registerForTraitChanges([UITraitPreferredContentSizeCategory.self]) { (self: Self, _) in
+      self.helper?.updateForTraitCollection(
+        self.traitCollection,
+        browserColors: self.privateBrowsingManager.browserColors,
+        isBottomToolbar: false,
+        additionalButtons: [self.shortcutButton]
+      )
+      self.updateForTraitCollection()
+    }
   }
 
   @available(*, unavailable)
   required init(coder: NSCoder) {
     fatalError()
-  }
-
-  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-    super.traitCollectionDidChange(previousTraitCollection)
-    helper?.updateForTraitCollection(
-      traitCollection,
-      browserColors: privateBrowsingManager.browserColors,
-      isBottomToolbar: false,
-      additionalButtons: [shortcutButton]
-    )
-    updateForTraitCollection()
   }
 
   private func updateForTraitCollection() {

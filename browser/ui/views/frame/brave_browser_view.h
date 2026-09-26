@@ -24,7 +24,6 @@
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
-#include "brave/components/brave_wayback_machine/buildflags/buildflags.h"
 #include "brave/components/commands/browser/accelerator_pref_manager.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/bookmarks/bookmark_tab_helper.h"
@@ -100,7 +99,7 @@ class BraveBrowserView : public BrowserView,
                          public FocusModeController::Observer {
   METADATA_HEADER(BraveBrowserView, BrowserView)
  public:
-  explicit BraveBrowserView(Browser* browser);
+  explicit BraveBrowserView(BrowserWindowInterface* browser);
   BraveBrowserView(const BraveBrowserView&) = delete;
   BraveBrowserView& operator=(const BraveBrowserView&) = delete;
   ~BraveBrowserView() override;
@@ -257,6 +256,10 @@ class BraveBrowserView : public BrowserView,
     return vertical_tab_strip_host_view_;
   }
 
+  views::View* main_background_region_for_testing() const {
+    return main_background_region_;
+  }
+
 #if BUILDFLAG(ENABLE_EXTENSIONS)
   // Returns the PWA Shields toolbar button, if it exists. Note that this
   // returns valid pointer only when it's web app browser.
@@ -302,8 +305,6 @@ class BraveBrowserView : public BrowserView,
                            ShowVerticalTabOnMouseOverTest);
   FRIEND_TEST_ALL_PREFIXES(SplitViewWithRoundedCornersTest,
                            TabFullscreenStateTest);
-  FRIEND_TEST_ALL_PREFIXES(BraveBrowserViewWithRoundedCornersTest,
-                           ContentsBackgroundEventHandleTest);
   FRIEND_TEST_ALL_PREFIXES(sidebar::SidebarBrowserWithSplitViewTest,
                            ShowSidebarOnMouseOverTest);
 
@@ -388,10 +389,6 @@ class BraveBrowserView : public BrowserView,
   void ShowPlaylistBubble() override;
 #endif
 
-#if BUILDFLAG(ENABLE_BRAVE_WAYBACK_MACHINE)
-  void ShowWaybackMachineBubble() override;
-#endif
-
   void UpdateSideBarHorizontalAlignment();
 
   std::unique_ptr<TabStripPlacementCoordinator> tab_strip_placement_;
@@ -413,7 +410,6 @@ class BraveBrowserView : public BrowserView,
   base::OneShotTimer origin_page_header_sample_timer_;
   raw_ptr<BraveHelpBubbleHostView> brave_help_bubble_host_view_ = nullptr;
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
-  raw_ptr<views::View> contents_background_view_ = nullptr;
   raw_ptr<views::View> origin_empty_space_view_ = nullptr;
   raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
   raw_ptr<OriginTemporaryLinkView> origin_temporary_link_view_ = nullptr;

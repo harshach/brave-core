@@ -381,16 +381,16 @@ If you update this file, be sure also to update google_chrome_strings.grd. -->
       <message name="IDS_TASK_MANAGER_TASK_KILL_FAIL_ACCESSIBILITY_MESSAGE" desc="The text announced when all tasks in the process could not be killed.">
         Failed to end task(s).
       </message>
-      <message name="IDS_TASK_MANAGER_CATEGORY_TABS_AND_EXTENSIONS_NAME" desc="The title of the 'Tabs and Extensions' filter category.">
+      <message name="IDS_TASK_MANAGER_CATEGORY_TABS_AND_EXTENSIONS_NAME" desc="The title of the 'Tabs and Extensions' filter category." formatter_data="android_java">
         Tabs &amp; extensions
       </message>
       <message name="IDS_TASK_MANAGER_CATEGORY_SYSTEM_NAME" desc="The title of the 'System' filter category on ChromeOS.">
         System
       </message>
-      <message name="IDS_TASK_MANAGER_CATEGORY_BROWSER_NAME" desc="The title of the 'System' filter category on Windows/Mac/Linux.">
+      <message name="IDS_TASK_MANAGER_CATEGORY_BROWSER_NAME" desc="The title of the 'System' filter category on Windows/Mac/Linux/Android desktop." formatter_data="android_java">
         Browser
       </message>
-      <message name="IDS_TASK_MANAGER_CATEGORY_ALL_NAME" desc="The title of the 'All tasks' filter category on Windows/Mac/Linux/ChromeOS.">
+      <message name="IDS_TASK_MANAGER_CATEGORY_ALL_NAME" desc="The title of the 'All tasks' filter category on Windows/Mac/Linux/ChromeOS/Android desktop." formatter_data="android_java">
         All tasks
       </message>
       <message name="IDS_SESSION_CRASHED_VIEW_UMA_OPTIN" desc="Text besides the checkbox to let users optin to UMA in the restore from previous crash bubble.">
@@ -1173,30 +1173,15 @@ Socket is unable to recover your settings.
 
       <!-- Page menu. Android has separate strings for its menu -->
       <if expr="not is_android">
-        <if expr="use_titlecase">
-          <then>
-            <message name="IDS_CUSTOMIZE_CHROME" desc="In Title Case: The text label of the Customize Socket menu item">
-              C&amp;ustomize Your Socket
-            </message>
-            <message name="IDS_OTHER_CHROME_PROFILES_TITLE" desc="In Title Case: The title of the Other Socket profiles section">
-              Other Socket Profiles
-            </message>
-            <message name="IDS_MANAGE_CHROME_PROFILES" desc="In Title Case: The text label of the manage chrome profile item">
-              &amp;Manage Socket Profiles
-            </message>
-          </then>
-          <else>
-            <message name="IDS_CUSTOMIZE_CHROME" desc="The text label of the Customize Socket menu item">
-              C&amp;ustomize your Socket
-            </message>
-            <message name="IDS_OTHER_CHROME_PROFILES_TITLE" desc="The title of the Other Socket profiles section">
-              Other Socket profiles
-            </message>
-            <message name="IDS_MANAGE_CHROME_PROFILES" desc="The text label of the manage chrome profile item">
-              &amp;Manage Socket profiles
-            </message>
-          </else>
-        </if>
+        <message name="IDS_CUSTOMIZE_CHROME" desc="The text label of the Customize Socket menu item">
+          C&amp;ustomize your Socket
+        </message>
+        <message name="IDS_OTHER_CHROME_PROFILES_TITLE" desc="The title of the Other Socket profiles section">
+          Other Socket profiles
+        </message>
+        <message name="IDS_MANAGE_CHROME_PROFILES" desc="The text label of the manage chrome profile item">
+          &amp;Manage Socket profiles
+        </message>
       </if>
 
       <message name="IDS_VIEW_PASSWORDS" desc="Item in the app menu which shows Password Manager page">
@@ -1421,6 +1406,12 @@ Socket is unable to recover your settings.
         <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_SAVED_INFO_WITH_DEVICE" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access saved info (such as autofill data, addresses, and payment methods) from their other device.">
           <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your saved info and more from <ph name="DEVICE">$3<ex>your phone</ex></ph>.
         </message>
+        <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_READING_LIST_WITH_DEVICE" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access reading list from their other device.">
+          <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your reading list and more from <ph name="DEVICE">$3<ex>your phone</ex></ph>.
+        </message>
+        <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_EXTENSIONS_WITH_DEVICE" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access extensions from their computer. Only desktop/computer DEVICE are supported for extensions.">
+          <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your extensions and more from <ph name="DEVICE">$3<ex>your computer</ex></ph>.
+        </message>
         <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_PASSWORDS" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access passwords on all their devices.">
           <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your passwords and more on all your devices.
         </message>
@@ -1429,6 +1420,12 @@ Socket is unable to recover your settings.
         </message>
         <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_SAVED_INFO" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access saved info (such as autofill data, addresses, and payment methods) on all their devices.">
           <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your saved info and more on all your devices.
+        </message>
+        <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_READING_LIST" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access reading list on all their devices.">
+          <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your reading list and more on all your devices.
+        </message>
+        <message name="IDS_ACCOUNT_PREVIEW_PROFILE_SEPARATION_SUBTITLE_EXTENSIONS" desc="Body of the web signin interception bubble with account preview, informing the user they can keep accounts separate and access extensions on all their devices.">
+          <ph name="EXISTING_USER">$1<ex>Elisa</ex></ph> is already signed in. To keep your browsing separate, sign in to Socket in your own profile as <ph name="USER_EMAIL_ADDRESS">$2<ex>bob.beckett@gmail.com</ex></ph>. You’ll also get your extensions and more on all your devices.
         </message>
         <message name="IDS_SIGNIN_DICE_WEB_INTERCEPT_BUBBLE_CHROME_SIGNIN_SUBTITLE" desc="Subtitle of the Socket Signin Bubble intercept that is shown when a signed out user signs in on the web with it's first account.">
           To get your passwords and more on all your devices, sign in to Socket
@@ -1904,6 +1901,9 @@ Socket is unable to recover your settings.
       </message>
 
       <!-- Desktop Capture -->
+      <message name="IDS_SEARCHBOX_PICKER_HEADLINE" desc="Title of the searchbox screen or window picker dialog.">
+        Choose what to share with Socket
+      </message>
       <message name="IDS_DESKTOP_MEDIA_PICKER_SOURCE_TYPE_TAB" desc="Text for the button on the window picker dialog, clicking which takes one to tab sharing">
         Socket Tab
       </message>
@@ -2006,6 +2006,12 @@ Socket is unable to recover your settings.
 
         <message name="IDS_SIDE_PANEL_CONTEXTUAL_TASKS_PINNABLE_IPH" desc="The body text of the IPH describing that the Contextual Tasks side panel is pinnable.">
           You can pin Contextual Tasks to ask questions as you browse
+        </message>
+        <message name="IDS_CONTEXTUAL_TASKS_EPHEMERAL_TOOLBAR_BUTTON_IPH" desc="The body text of the IPH describing that the Contextual Tasks ephemeral toolbar button can be used to reopen Contextual Tasks.">
+          You can reopen Contextual Tasks to ask questions while you browse
+        </message>
+        <message name="IDS_CONTEXTUAL_TASKS_EPHEMERAL_TOOLBAR_BUTTON_IPH_SCREENREADER" desc="The screen reader text of the IPH describing that the Contextual Tasks ephemeral toolbar button can be used to reopen Contextual Tasks." is_accessibility_with_no_ui="true">
+          From the "Contextual Tasks" button on the toolbar, you can reopen Contextual Tasks to ask questions while you browse
         </message>
         <message name="IDS_TUTORIAL_CONTEXTUAL_TASKS_STEP1" desc="The body text of the first step of the Contextual Tasks tutorial.">
           Open the overflow menu
@@ -2162,13 +2168,6 @@ Socket is unable to recover your settings.
           Search this screenshot
         </message>
 
-        <!-- IPH Strings -->
-        <message name="IDS_LENS_OVERLAY_TRANSLATE_BUTTON_IPH" desc="Text that appears in the IPH toast informing the user about the availability of the new translate screen chip in the Lens Overlay that adds functionality to translate the entire screen.">
-          New! You can translate both text and images on your screen
-        </message>
-        <message name="IDS_LENS_OVERLAY_TRANSLATE_BUTTON_IPH_SCREENREADER" is_accessibility_with_no_ui="true" desc="Text that appears in the IPH toast informing the user about the availability of the new translate screen chip in the Lens Overlay that adds functionality to translate the entire screen.">
-          New! You can translate both text and images on your screen by selecting the "translate screen" button
-        </message>
 
         <message name="IDS_CONTENT_CONTEXT_LENS_OVERLAY" desc="The name of the Lens overlay command in the content area context menu">
           Search with Image Search
@@ -2186,17 +2185,36 @@ Socket is unable to recover your settings.
           Search with Image Search
         </message>
 
-        <message name="IDS_LENS_OVERLAY_IMAGE_ENTRYPOINT_LABEL_ALT3" desc="Label for the Lens overlay command, through which the image will be searched using the Image Search service.">
-          Search this image with Image Search
-        </message>
+        <if expr="use_titlecase">
+          <message name="IDS_LENS_OVERLAY_IMAGE_ENTRYPOINT_LABEL_ALT3" desc="In Title Case: Label for the Lens overlay command, through which the image will be searched using the Image Search service.">
+            Search This Image with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL_CONTEXT_MENU" desc="In Title Case: Label for the Lens overlay command in the context menu, through which the current tab will be searched using the Image Search service.">
+            Search This Tab with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_VIDEO_ENTRYPOINT_LABEL_ALT3" desc="In Title Case: Label for the Lens overlay command, through which the video will be searched using the Image Search service.">
+            Search This Video with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL_V2" desc="In Title Case: Label for the Lens overlay command, through which the current tab will be searched using the Image Search service.">
+            Search with Image Search
+          </message>
+        </if>
+        <if expr="not use_titlecase">
+          <message name="IDS_LENS_OVERLAY_IMAGE_ENTRYPOINT_LABEL_ALT3" desc="Label for the Lens overlay command, through which the image will be searched using the Image Search service.">
+            Search this image with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL_CONTEXT_MENU" desc="Label for the Lens overlay command in the context menu, through which the current tab will be searched using the Image Search service.">
+            Search this tab with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_VIDEO_ENTRYPOINT_LABEL_ALT3" desc="Label for the Lens overlay command, through which the video will be searched using the Image Search service.">
+            Search this video with Image Search
+          </message>
+          <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL_V2" desc="Label for the Lens overlay command, through which the current tab will be searched using the Image Search service.">
+            Search with Image Search
+          </message>
+        </if>
         <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL" desc="Label for the Lens overlay command, through which the current tab will be searched using the Image Search service.">
           Search this tab with Image Search
-        </message>
-        <message name="IDS_LENS_OVERLAY_TAB_ENTRYPOINT_LABEL_V2" desc="Label for the Lens overlay command, through which the current tab will be searched using the Image Search service.">
-          Search with Image Search
-        </message>
-        <message name="IDS_LENS_OVERLAY_VIDEO_ENTRYPOINT_LABEL_ALT3" desc="Label for the Lens overlay command, through which the video will be searched using the Image Search service.">
-          Search this video with Image Search
         </message>
       </if>
 
@@ -2332,6 +2350,9 @@ Socket is unable to recover your settings.
               =0 {Your administrator asks that you relaunch Socket to apply this update}
               =1 {Your administrator asks that you relaunch Socket to apply this update. Your Private window won't reopen.}
               other {Your administrator asks that you relaunch Socket to apply this update. Your # Private windows won't reopen.}}
+          </message>
+          <message name="IDS_RELAUNCH_RECOMMENDED_SCHEDULED_IDLE_TOAST" desc="Toast notification message shown after scheduling an idle restart." translateable="false">
+            Socket will restart when you're next idle
           </message>
           <message name="IDS_RELAUNCH_REQUIRED_TITLE_DAYS" desc="The title of a dialog that tells users the browser must be relaunched within two or more days.">
             {0, plural,
@@ -2591,7 +2612,7 @@ Socket is unable to recover your settings.
 
       <!-- Device Chooser Prompt -->
       <message name="IDS_SERIAL_DEVICE_CHOOSER_AUTHORIZE_BLUETOOTH" desc="Text shown in the Web Serial Chooser when browser does not have Bluetooth permission. The '&#10;' is a newline character to force the desired line wrapping.">
-        Socket needs Bluetooth access to explore
+        Socket needs Bluetooth access to explore 
  Bluetooth devices. <ph name="IDS_SERIAL_DEVICE_CHOOSER_AUTHORIZE_BLUETOOTH_LINK">$1<ex>Open Preferences</ex></ph>
       </message>
 
@@ -2991,10 +3012,6 @@ Socket is unable to recover your settings.
       <message name="IDS_GLIC_STATUS_ICON_MENU_TOGGLE" translateable="false" desc="This is the menu item for toggling the glic UI.">
         Toggle Gemini in Socket
       </message>
-      <!-- TODO(crbug.com/532187976): Make strings translateable once finalized. -->
-      <message name="IDS_OMNIBOX_EVERYWHERE_STATUS_ICON_MENU_TOGGLE" desc="Label for the toggle item in the Omnibox Everywhere status tray context menu." translateable="false">
-        Toggle Search in Socket
-      </message>
       <message name="IDS_GLIC_INELIGIBLE_PROFILE_NOTICE" translateable="false" desc="This is the text of the glic ineligible profile notice.">
         To use Gemini in Socket, sign in with a different Socket sync chain
       </message>
@@ -3028,6 +3045,62 @@ Socket is unable to recover your settings.
           Show Gemini in Socket in system tray
         </message>
       </if>
+      <if expr="is_macosx">
+        <message name="IDS_OMNIBOX_EVERYWHERE_STATUS_ICON_MENU_TOGGLE" desc="In Title Case: Label for the toggle item in the Search in Socket status tray context menu.">
+          Open Search with Socket
+        </message>
+      </if>
+      <if expr="not is_macosx">
+        <message name="IDS_OMNIBOX_EVERYWHERE_STATUS_ICON_MENU_TOGGLE" desc="Label for the toggle item in the Search in Socket status tray context menu.">
+          Open search with Socket
+        </message>
+      </if>
+      <message name="IDS_OMNIBOX_EVERYWHERE_STATUS_ICON_TOOLTIP" desc="Tooltip text for the Search in Socket status tray icon.">
+        Search in Socket
+      </message>
+      <message name="IDS_OMNIBOX_EVERYWHERE_PROFILE_TOOLTIP" desc="Tooltip header for the profile icon in Omnibox Everywhere.">
+        Socket profile
+      </message>
+      <message name="IDS_OMNIBOX_EVERYWHERE_NAME" desc="Name of the desktop search feature (Omnibox Everywhere) used for window titles and shortcuts.">
+        Search with Socket
+      </message>
+      <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_TITLE" desc="Title of the Omnibox Everywhere section on the search settings page.">
+        Search from desktop
+      </message>
+      <if expr="is_macosx">
+        <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_TOGGLE" desc="Name of the toggle that controls whether Search with Socket is shown in the Mac menu bar (on Mac only).">
+          Show search with Socket in Mac menu bar and turn on keyboard shortcut
+        </message>
+      </if>
+      <if expr="is_win or is_linux or is_chromeos">
+        <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_TOGGLE" desc="Name of the toggle that controls whether Search with Socket is shown in the system tray (on ChromeOS, Windows and Linux).">
+          Show search with Socket in system tray and turn on keyboard shortcut
+        </message>
+      </if>
+      <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_TOGGLE_SUBLABEL" desc="Sublabel of the toggle that controls whether Omnibox Everywhere is shown across the device even if Socket is minimized.">
+        Search and ask questions from anywhere, even if Socket is minimized. Allows Socket to run in the background.
+      </message>
+      <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_SHORTCUT_SUBLABEL" desc="Description for the global keyboard shortcut setting to invoke Omnibox Everywhere.">
+        Search with a keyboard shortcut.
+      </message>
+      <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_SHOW_SHORTCUTS_TITLE" desc="Label for the toggle to show shortcuts in Omnibox Everywhere.">
+        Show Socket site shortcuts
+      </message>
+      <message name="IDS_SETTINGS_OMNIBOX_EVERYWHERE_SHOW_SHORTCUTS_SUBLABEL" desc="Description for the toggle to show shortcuts in Omnibox Everywhere.">
+        Easy access to websites below the address bar
+      </message>
+      <message name="IDS_LOOMNIBOX_FRE_TITLE" desc="Title of the First Run Experience (FRE) modal for Loomnibox.">
+        Search with Socket from anywhere
+      </message>
+      <message name="IDS_LOOMNIBOX_FRE_LENS_SECONDARY" desc="Secondary description detailing Google Lens functionality in Loomnibox.">
+        Ask about content outside of Socket, like another app or file you have open
+      </message>
+      <message name="IDS_LOOMNIBOX_FRE_TO_SEARCH_OR_CUSTOMIZE" desc="Text in the Stage 2 FRE chin following the shortcut dropdown indicating it searches with Socket or customizes in settings.">
+        to search with Socket or customize in <ph name="BEGIN_LINK">&lt;a href="#" class="settings-link"&gt;</ph>Settings<ph name="END_LINK">&lt;/a&gt;</ph>
+      </message>
+      <message name="IDS_LOOMNIBOX_FRE_REMINDER_TO_SEARCH" desc="Label in the Stage 3 reminder FRE chin showing the active shortcut to search with Socket.">
+        to search with Socket.
+      </message>
       <message name="IDS_SETTINGS_GLIC_OS_WIDGET_TOGGLE_SUBLABEL" desc="Sublabel of the toggle that controls whether the Gemini icon is shown in the menu bar (on Mac) / system tray (on Windows and Linux)." formatter_data="android_java">
         Easy access to use Gemini in Socket across your device, even if Socket is minimized.
       </message>
@@ -3035,7 +3108,7 @@ Socket is unable to recover your settings.
         Open Gemini in Socket with a keyboard shortcut.
       </message>
       <message name="IDS_SETTINGS_GLIC_NAVIGATION_SHORTCUT_SUBLABEL" desc="Sublabel describing the keyboard shortcut navigate between Socket and Gemini." formatter_data="android_java">
-        To leave or return to Gemini in Socket, use keyboard shortcut.
+        Use your keyboard to navigate between Gemini in Socket and your open tab.
       </message>
       <message name="IDS_SETTINGS_GLIC_KEEP_SIDEPANEL_OPEN_ON_NEW_TABS_SUBLABEL" desc="Sublabel describing the setting to keep side panel open when new tabs are opened.">
         If Gemini in Socket is open, the side panel stays open when creating new tabs

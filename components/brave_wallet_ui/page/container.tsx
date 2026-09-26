@@ -51,13 +51,13 @@ import { FullScreenWrapper, AlertCenter } from './screens/page-screen.styles'
 import { UnlockWallet } from './screens/unlock_wallet/unlock_wallet'
 import {
   WalletPageLayout, //
-} from '../components/desktop/wallet-page-layout/index'
+} from './components/wallet_page_layout/wallet_page_layout'
 import { OnboardingRoutes } from './screens/onboarding/onboarding.routes'
 import { DevBitcoin } from './screens/dev-bitcoin/dev-bitcoin'
 import { RestoreWallet } from './screens/restore-wallet/restore-wallet'
 import {
   WalletPageWrapper, //
-} from '../components/desktop/wallet-page-wrapper/wallet-page-wrapper'
+} from './components/wallet_page_wrapper/wallet_page_wrapper'
 import {
   ProtectedRoute, //
 } from '../components/shared/protected-routing/protected-route'
@@ -121,6 +121,11 @@ export const Container = () => {
     : isWalletLocked
       ? WalletRoutes.Unlock
       : sessionRoute || WalletRoutes.PortfolioAssets
+
+  const isSendSwapOrBridgePage =
+    pathname.includes(WalletRoutes.Send)
+    || pathname.includes(WalletRoutes.Swap)
+    || pathname.includes(WalletRoutes.Bridge)
 
   // Methods
   const handleAcceptPartnerConsent = () => {
@@ -253,9 +258,13 @@ export const Container = () => {
           </WalletPageWrapper>
         </ProtectedRoute>
 
+        {/* Keep this route in the page container so panels can use it, but
+            redirect if opened from the full wallet page. */}
         <ProtectedRoute
           path={WalletRoutes.Connections}
-          requirement={!isWalletLocked && !walletNotYetCreated}
+          requirement={
+            !isWalletLocked && !walletNotYetCreated && isPanel && !isSidePanel
+          }
           redirectRoute={defaultRedirect}
           exact={true}
         >
@@ -337,7 +346,9 @@ export const Container = () => {
         onClose={handleDeclinePartnerConsent}
         onContinue={handleAcceptPartnerConsent}
       />
-      {!isWalletLocked && !isMobile && <DesktopTransactionConfirmation />}
+      {!isWalletLocked && !isMobile && isSendSwapOrBridgePage && (
+        <DesktopTransactionConfirmation />
+      )}
     </>
   )
 }

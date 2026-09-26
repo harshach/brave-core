@@ -39,7 +39,21 @@
 #include "brave/components/commander/browser/commander_frontend_delegate.h"
 #endif  // BUILDFLAG(ENABLE_COMMANDER)
 
+// Must precede the macro below, which would otherwise rewrite these
+// declarations.
+#include "chrome/browser/history_embeddings/history_embeddings_service_factory.h"
+#include "chrome/browser/history_embeddings/history_embeddings_utils.h"
+
+// The setting is live, but the service is built from it once at profile setup,
+// so the two can disagree. `HistoryEmbeddingsProvider::Start()` CHECKs on the
+// service.
+#define IsHistoryEmbeddingsEnabledForProfile(profile)                    \
+  IsHistoryEmbeddingsEnabledForProfile(profile) &&                       \
+      HistoryEmbeddingsServiceFactory::GetForProfile(profile) != nullptr
+
 #include <chrome/browser/autocomplete/chrome_autocomplete_provider_client.cc>
+
+#undef IsHistoryEmbeddingsEnabledForProfile
 
 #if BUILDFLAG(ENABLE_COMMANDER)
 commander::CommanderFrontendDelegate*
@@ -77,12 +91,11 @@ void ChromeAutocompleteProviderClient::OpenLeo(const std::u16string& query) {
   if (ai_chat_service->IsAIChatHistoryEnabled() &&
       ai_chat::features::kOmniboxOpensFullPage.Get()) {
     conversation_handler = ai_chat_service->CreateConversation();
-    browser->GetBrowserForMigrationOnly()->OpenURL(
-        {ai_chat::ConversationUrl(
-             conversation_handler->get_conversation_uuid()),
-         content::Referrer(), WindowOpenDisposition::CURRENT_TAB,
-         ui::PageTransition::PAGE_TRANSITION_GENERATED, false},
-        {});
+    browser->OpenURL({ai_chat::ConversationUrl(
+                          conversation_handler->get_conversation_uuid()),
+                      content::Referrer(), WindowOpenDisposition::CURRENT_TAB,
+                      ui::PageTransition::PAGE_TRANSITION_GENERATED, false},
+                     {});
   } else {
     auto* chat_tab_helper = ai_chat::AIChatTabHelper::FromWebContents(
         browser->GetTabStripModel()->GetActiveWebContents());

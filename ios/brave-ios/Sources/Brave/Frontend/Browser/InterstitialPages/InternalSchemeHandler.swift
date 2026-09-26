@@ -45,7 +45,7 @@ public class InternalSchemeHandler: NSObject, WKURLSchemeHandler {
   private var activeTasks = NSMapTable<WKURLSchemeTask, TaskHolder>.weakToStrongObjects()
 
   // Unprivileged internal:// urls might be internal resources in the app bundle ( i.e. <link href="errorpage-resource/NetError.css"> )
-  nonisolated func downloadResource(urlSchemeTask: WKURLSchemeTask) async -> Bool {
+  @concurrent nonisolated func downloadResource(urlSchemeTask: WKURLSchemeTask) async -> Bool {
     guard let url = urlSchemeTask.request.url else { return false }
 
     let allowedInternalResources = [
@@ -131,6 +131,18 @@ public class InternalSchemeHandler: NSObject, WKURLSchemeHandler {
       // WebKit may have stopped the task during the await above. Sending it
       // any further callbacks, including failures, throws an exception.
       if Task.isCancelled {
+        return
+      }
+
+      // Internal pages are documents that must only load in the main frame. WKWebView does not
+      // enforce frame-ancestors/X-Frame-Options for custom scheme handlers, so refuse any
+      // non-resource internal load that is not the main document (e.g. an iframe pointing at a
+      // privileged internal page). Subframe navigations are also cancelled in the navigation
+      // policy; this is defense-in-depth for loads that reach the scheme handler directly.
+      if let mainDocumentURL = urlSchemeTask.request.mainDocumentURL,
+        mainDocumentURL != urlSchemeTask.request.url
+      {
+        urlSchemeTask.didFailWithError(InternalPageSchemeHandlerError.notAuthorized)
         return
       }
 

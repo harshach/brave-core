@@ -30,6 +30,7 @@ brave_chrome_java_deps = [
   "//brave/browser/android/preferences:pref_names_java",
   "//brave/browser/autofill/android:java",
   "//brave/browser/autofill/android:options_java",
+  "//brave/browser/brave_account/android:java",
   "//brave/browser/brave_origin/android:java",
   "//brave/browser/brave_shields/android:java",
   "//brave/browser/custom_search_engines/android:java",
@@ -46,6 +47,7 @@ brave_chrome_java_deps = [
   "//brave/browser/skus/android:java",
   "//brave/browser/tab_group_sync:java",
   "//brave/browser/ui/android/bottombar:java",
+  "//brave/browser/ui/android/bottombar:prefs_java",
   "//brave/browser/ui/android/favicon:java",
   "//brave/browser/ui/android/logo:java",
   "//brave/browser/ui/android/omnibox:java",
@@ -79,7 +81,6 @@ brave_chrome_java_deps = [
   "//brave/third_party/android_deps:com_github_bumptech_glide_java",
   "//brave/third_party/android_deps:com_google_android_play_app_update_java",
   "//brave/third_party/android_deps:com_google_android_play_integrity_java",
-  "//brave/third_party/android_deps:com_google_code_gson_gson_java",
   "//brave/third_party/android_deps:com_wireguard_android_J__unpack_aar",
   "//brave/third_party/android_deps:com_wireguard_android_java",
   "//brave/third_party/android_deps:google_play_services_safetynet_java",
@@ -110,13 +111,9 @@ brave_chrome_all_java_deps = [
   "//brave/browser/messages/android:java",
   "//brave/browser/partnercustomizations:delegate_public_impl_java",
   "//brave/browser/password_entry_edit/android/internal:java",
+  "//brave/browser/ui/android/brave_account:java",
 ]
 
-# To use our overrided enum in java, put the header file of our overrided enum
-# in brave_android_java_enums_srcjar target and add the chromium header file of
-# the enum we're replacing in brave_java_cpp_enum_filter.
-brave_java_cpp_enum_filter =
-    [ "//chrome/browser/notifications/notification_handler.h" ]
 brave_chrome_java_srcjar_deps = [
   "//brave/android:brave_android_java_enums_srcjar",
   "//brave/android:brave_config_java",
@@ -146,7 +143,6 @@ brave_jni_headers_sources = [
   "//brave/android/java/org/chromium/chrome/browser/BraveSyncWorker.java",
   "//brave/android/java/org/chromium/chrome/browser/app/BraveActivity.java",
   "//brave/android/java/org/chromium/chrome/browser/bookmarks/BraveBookmarkBridge.java",
-  "//brave/android/java/org/chromium/chrome/browser/brave_account/BraveAccountServiceFactory.java",
   "//brave/android/java/org/chromium/chrome/browser/brave_leo/BraveLeoMojomHelper.java",
   "//brave/android/java/org/chromium/chrome/browser/brave_leo/BraveLeoUtils.java",
   "//brave/android/java/org/chromium/chrome/browser/brave_news/BraveNewsControllerFactory.java",

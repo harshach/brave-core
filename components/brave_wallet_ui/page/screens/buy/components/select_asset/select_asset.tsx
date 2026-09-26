@@ -20,9 +20,7 @@ import {
 } from '../../../../../options/network-filter-options'
 
 // Queries
-import {
-  useGetAllKnownNetworksQuery, //
-} from '../../../../../common/slices/api.slice'
+import { useGetNetworksQuery } from '$wallet/common/slices/api.slice'
 
 // Types
 import { BraveWallet, MeldCryptoCurrency } from '../../../../../constants/types'
@@ -41,7 +39,7 @@ import {
 } from '../../../../../components/shared/create-network-icon'
 import {
   NetworkFilterSelector, //
-} from '../../../../../components/desktop/network-filter-selector'
+} from '$wallet/page/components/network_filter_selector/network_filter_selector'
 import {
   SearchBar, //
 } from '../../../../../components/shared/search-bar/index'
@@ -175,7 +173,7 @@ export const SelectAsset = (props: SelectAssetProps) => {
   )
 
   // Queries
-  const { data: networkList = [] } = useGetAllKnownNetworksQuery()
+  const { data: networkList = [] } = useGetNetworksQuery()
 
   // Memos
   const assetsFilteredByNetwork = React.useMemo(() => {

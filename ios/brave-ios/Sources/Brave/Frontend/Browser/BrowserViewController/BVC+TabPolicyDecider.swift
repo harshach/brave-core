@@ -18,6 +18,7 @@ import UserAgent
 import Web
 
 extension BrowserViewController: TabPolicyDecider {
+  @MainActor
   public func tab(
     _ tab: some TabState,
     shouldAllowResponse response: URLResponse,
@@ -77,6 +78,7 @@ extension BrowserViewController: TabPolicyDecider {
     return .allow
   }
 
+  @MainActor
   public func tab(
     _ tab: some TabState,
     shouldAllowRequest request: URLRequest,
@@ -89,6 +91,14 @@ extension BrowserViewController: TabPolicyDecider {
 
     // Handle internal:// urls
     if InternalURL.isValid(url: requestURL) {
+      // Internal pages must only ever load as main-frame documents. WKWebView does not enforce
+      // frame-ancestors/X-Frame-Options for custom scheme handlers, so subframe loads must be
+      // blocked here.
+      guard requestInfo.isMainFrame else {
+        Logger.module.error("Denying non-main-frame navigation to internal URL: \(request)")
+        return .cancel
+      }
+
       // Requests for Internal pages have a 60s timeout by default
       let isPrivilegedRequest =
         Int64(request.timeoutInterval) < Int64(Int32.max) || request.isPrivileged
@@ -151,9 +161,9 @@ extension BrowserViewController: TabPolicyDecider {
         return .cancel
       case .load(let resolvedURL):
         if resolvedURL.isIPFSScheme,
-          let resolvedIPFSURL = profileController.ipfsAPI.resolveGatewayUrl(for: resolvedURL)
+          profileController.ipfsAPI.resolveGatewayUrl(for: resolvedURL) != nil
         {
-          // FIXME: This should cancel & load the resolvedIPFSURL
+          // FIXME: This should cancel & load the resolved IPFS URL
         } else {
           // FIXME: This should cancel & load the resolvedURL
         }

@@ -65,6 +65,8 @@
 #include "chrome/browser/prefs/session_startup_pref.h"
 #include "chrome/browser/preloading/preloading_prefs.h"
 #include "chrome/common/pref_names.h"
+#include "components/bookmarks/common/bookmark_bar_visibility_state.h"
+#include "components/bookmarks/common/bookmark_pref_names.h"
 #include "components/content_settings/core/common/pref_names.h"
 #include "components/embedder_support/pref_names.h"
 #include "components/gcm_driver/gcm_buildflags.h"
@@ -211,6 +213,14 @@ void OverrideDefaultPrefValues(user_prefs::PrefRegistrySyncable* registry) {
   registry->SetDefaultPrefValue(
       bookmarks_webui::prefs::kBookmarksViewType,
       base::Value(static_cast<int>(side_panel::mojom::ViewType::kCompact)));
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin keeps the bookmark bar off the new tab page too.
+  registry->SetDefaultPrefValue(
+      bookmarks::prefs::kBookmarkBarVisibilityState,
+      base::Value(static_cast<int>(
+          bookmarks::BookmarkBarVisibilityState::kAlwaysHide)));
+#endif
 #endif  // BUILDFLAG(IS_ANDROID)
 
   // Restore last profile on restart
@@ -413,6 +423,12 @@ void RegisterProfilePrefsForMigration(
 
   // Added 2026-06
   registry->RegisterBooleanPref(kTabsSearchShow, false);
+
+  // Added 2026-07
+#if !BUILDFLAG(IS_ANDROID)
+  registry->RegisterBooleanPref(::bookmarks::prefs::kAlwaysShowBookmarkBarOnNTP,
+                                true);
+#endif
 }
 
 void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry) {

@@ -9,7 +9,6 @@
 #include <optional>
 
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
-#include "brave/components/brave_wayback_machine/buildflags/buildflags.h"
 #include "brave/components/commander/common/buildflags/buildflags.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
@@ -39,11 +38,11 @@ class Profile;
 
 namespace brave {
 
-bool HasSelectedURL(Browser* browser);
-void CleanAndCopySelectedURL(Browser* browser);
+bool HasSelectedURL(BrowserWindowInterface* browser);
+void CleanAndCopySelectedURL(BrowserWindowInterface* browser);
 
 #if BUILDFLAG(ENABLE_TOR)
-void NewOffTheRecordWindowTor(Browser* browser);
+void NewOffTheRecordWindowTor(BrowserWindowInterface* browser);
 void NewOffTheRecordWindowTor(Profile* profile);
 void NewTorConnectionForSite(BrowserWindowInterface*);
 #endif
@@ -74,8 +73,9 @@ void CopySanitizedURL(BrowserWindowInterface* browser, const GURL& url);
 void CopyLinkWithStrictCleaning(BrowserWindowInterface* browser,
                                 const GURL& url);
 
-void ToggleWindowTitleVisibilityForVerticalTabs(Browser* browser);
-void ToggleVerticalTabStrip(Browser* browser);
+void ToggleWindowTitleVisibilityForVerticalTabs(
+    BrowserWindowInterface* browser);
+void ToggleVerticalTabStrip(BrowserWindowInterface* browser);
 void ToggleVerticalTabStripFloatingMode(Browser* browser);
 void ToggleVerticalTabStripExpanded(Browser* browser);
 
@@ -102,10 +102,6 @@ void ToggleCommander(Browser* browser);
 void ShowPlaylistBubble(Browser* browser);
 #endif
 
-#if BUILDFLAG(ENABLE_BRAVE_WAYBACK_MACHINE)
-void ShowWaybackMachineBubble(Browser* browser);
-#endif
-
 void GroupTabsOnCurrentOrigin(Browser* browser);
 void MoveGroupToNewWindow(Browser* browser);
 
@@ -126,11 +122,11 @@ void CloseUngroupedTabs(Browser* browser);
 void CloseTabsNotInCurrentGroup(Browser* browser);
 void CloseGroup(Browser* browser);
 
-bool CanBringAllTabs(Browser* browser);
-void BringAllTabs(Browser* browser);
+bool CanBringAllTabs(BrowserWindowInterface* browser);
+void BringAllTabs(BrowserWindowInterface* browser);
 
-bool HasDuplicatesOfActiveTab(Browser* browser);
-void CloseDuplicatesOfActiveTab(Browser* browser);
+bool HasDuplicatesOfActiveTab(BrowserWindowInterface* browser);
+void CloseDuplicatesOfActiveTab(BrowserWindowInterface* browser);
 bool HasAnyDuplicateTabs(Browser* browser);
 void CloseAllDuplicateTabs(Browser* browser);
 bool CanCloseTabsToLeft(Browser* browser);

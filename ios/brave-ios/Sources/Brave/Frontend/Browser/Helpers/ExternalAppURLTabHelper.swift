@@ -60,6 +60,7 @@ class ExternalAppURLTabHelper: TabPolicyDecider, @preconcurrency TabObserver {
 
   // MARK: - TabPolicyDecider
 
+  @MainActor
   func tab(
     _ tab: some TabState,
     shouldAllowRequest request: URLRequest,
@@ -82,6 +83,17 @@ class ExternalAppURLTabHelper: TabPolicyDecider, @preconcurrency TabObserver {
       popup = nil
       externalAppURL = nil
       isAlertPresented = false
+    }
+
+    if requestURL.scheme == "itms-services" {
+      // Brave has been rejected by App Store Review on multiple occasions due to Apple incorrectly
+      // applying guideline 2.5.2, stating:
+      //
+      //   The app installed or launched executable code. Specifically, the app uses the
+      //   itms-services URL scheme to install an app.
+      //
+      // So just dont allow the user to send this URL to iOS to handle.
+      return .cancel
     }
 
     // First special case are some schemes that are about Calling. We prompt the user to confirm this action. This
@@ -175,7 +187,7 @@ class ExternalAppURLTabHelper: TabPolicyDecider, @preconcurrency TabObserver {
       return false
     }
 
-    if #available(iOS 17.4, *), !ProcessInfo.processInfo.isiOSAppOnVisionOS {
+    if !ProcessInfo.processInfo.isiOSAppOnVisionOS {
       // Accessing `MarketplaceKitURIScheme` on Vision OS results in a crash
       if scheme == MarketplaceKitURIScheme {
         return false

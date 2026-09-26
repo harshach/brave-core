@@ -39,6 +39,7 @@ import {
 import {
   getDominantColorFromImageURL, //
 } from '../../../../utils/style.utils'
+import { isValidPolkadotAssetId } from '$wallet/utils/asset-utils'
 
 // Hooks
 import {
@@ -91,14 +92,14 @@ import {
 } from '../../composer_ui/select_token_modal/select_token_modal'
 import {
   WalletPageWrapper, //
-} from '../../../../components/desktop/wallet-page-wrapper/wallet-page-wrapper'
+} from '$wallet/page/components/wallet_page_wrapper/wallet_page_wrapper'
 import { FromAsset } from '../../composer_ui/from_asset/from_asset'
 import {
   DefaultPanelHeader, //
-} from '../../../../components/desktop/card-headers/default-panel-header'
+} from '$wallet/page/components/card_headers/default_panel_header'
 import {
   PanelActionHeader, //
-} from '../../../../components/desktop/card-headers/panel-action-header'
+} from '$wallet/page/components/card_headers/panel_action_header'
 import {
   OrdinalsWarningMessage, //
 } from '../components/ordinals-warning-message/ordinals-warning-message'
@@ -604,16 +605,37 @@ export const SendScreen = React.memo(() => {
       }
 
       case BraveWallet.CoinType.DOT: {
-        await sendPolkadotTransaction({
-          network: networkFromParams,
-          fromAccount,
-          to: toAddress,
-          sendingMaxAmount,
-          value: new Amount(sendAmount)
-            .multiplyByDecimals(tokenFromParams.decimals)
-            .toHex(),
-        })
-        setSendAmount('')
+        setTransactionProcessFailedMessage(undefined)
+        try {
+          const { contractAddress } = tokenFromParams
+          let assetId: number | undefined
+          if (contractAddress !== '') {
+            if (!isValidPolkadotAssetId(contractAddress)) {
+              throw new Error(`invalid Polkadot asset id: ${contractAddress}`)
+            }
+            assetId = Number(contractAddress)
+          }
+
+          await sendPolkadotTransaction({
+            network: networkFromParams,
+            fromAccount,
+            to: toAddress,
+            sendingMaxAmount,
+            value: new Amount(sendAmount)
+              .multiplyByDecimals(tokenFromParams.decimals)
+              .toHex(),
+            assetId,
+          }).unwrap()
+          setSendAmount('')
+        } catch (error) {
+          console.error('Polkadot send failed:', error)
+          setTransactionProcessFailedMessage(
+            getLocale(S.BRAVE_WALLET_PROCESS_TRANSACTION_ERROR_MESSAGE).replace(
+              '$1',
+              tokenFromParams.symbol,
+            ),
+          )
+        }
       }
     }
   }, [
@@ -640,6 +662,9 @@ export const SendScreen = React.memo(() => {
 
   const handleFromAssetValueChange = React.useCallback(
     (value: string, maxValue: boolean) => {
+      if (Amount.isNegativeOrPaddedZeroAmount(value)) {
+        return
+      }
       setSendAmount(value)
       setSendingMaxAmount(maxValue)
     },

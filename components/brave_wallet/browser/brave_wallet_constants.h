@@ -11,6 +11,7 @@
 #include <string_view>
 
 #include "base/containers/fixed_flat_map.h"
+#include "base/containers/fixed_flat_set.h"
 #include "brave/brave_domains/urls.h"
 #include "brave/components/brave_wallet/common/brave_wallet_types.h"
 #include "components/grit/brave_components_strings.h"
@@ -30,6 +31,14 @@ inline constexpr uint256_t kDefaultERC20ApproveGasLimit = 300000;
 inline constexpr int32_t kAutoLockMinutesMin = 1;
 inline constexpr int32_t kAutoLockMinutesMax = 10080;
 
+// P3A usage metrics histogram names, recorded on wallet unlock.
+inline constexpr char kWalletUsageDailyHistogramName[] =
+    "Brave.Wallet.UsageDaily";
+inline constexpr char kWalletUsageWeeklyHistogramName[] =
+    "Brave.Wallet.UsageWeekly";
+inline constexpr char kWalletUsageMonthlyHistogramName[] =
+    "Brave.Wallet.UsageMonthly";
+
 inline constexpr int32_t kAssetDiscoveryMinutesPerRequest = 1;
 inline constexpr size_t kBalanceScannerBatchSize = 4000;
 
@@ -37,16 +46,8 @@ inline constexpr char kWalletBaseDirectory[] = "BraveWallet";
 inline constexpr char kImageSourceHost[] = "erc-token-images";
 inline constexpr char kRampBaseUrl[] = "https://app.ramp.network";
 inline constexpr char kOffRampEnabledFlows[] = "OFFRAMP";
-inline constexpr char kOnRampEnabledFlows[] = "ONRAMP";
-inline constexpr char kOnRampID[] = "8yxja8782as5essk2myz3bmh4az6gpq4nte9n2gf";
 inline constexpr char kOffRampID[] = "y57zqta99ohs7o2paf4ak6vpfb7wf8ubj9krwtwe";
-inline constexpr char kTransakURL[] = "https://global.transak.com/";
-inline constexpr char kTransakApiKey[] = "985d14f0-4cf5-4a4c-8917-78107620d3b7";
-inline constexpr char kCoinbaseURL[] = "https://pay.coinbase.com";
-inline constexpr char kCoinbaseAppId[] = "8072ff71-8469-4fef-9404-7c905e2359c9";
 inline constexpr size_t kSimpleHashMaxBatchSize = 50;
-
-
 
 // 0x swap constants
 inline constexpr char kZeroExBaseAPIURL[] = "https://api.0x.wallet.brave.com";
@@ -146,6 +147,20 @@ inline constexpr auto kAnkrBlockchains =
          {mojom::kRolluxMainnetChainId, "rollux"},
          {mojom::kSyscoinMainnetChainId, "syscoin"},
          {mojom::kZkSyncEraChainId, "zksync_era"}});
+
+inline constexpr auto kOffRampChains =
+    base::MakeFixedFlatSet<std::string_view>({
+        mojom::kMainnetChainId,
+        mojom::kPolygonMainnetChainId,
+        mojom::kBnbSmartChainMainnetChainId,
+        mojom::kAvalancheMainnetChainId,
+        mojom::kFantomMainnetChainId,
+        mojom::kCeloMainnetChainId,
+        mojom::kOptimismMainnetChainId,
+        mojom::kArbitrumMainnetChainId,
+        mojom::kSolanaMainnet,
+        mojom::kBitcoinMainnet,
+    });
 
 inline constexpr auto kEthSupportedNftInterfaces =
     std::to_array<std::string_view>({

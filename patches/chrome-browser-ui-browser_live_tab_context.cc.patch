@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/ui/browser_live_tab_context.cc b/chrome/browser/ui/browser_live_tab_context.cc
-index d80d6550e73ccd088505e8dd00350cf5002caea9..b239a80c9d7ba98ebab108dbdbebbdddf800540d 100644
+index b220ba6c8f4390cd0d770d6c4ff8175403825014..010f9c22c7249de946eeb4286d2546b4e728f8e1 100644
 --- a/chrome/browser/ui/browser_live_tab_context.cc
 +++ b/chrome/browser/ui/browser_live_tab_context.cc
-@@ -120,6 +120,7 @@ BrowserLiveTabContext::~BrowserLiveTabContext() {
+@@ -128,6 +128,7 @@ BrowserLiveTabContext::~BrowserLiveTabContext() {
  }
  
  void BrowserLiveTabContext::ShowBrowserWindow() {
@@ -10,7 +10,7 @@ index d80d6550e73ccd088505e8dd00350cf5002caea9..b239a80c9d7ba98ebab108dbdbebbddd
    base_window_->Show();
  }
  
-@@ -161,6 +162,7 @@ sessions::LiveTab* BrowserLiveTabContext::GetActiveLiveTab() const {
+@@ -169,6 +170,7 @@ sessions::LiveTab* BrowserLiveTabContext::GetActiveLiveTab() const {
  std::map<std::string, std::string> BrowserLiveTabContext::GetExtraDataForTab(
      int index) const {
    std::map<std::string, std::string> extra_data;
@@ -18,8 +18,7 @@ index d80d6550e73ccd088505e8dd00350cf5002caea9..b239a80c9d7ba98ebab108dbdbebbddd
  
    glic::PopulateGlicExtraData(tab_strip_model_->GetTabAtIndex(index),
                                &extra_data);
-@@ -189,7 +191,9 @@ BrowserLiveTabContext::GetExtraDataForWindow() const {
-           focused_group->ToString();
+@@ -197,6 +199,8 @@ BrowserLiveTabContext::GetExtraDataForWindow() const {
      }
    }
  
@@ -28,12 +27,11 @@ index d80d6550e73ccd088505e8dd00350cf5002caea9..b239a80c9d7ba98ebab108dbdbebbddd
    return data;
  }
  
-@@ -522,7 +526,8 @@ sessions::LiveTabContext* BrowserLiveTabContext::Create(
-   }
+@@ -529,6 +533,7 @@ sessions::LiveTabContext* BrowserLiveTabContext::Create(
  
-   Browser* browser = CreateBrowserWindow(std::move(*create_params))
-                          ->GetBrowserForMigrationOnly();
+   BrowserWindowInterface* browser =
+       CreateBrowserWindow(std::move(*create_params));
 +  BraveBeginOriginSpaceWindowRestore(*browser, extra_data);
  
-   return browser->GetFeatures().live_tab_context();
+   return BrowserLiveTabContext::From(browser);
  }

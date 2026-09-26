@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import logging
 import mmap
 import os
 import sys
@@ -26,12 +27,30 @@ from pathlib import Path
 # Import the shared version/platform definitions from the sibling downloader so
 # the Node version lives in exactly one place.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(
+    0,
+    str(Path(__file__).resolve().parents[2] / 'tools' / 'cr' / 'toolchains'))
 
 # pylint: disable=wrong-import-position
 from download_node import NODE_VERSION, PLATFORMS
+from upload import S3Uploader, summarise
 
 # This directory: third_party/node.
 _NODE_DIR = Path(__file__).resolve().parent
+
+# `EXTRA_DEPS` keys its entries by checkout-relative install path, so every
+# entry packaged here hangs off this prefix (e.g. `<prefix>/node-linux-x64`).
+EXTRA_DEPS_PREFIX = 'src/brave/third_party/node'
+
+
+def print_setdep_command(revisions: list[str]) -> None:
+    """Print the `install_extra_deps.py setdep` command repinning `revisions`.
+    """
+    command = ' \\\n'.join([
+        'vpython3 tools/cr/install_extra_deps.py setdep',
+        *(f'  -r {revision}' for revision in revisions),
+    ])
+    print(f'\nRepin EXTRA_DEPS with (from src/brave):\n\n{command}')
 
 
 def package(tarball_name: str, deployed_dir: str,
@@ -79,25 +98,38 @@ def main() -> int:
         default=_NODE_DIR,
         help='Directory to write the tarballs into (defaults to this '
         'directory).')
+    parser.add_argument(
+        '--upload',
+        action='store_true',
+        help='Upload the packaged tarballs to our public bucket.')
     args = parser.parse_args()
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
-    results: list[tuple[str, str, int]] = []
-    for _archive, tarball_name, deployed_dir in PLATFORMS:
+    uploader = None
+    if args.upload:
+        logging.basicConfig(level=logging.INFO, format='%(message)s')
+        uploader = S3Uploader(bucket='brave-build-deps-public')
+
+    # Sorted so the `-r` arguments come out in a stable order run to run
+    # (`PLATFORMS` is a frozenset).
+    revisions: list[str] = []
+    for _archive, tarball_name, deployed_dir in sorted(PLATFORMS):
         tarball = package(tarball_name, deployed_dir, args.output_dir)
         if tarball is None:
             continue
-        sha256, size = sha256_and_size(tarball)
         print(f'Packaged {tarball.name}')
-        results.append((tarball.name, sha256, size))
+        if uploader is not None:
+            result = uploader.upload(tarball, prefix='nodejs', sign=False)
+            print(f'\nUpload summary:\n{summarise(result)}')
+            sha256, size = result.sha256, result.size_bytes
+        else:
+            sha256, size = sha256_and_size(tarball)
+        revisions.append(f'{EXTRA_DEPS_PREFIX}/{deployed_dir}@'
+                         f'{tarball.name},{sha256},{size}')
 
-    if results:
-        # Echo the values needed to update the EXTRA_DEPS entry after upload.
-        print('\nObject details for install_extra_deps.py:')
-        for name, sha256, size in results:
-            print(f"  object_name: '{name}'")
-            print(f"  sha256sum:   '{sha256}'  ({size} bytes)")
+    if revisions:
+        print_setdep_command(revisions)
     return 0
 
 

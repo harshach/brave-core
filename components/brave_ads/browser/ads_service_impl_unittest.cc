@@ -12,6 +12,8 @@
 #include "base/functional/function_ref.h"
 #include "base/memory/raw_ptr.h"
 #include "base/numerics/safe_math.h"
+#include "base/task/sequenced_task_runner.h"
+#include "base/test/bind.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
 #include "base/test/task_environment.h"
@@ -25,6 +27,7 @@
 #include "brave/components/brave_ads/browser/test/fake_shutdown_monitor.h"
 #include "brave/components/brave_ads/browser/test/fake_virtual_pref_provider_delegate.h"
 #include "brave/components/brave_ads/browser/test/mock_resource_component.h"
+#include "brave/components/brave_ads/core/browser/service/test/ads_service_waiter.h"
 #include "brave/components/brave_ads/core/public/prefs/pref_names.h"
 #include "brave/components/brave_ads/core/public/prefs/pref_registry.h"
 #include "brave/components/brave_policy/policy_initialization_waiter.h"
@@ -134,6 +137,17 @@ class BraveAdsAdsServiceImplTest : public testing::Test {
     ads_service_->ProcessIdleState(idle_state, idle_time);
   }
 
+  // Blocks until every task already posted to the current sequence has run,
+  // including tasks posted by production code from a pref change
+  // notification (which cannot run synchronously; see
+  // `AdsServiceImpl::OnAdsPrefChanged`).
+  void FlushPendingTasks() {
+    bool did_run = false;
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindLambdaForTesting([&] { did_run = true; }));
+    ASSERT_TRUE(base::test::RunUntil([&] { return did_run; }));
+  }
+
   base::test::TaskEnvironment task_environment_;
 
   base::test::ScopedFeatureList scoped_feature_list_;
@@ -159,25 +173,12 @@ class BraveAdsAdsServiceImplTest : public testing::Test {
   std::unique_ptr<AdsServiceImpl> ads_service_;
 };
 
-TEST_F(BraveAdsAdsServiceImplTest, ServiceStartsWhenOptedInToSearchResultAds) {
+TEST_F(BraveAdsAdsServiceImplTest, ServiceStartsWhenSponsoredAdsAreEnabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
   Startup();
 
   // Act
-  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
-
-  // Assert
-  EXPECT_EQ(1U, bat_ads_service_factory_->launch_count());
-}
-
-TEST_F(BraveAdsAdsServiceImplTest, ServiceStartsWhenOptedInToNewTabPageAds) {
-  // Arrange
-  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
-  Startup();
-
-  // Act
-  ASSERT_EQ(0U, bat_ads_service_factory_->launch_count());
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
 
   // Assert
@@ -255,7 +256,7 @@ TEST_F(BraveAdsAdsServiceImplTest, ServiceDoesNotStartAfterProfileShutdown) {
   EXPECT_EQ(0U, bat_ads_service_factory_->launch_count());
 }
 
-TEST_F(BraveAdsAdsServiceImplTest, ServiceStopsWhenOptedOutOfAllAds) {
+TEST_F(BraveAdsAdsServiceImplTest, ServiceStopsWhenSponsoredAdsAreDisabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   Startup();
@@ -271,7 +272,75 @@ TEST_F(BraveAdsAdsServiceImplTest, ServiceStopsWhenOptedOutOfAllAds) {
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       ServiceStartsAgainAfterOptingOutThenBackInToSearchResultAds) {
+       ClearsAdsDataWhenSponsoredAdsBecomeDisabled) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  Startup();
+  // `ClearAdsPrefs` clears the whole `brave.brave_ads.*` prefix at once, so
+  // checking this one pref is enough to tell whether the whole prefix was
+  // cleared.
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+  test::AdsServiceWaiter waiter(*ads_service_);
+
+  // Act
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  waiter.WaitForOnDidClearAdsServiceData();
+
+  // Assert
+  EXPECT_FALSE(prefs_.HasPrefPath(prefs::kDiagnosticId));
+  EXPECT_FALSE(prefs_.GetBoolean(prefs::kSponsoredEnabled));
+}
+
+TEST_F(
+    BraveAdsAdsServiceImplTest,
+    PreservesAdsDataWhenSponsoredAdsAreDisabledThenReenabledBeforeClearDataRuns) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  Startup();
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+
+  // Act
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  // Toggled back before the posted clear task has a chance to run.
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  // Ensures `MaybeClearAdsData`'s posted task has had a
+  // chance to (not) clear data before asserting.
+  FlushPendingTasks();
+
+  // Assert
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
+}
+
+TEST_F(BraveAdsAdsServiceImplTest,
+       DoesNotClearAdsDataWhenUnrelatedPrefChanges) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  Startup();
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+
+  // Act
+  prefs_.SetBoolean(prefs::kNotificationsEnabled, true);
+
+  // Assert
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
+}
+
+TEST_F(BraveAdsAdsServiceImplTest,
+       DoesNotClearAdsDataWhenSponsoredAdsAreEnabled) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  Startup();
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+
+  // Act
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+
+  // Assert
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
+}
+
+TEST_F(BraveAdsAdsServiceImplTest,
+       ServiceStartsAgainAfterSponsoredAdsAreDisabledThenReenabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
   Startup();
@@ -288,20 +357,17 @@ TEST_F(BraveAdsAdsServiceImplTest,
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       ServiceStartsAgainAfterOptingOutThenBackInToNewTabPageAds) {
+       DoesNotCrashWhenServiceShutsDownBeforePendingClearDataTaskRuns) {
   // Arrange
-  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
-  Startup();
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
-  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
+  Startup();
 
   // Act
   prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
-  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
-  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  Shutdown();
 
   // Assert
-  EXPECT_EQ(2U, bat_ads_service_factory_->launch_count());
+  EXPECT_FALSE(prefs_.GetBoolean(prefs::kSponsoredEnabled));
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
@@ -350,14 +416,13 @@ TEST_F(BraveAdsAdsServiceImplTest,
 }
 
 #if BUILDFLAG(ENABLE_BRAVE_REWARDS)
-// Search result ads are opted out so the service does not start during
-// `Startup`, keeping each test's trigger isolated.
-TEST_F(BraveAdsAdsServiceImplTest, ServiceStartsWhenNotificationAdsAreEnabled) {
+TEST_F(BraveAdsAdsServiceImplTest,
+       ServiceDoesNotRestartWhenNotificationAdsAreEnabledWhileAlreadyRunning) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
   Startup();
   prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
-  ASSERT_EQ(0U, bat_ads_service_factory_->launch_count());
+  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
 
   // Act
   prefs_.SetBoolean(prefs::kNotificationsEnabled, true);
@@ -380,7 +445,7 @@ TEST_F(BraveAdsAdsServiceImplTest, ServiceStartsWhenUserHasJoinedBraveRewards) {
 
 TEST_F(
     BraveAdsAdsServiceImplTest,
-    ServiceDoesNotStopWhenNotificationAdsAreDisabledWhileOptedInToSearchResultAds) {
+    ServiceDoesNotStopWhenNotificationAdsAreDisabledWhileSponsoredAdsAreEnabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
@@ -395,24 +460,96 @@ TEST_F(
   EXPECT_EQ(1U, bat_ads_service_factory_->launch_count());
   EXPECT_EQ(0U, bat_ads_service_factory_->shutdown_count());
 }
-#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
 
-TEST_F(BraveAdsAdsServiceImplTest,
-       ServiceDoesNotStartForSearchResultAdsWhenRewardsIsDisabledByPolicy) {
+TEST_F(
+    BraveAdsAdsServiceImplTest,
+    PreservesAdsDataWhenSponsoredAdsBecomeDisabledForBraveRewardsUserWhileServiceKeepsRunning) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
-  prefs_.SetManagedPref(brave_rewards::prefs::kDisabledByPolicy,
-                        base::Value(true));
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
+  Startup();
+  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
+  // `ClearAdsPrefs` clears the whole `brave.brave_ads.*` prefix at once, so
+  // checking this one pref is enough to tell whether the whole prefix was
+  // cleared.
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
 
   // Act
-  Startup();
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  // Ensures `MaybeClearAdsData`'s posted task has had a
+  // chance to (not) clear data before asserting.
+  FlushPendingTasks();
 
   // Assert
-  EXPECT_EQ(0U, bat_ads_service_factory_->launch_count());
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
+}
+
+TEST_F(
+    BraveAdsAdsServiceImplTest,
+    PreservesAdsDataWhenBraveRewardsBecomesDisabledWhileSponsoredAdsRemainEnabled) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
+  Startup();
+  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+
+  // Act
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, false);
+  // Ensures `MaybeClearAdsData`'s posted task has had a
+  // chance to (not) clear data before asserting.
+  FlushPendingTasks();
+
+  // Assert
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       ServiceDoesNotStartForNewTabPageAdsWhenRewardsIsDisabledByPolicy) {
+       ClearsAdsDataWhenBraveRewardsBecomesDisabledAndSponsoredAdsAreDisabled) {
+  // Arrange
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  Startup();
+  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
+  // `ClearAdsPrefs` clears the whole `brave.brave_ads.*` prefix at once, so
+  // checking this one pref is enough to tell whether the whole prefix was
+  // cleared.
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+  test::AdsServiceWaiter waiter(*ads_service_);
+
+  // Act
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, false);
+  waiter.WaitForOnDidClearAdsServiceData();
+
+  // Assert
+  EXPECT_FALSE(prefs_.HasPrefPath(prefs::kDiagnosticId));
+}
+
+TEST_F(
+    BraveAdsAdsServiceImplTest,
+    PreservesAdsDataWhenBraveRewardsIsDisabledThenRejoinedBeforeClearDataRuns) {
+  // Arrange
+  prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
+  Startup();
+  ASSERT_EQ(1U, bat_ads_service_factory_->launch_count());
+  prefs_.SetString(prefs::kDiagnosticId, "foo");
+
+  // Act
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, false);
+  // Toggled back before the posted clear task has a chance to run.
+  prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
+  // Ensures `MaybeClearAdsData`'s posted task has had a
+  // chance to (not) clear data before asserting.
+  FlushPendingTasks();
+
+  // Assert
+  EXPECT_EQ("foo", prefs_.GetString(prefs::kDiagnosticId));
+}
+#endif  // BUILDFLAG(ENABLE_BRAVE_REWARDS)
+
+TEST_F(BraveAdsAdsServiceImplTest,
+       ServiceDoesNotStartForSponsoredAdsWhenRewardsIsDisabledByPolicy) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   prefs_.SetManagedPref(brave_rewards::prefs::kDisabledByPolicy,
@@ -673,8 +810,8 @@ TEST_F(
 
 #if BUILDFLAG(ENABLE_BRAVE_REWARDS)
 TEST_F(BraveAdsAdsServiceImplTest,
-       RegistersLanguageResourceComponentWhenUserOptsInToNotificationAds) {
-  // Arrange: start the service via search result ads and wait for
+       RegistersLanguageResourceComponentWhenNotificationAdsAreEnabled) {
+  // Arrange: start the service via sponsored ads and wait for
   // initialization so `bat_ads_service_remote_` is bound.
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
@@ -690,9 +827,9 @@ TEST_F(BraveAdsAdsServiceImplTest,
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       UnregistersLanguageResourceComponentWhenUserOptsOutOfNotificationAds) {
+       UnregistersLanguageResourceComponentWhenNotificationAdsAreDisabled) {
   // Arrange: start with notification ads enabled so the language component
-  // is already registered; service must be running before opting out.
+  // is already registered; service must be running before they are disabled.
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   prefs_.SetBoolean(brave_rewards::prefs::kEnabled, true);
   prefs_.SetBoolean(prefs::kNotificationsEnabled, true);
@@ -760,7 +897,7 @@ TEST_F(BraveAdsAdsServiceImplTest, ClearDataClearsAdsPrefs) {
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       ClearDataPreservesSponsoredEnabledPrefWhenOptedOut) {
+       ClearDataPreservesSponsoredEnabledPrefWhenSponsoredAdsAreDisabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, false);
   Startup();
@@ -776,7 +913,7 @@ TEST_F(BraveAdsAdsServiceImplTest,
 }
 
 TEST_F(BraveAdsAdsServiceImplTest,
-       ClearDataPreservesSponsoredEnabledPrefWhenOptedIn) {
+       ClearDataPreservesSponsoredEnabledPrefWhenSponsoredAdsAreEnabled) {
   // Arrange
   prefs_.SetBoolean(prefs::kSponsoredEnabled, true);
   Startup();

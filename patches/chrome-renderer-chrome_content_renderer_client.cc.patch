@@ -1,8 +1,8 @@
 diff --git a/chrome/renderer/chrome_content_renderer_client.cc b/chrome/renderer/chrome_content_renderer_client.cc
-index 1cfb0d2c2139fb80a754cd3b3d53c4e3fd050b6b..63a8dcbed1647cd59c8bc2a34a0bc599bc6ef09a 100644
+index 3b030af0de2d762914e4ade3403aaceceb179476..75af88c8b73d0db27bd3f8aa22fd627f76fd8d89 100644
 --- a/chrome/renderer/chrome_content_renderer_client.cc
 +++ b/chrome/renderer/chrome_content_renderer_client.cc
-@@ -379,7 +379,9 @@ ChromeContentRendererClient::ChromeContentRendererClient()
+@@ -389,7 +389,9 @@ ChromeContentRendererClient::ChromeContentRendererClient()
  #endif
  }
  
@@ -13,7 +13,7 @@ index 1cfb0d2c2139fb80a754cd3b3d53c4e3fd050b6b..63a8dcbed1647cd59c8bc2a34a0bc599
  
  void ChromeContentRendererClient::RenderThreadStarted() {
    RenderThread* thread = RenderThread::Get();
-@@ -629,7 +631,7 @@ void ChromeContentRendererClient::RenderFrameCreated(
+@@ -654,7 +656,7 @@ void ChromeContentRendererClient::RenderFrameCreated(
        extensions::ExtensionsRendererClient::Get()->dispatcher());
  #endif
    content_settings::ContentSettingsAgentImpl* content_settings =
@@ -22,7 +22,7 @@ index 1cfb0d2c2139fb80a754cd3b3d53c4e3fd050b6b..63a8dcbed1647cd59c8bc2a34a0bc599
            render_frame, std::move(content_settings_delegate));
    if (chrome_observer_.get()) {
      if (chrome_observer_->content_settings_manager()) {
-@@ -708,7 +710,7 @@ void ChromeContentRendererClient::RenderFrameCreated(
+@@ -734,7 +736,7 @@ void ChromeContentRendererClient::RenderFrameCreated(
    if (dom_distiller::ShouldStartDistillabilityService()) {
      // Create DistillabilityAgent to send distillability updates to
      // DistillabilityDriver in the browser process.

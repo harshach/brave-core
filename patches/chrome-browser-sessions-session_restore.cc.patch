@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/sessions/session_restore.cc b/chrome/browser/sessions/session_restore.cc
-index 31cc627e9a6f978367e994a44e39ff94d80908d4..55f15ef7d90299e3cc287d6a3df162eac7c47975 100644
+index 684340e2ae22a97ffcbb010bc31c9f7c9433492e..b68ff1a7c995d5a465bbb78c278594515c600f34 100644
 --- a/chrome/browser/sessions/session_restore.cc
 +++ b/chrome/browser/sessions/session_restore.cc
-@@ -857,6 +857,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -865,6 +865,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
  #endif
        }
  
@@ -11,7 +11,7 @@ index 31cc627e9a6f978367e994a44e39ff94d80908d4..55f15ef7d90299e3cc287d6a3df162ea
        // 2. Track TYPE_NORMAL browsers.
        if (is_normal_window) {
          has_normal_browser = true;
-@@ -938,6 +940,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -946,6 +948,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
          chrome::CloseWebContents(browser, active_tab, true);
        }
  
@@ -20,7 +20,7 @@ index 31cc627e9a6f978367e994a44e39ff94d80908d4..55f15ef7d90299e3cc287d6a3df162ea
        // Sanity check: A restored browser should have an active tab.
        // TODO(crbug.com/40662817): Change to DCHECK once we understand
        // why some browsers don't have an active tab on startup.
-@@ -1379,6 +1383,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -1386,6 +1390,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
                                 : WindowOpenDisposition::NEW_BACKGROUND_TAB;
        params.tabstrip_add_types = add_types;
        is_first_tab = false;

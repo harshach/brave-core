@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/download/download_ui_model.cc b/chrome/browser/download/download_ui_model.cc
-index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793a911f8cd 100644
+index 5fd2326b92df7416267e29c23dcf777dac230cac..b86d2e0d3c38457d256ab7cd22351cbe83bef1bf 100644
 --- a/chrome/browser/download/download_ui_model.cc
 +++ b/chrome/browser/download/download_ui_model.cc
 @@ -28,6 +28,7 @@
@@ -10,7 +10,7 @@ index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793
  #include "components/download/public/common/download_danger_type.h"
  #include "components/enterprise/common/proto/connectors.pb.h"
  #include "components/google/core/common/google_util.h"
-@@ -615,6 +616,9 @@ bool DownloadUIModel::IsCommandEnabled(
+@@ -617,6 +618,9 @@ bool DownloadUIModel::IsCommandEnabled(
      case DownloadCommands::ALWAYS_OPEN_TYPE:
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -20,7 +20,7 @@ index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793
        NOTREACHED();
      case DownloadCommands::CANCEL:
        return !IsDone();
-@@ -679,6 +683,9 @@ bool DownloadUIModel::IsCommandChecked(
+@@ -681,6 +685,9 @@ bool DownloadUIModel::IsCommandChecked(
      case DownloadCommands::CANCEL_DEEP_SCAN:
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -30,7 +30,7 @@ index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793
        return false;
    }
    return false;
-@@ -754,6 +761,9 @@ void DownloadUIModel::ExecuteCommand(DownloadCommands* download_commands,
+@@ -756,6 +763,9 @@ void DownloadUIModel::ExecuteCommand(DownloadCommands* download_commands,
        break;
      case DownloadCommands::OPEN_WITH_MEDIA_APP:
      case DownloadCommands::EDIT_WITH_MEDIA_APP:
@@ -40,7 +40,7 @@ index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793
  #if BUILDFLAG(IS_CHROMEOS)
        OpenUsingMediaApp();
        break;
-@@ -1090,8 +1100,8 @@ DownloadUIModel::BubbleStatusTextBuilder::GetInProgressStatusText() const {
+@@ -1092,8 +1102,8 @@ DownloadUIModel::BubbleStatusTextBuilder::GetInProgressStatusText() const {
            l10n_util::GetStringUTF16(
                IDS_DOWNLOAD_BUBBLE_STATUS_ASYNC_CHECKING_SAFETY));
      }
@@ -51,7 +51,7 @@ index c90c8536e34c14bad1ebc200f442c3b07e6b9fb9..3f2acb0f8fe9636ac4b372979f846793
    }
  }
  
-@@ -1099,7 +1109,7 @@ std::u16string
+@@ -1101,7 +1111,7 @@ std::u16string
  DownloadUIModel::StatusTextBuilderBase::GetCompletedRemovedOrSavedStatusText()
      const {
    if (model_->GetFileExternallyRemoved()) {

@@ -18,12 +18,13 @@
 #include "base/feature_list.h"
 #include "base/functional/callback_helpers.h"
 #include "base/i18n/file_util_icu.h"
-#include "base/i18n/time_formatting.h"
 #include "base/logging.h"
 #include "base/memory/scoped_refptr.h"
 #include "base/notreached.h"
 #include "base/path_service.h"
+#include "base/strings/stringprintf.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/time/time.h"
 #include "brave/app/brave_command_ids.h"
 #include "brave/browser/brave_shields/brave_shields_tab_helper.h"
 #include "brave/browser/debounce/debounce_service_factory.h"
@@ -135,6 +136,7 @@
 #include "brave/browser/ui/views/page_action/partitioned_storage_page_action_controller.h"
 #include "brave/components/containers/content/browser/storage_partition_utils.h"
 #include "brave/components/containers/core/browser/containers_service.h"
+#include "brave/components/containers/core/mojom/containers.mojom.h"
 #include "components/tabs/public/tab_interface.h"
 #if defined(TOOLKIT_VIEWS)
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -147,7 +149,8 @@ namespace brave {
 
 namespace {
 
-bool CanTakeTabs(const Browser* from, const Browser* to) {
+bool CanTakeTabs(const BrowserWindowInterface* from,
+                 const BrowserWindowInterface* to) {
   return from != to && from->GetType() == Browser::TYPE_NORMAL &&
          !UnloadController::From(from)->is_attempting_to_close_browser() &&
          !from->IsDeleteScheduled() && to->GetProfile() == from->GetProfile();
@@ -176,10 +179,13 @@ std::vector<int> GetSelectedIndices(Browser* browser) {
  * https://source.chromium.org/chromium/chromium/src/+/main:chrome/browser/extensions/api/bookmark_manager_private/bookmark_manager_private_api.cc;l=205-222?q=IDS_EXPORT_BOOKMARKS_DEFAULT_FILENAME
  */
 base::FilePath GetDefaultFilepathForBookmarkExport() {
-  std::string bookmarks_yyyy_MM_dd = l10n_util::GetStringFUTF8(
-      IDS_EXPORT_BOOKMARKS_DEFAULT_FILENAME,
-      base::UTF8ToUTF16(base::UnlocalizedTimeFormatWithPattern(
-          base::Time::Now(), "yyyy_MM_dd")));
+  base::Time::Exploded exploded;
+  base::Time::Now().LocalExplode(&exploded);
+  std::string bookmarks_yyyy_MM_dd =
+      l10n_util::GetStringFUTF8(IDS_EXPORT_BOOKMARKS_DEFAULT_FILENAME,
+                                base::UTF8ToUTF16(base::StringPrintf(
+                                    "%04d_%02d_%02d", exploded.year,
+                                    exploded.month, exploded.day_of_month)));
 
   base::FilePath path = base::FilePath::FromUTF8Unsafe(bookmarks_yyyy_MM_dd);
   base::FilePath::StringType path_str = path.value();
@@ -234,7 +240,7 @@ class BookmarksExportListener : public ui::SelectFileDialog::Listener {
 };
 
 #if BUILDFLAG(ENABLE_TOR)
-void NewOffTheRecordWindowTor(Browser* browser) {
+void NewOffTheRecordWindowTor(BrowserWindowInterface* browser) {
   CHECK(browser);
   NewOffTheRecordWindowTor(browser->GetProfile());
 }
@@ -329,7 +335,7 @@ void OpenBraveVPNUrls(Browser* browser, int command_id) {
 
 void ToggleSidePanel(Browser* browser, SidePanelEntryId id) {
 #if defined(TOOLKIT_VIEWS)
-  SidePanelUI* side_panel_ui = browser->GetFeatures().side_panel_ui();
+  SidePanelUI* side_panel_ui = SidePanelUI::From(browser);
   side_panel_ui->Toggle(SidePanelEntry::Key(id),
                         SidePanelOpenTrigger::kToolbarButton);
 #endif
@@ -398,14 +404,15 @@ void CopyLinkWithStrictCleaning(BrowserWindowInterface* browser,
   scw.WriteText(base::UTF8ToUTF16(final_url.spec()));
 }
 
-void ToggleWindowTitleVisibilityForVerticalTabs(Browser* browser) {
+void ToggleWindowTitleVisibilityForVerticalTabs(
+    BrowserWindowInterface* browser) {
   auto* prefs = browser->GetProfile()->GetOriginalProfile()->GetPrefs();
   prefs->SetBoolean(
       brave_tabs::kVerticalTabsShowTitleOnWindow,
       !prefs->GetBoolean(brave_tabs::kVerticalTabsShowTitleOnWindow));
 }
 
-void ToggleVerticalTabStrip(Browser* browser) {
+void ToggleVerticalTabStrip(BrowserWindowInterface* browser) {
   if (!tabs::utils::IsVerticalTabToggleEnabled(browser)) {
     return;
   }
@@ -476,7 +483,7 @@ void ToggleSidebar(Browser* browser) {
   }
 }
 
-bool HasSelectedURL(Browser* browser) {
+bool HasSelectedURL(BrowserWindowInterface* browser) {
   if (!browser) {
     return false;
   }
@@ -484,7 +491,7 @@ bool HasSelectedURL(Browser* browser) {
   return brave_browser_window && brave_browser_window->HasSelectedURL();
 }
 
-void CleanAndCopySelectedURL(Browser* browser) {
+void CleanAndCopySelectedURL(BrowserWindowInterface* browser) {
   if (!browser) {
     return;
   }
@@ -549,12 +556,6 @@ void ToggleCommander(Browser* browser) {
 #if BUILDFLAG(ENABLE_PLAYLIST_WEBUI)
 void ShowPlaylistBubble(Browser* browser) {
   BraveBrowserWindow::FromBrowser(browser)->ShowPlaylistBubble();
-}
-#endif
-
-#if BUILDFLAG(ENABLE_BRAVE_WAYBACK_MACHINE)
-void ShowWaybackMachineBubble(Browser* browser) {
-  BraveBrowserWindow::FromBrowser(browser)->ShowWaybackMachineBubble();
 }
 #endif
 
@@ -793,7 +794,7 @@ void CloseGroup(Browser* browser) {
   tsm->CloseAllTabsInGroup(*group_id);
 }
 
-bool CanBringAllTabs(Browser* browser) {
+bool CanBringAllTabs(BrowserWindowInterface* browser) {
   if (!base::FeatureList::IsEnabled(tabs::kBraveBringAllTabsToThisWindow)) {
     return false;
   }
@@ -805,24 +806,23 @@ bool CanBringAllTabs(Browser* browser) {
   bool result = false;
   GlobalBrowserCollection::GetInstance()->ForEach(
       [browser, &result](BrowserWindowInterface* from) {
-        result = CanTakeTabs(from->GetBrowserForMigrationOnly(), browser);
+        result = CanTakeTabs(from, browser);
         return !result;
       });
   return result;
 }
 
-void BringAllTabs(Browser* browser) {
+void BringAllTabs(BrowserWindowInterface* browser) {
   if (!browser) {
     return;
   }
 
   // Find all browsers with the same profile
-  std::vector<Browser*> browsers;
+  std::vector<BrowserWindowInterface*> browsers;
   GlobalBrowserCollection::GetInstance()->ForEach(
       [&browsers, browser](BrowserWindowInterface* from) {
-        auto* from_deprecated = from->GetBrowserForMigrationOnly();
-        if (CanTakeTabs(from_deprecated, browser)) {
-          browsers.push_back(from_deprecated);
+        if (CanTakeTabs(from, browser)) {
+          browsers.push_back(from);
         }
         return true;
       });
@@ -836,7 +836,7 @@ void BringAllTabs(Browser* browser) {
       browser->GetProfile()->GetPrefs()->GetBoolean(
           brave_tabs::kSharedPinnedTab);
 
-  base::flat_set<Browser*> browsers_to_close;
+  base::flat_set<BrowserWindowInterface*> browsers_to_close;
   std::ranges::for_each(browsers, [&detached_pinned_tabs,
                                    &detached_unpinned_tabs, &browsers_to_close,
                                    shared_pinned_tab_enabled](auto* other) {
@@ -889,7 +889,7 @@ void BringAllTabs(Browser* browser) {
   }
 }
 
-bool HasDuplicatesOfActiveTab(Browser* browser) {
+bool HasDuplicatesOfActiveTab(BrowserWindowInterface* browser) {
   if (!browser) {
     return false;
   }
@@ -916,7 +916,7 @@ bool HasDuplicatesOfActiveTab(Browser* browser) {
   return false;
 }
 
-void CloseDuplicatesOfActiveTab(Browser* browser) {
+void CloseDuplicatesOfActiveTab(BrowserWindowInterface* browser) {
   auto* tsm = browser->tab_strip_model();
   auto url = tsm->GetActiveWebContents()->GetVisibleURL();
 

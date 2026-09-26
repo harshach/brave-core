@@ -19,18 +19,6 @@ import SwiftUI
 import UIKit
 import Web
 
-/// The behavior for sizing sections when the user is in landscape orientation
-enum NTPLandscapeSizingBehavior {
-  /// The section is given half the available space
-  ///
-  /// Layout is decided by device type (iPad vs iPhone)
-  case halfWidth
-  /// The section is given the full available space
-  ///
-  /// Layout is up to the section to define
-  case fullWidth
-}
-
 /// A section that will be shown in the NTP. Sections are responsible for the
 /// layout and interaction of their own items
 protocol NTPSectionProvider: NSObject, UICollectionViewDelegateFlowLayout,
@@ -39,15 +27,9 @@ protocol NTPSectionProvider: NSObject, UICollectionViewDelegateFlowLayout,
   /// Register cells and supplimentary views for your section to
   /// `collectionView`
   func registerCells(to collectionView: UICollectionView)
-  /// The defined behavior when the user is in landscape.
-  ///
-  /// Defaults to `halfWidth`, which will only give half of the available
-  /// width to the section (and adjust layout automatically based on device)
-  var landscapeBehavior: NTPLandscapeSizingBehavior { get }
 }
 
 extension NTPSectionProvider {
-  var landscapeBehavior: NTPLandscapeSizingBehavior { .halfWidth }
   /// The bounding size for auto-sizing cells, bound to the maximum available
   /// width in the collection view, taking into account safe area insets and
   /// insets for that given section
@@ -75,6 +57,44 @@ extension NTPSectionProvider {
       ),
       height: 1000
     )
+  }
+
+  /// Horizontal section insets that constrain content to a maximum width,
+  /// centering it within the available space. When vertical space is limited
+  /// (iPhone landscape, or any device below `compactHeightThreshold`) the
+  /// content is instead pinned to the trailing half of the collection view so
+  /// the leading side stays clear for the sponsored image logo button.
+  ///
+  /// `minimumInset` is the smallest allowed horizontal inset (e.g. 16pt).
+  func horizontalInsets(
+    for collectionView: UICollectionView,
+    maxWidth: CGFloat,
+    minimumInset: CGFloat
+  ) -> (left: CGFloat, right: CGFloat) {
+    /// The available height below which content is pinned to the trailing half
+    /// so the sponsored image logo button remains tappable.
+    let compactHeightThreshold: CGFloat = 500
+    let compactWidthThreshold: CGFloat = 580
+    let availableWidth =
+      collectionView.bounds.width - collectionView.safeAreaInsets.left
+      - collectionView.safeAreaInsets.right
+    let availableHeight =
+      collectionView.bounds.height - collectionView.safeAreaInsets.top
+      - collectionView.safeAreaInsets.bottom
+    let isLandscape = collectionView.bounds.width > collectionView.bounds.height
+    let isCompactHeight = availableHeight < compactHeightThreshold
+    let isCompactWidth = availableWidth < compactWidthThreshold
+    if (UIDevice.isPhone && isLandscape) || (isCompactHeight && !isCompactWidth) {
+      // Pin the content to the trailing half of the collection view, centering
+      // it within that half (capped at `maxWidth`).
+      let halfWidth = availableWidth / 2.0
+      let contentWidth = min(halfWidth - minimumInset * 2, maxWidth)
+      let gap = max(minimumInset, (halfWidth - contentWidth) / 2)
+      return (left: halfWidth + gap, right: gap)
+    }
+    let contentWidth = min(availableWidth - minimumInset * 2, maxWidth)
+    let inset = max(minimumInset, (availableWidth - contentWidth) / 2)
+    return (inset, inset)
   }
 }
 
@@ -104,9 +124,7 @@ class NewTabPageViewController: UIViewController {
       return nil
     }
 
-    if let cell = collectionView.cellForItem(at: IndexPath(item: 0, section: section))
-      as? NewTabCenteredCollectionViewCell<BraveShieldStatsView>
-    {
+    if let cell = collectionView.cellForItem(at: IndexPath(item: 0, section: section)) {
       return cell.contentView.convert(cell.contentView.frame, to: view)
     }
     return nil
@@ -176,7 +194,7 @@ class NewTabPageViewController: UIViewController {
     super.init(nibName: nil, bundle: nil)
 
     Preferences.NewTabPage.showNewTabPrivacyHub.observe(from: self)
-    Preferences.NewTabPage.showNewTabFavourites.observe(from: self)
+    Preferences.NewTabPage.topsitesMode.observe(from: self)
 
     sections = [
       StatsSectionProvider(
@@ -380,23 +398,60 @@ class NewTabPageViewController: UIViewController {
         }
       }
     }
+
+    registerForTraitChanges([UITraitVerticalSizeClass.self]) { (self: Self, _) in
+      self.calculateBackgroundCenterPoints()
+    }
+    registerForTraitChanges([UITraitHorizontalSizeClass.self]) { (self: Self, _) in
+      self.collectionView.reloadData()
+    }
   }
 
   override func viewWillAppear(_ animated: Bool) {
     super.viewWillAppear(animated)
+    collectionView.reloadData()
     checkForUpdatedFeed()
   }
 
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
 
-    collectionView.reloadData()
+    collectionView.collectionViewLayout.invalidateLayout()
 
     // Make sure that imageView has a frame calculated before we attempt
     // to use it.
     backgroundView.layoutIfNeeded()
 
     calculateBackgroundCenterPoints()
+  }
+
+  override func viewWillTransition(
+    to size: CGSize,
+    with coordinator: any UIViewControllerTransitionCoordinator
+  ) {
+    super.viewWillTransition(to: size, with: coordinator)
+    guard
+      let favoriteSection = sections.firstIndex(where: { $0 is FavoritesSectionProvider }),
+      let provider = sections[favoriteSection] as? FavoritesSectionProvider
+    else {
+      return
+    }
+    // Only reload the favorites section (and its overflow section) when the
+    // number of favorites actually displayed would change, otherwise favorites
+    // may wrap onto a second row. The available width isn't known until the
+    // collection view's bounds & insets update, so compute the new displayed
+    // count in the transition completion handler.
+    let currentCount = collectionView.numberOfItems(inSection: favoriteSection)
+    coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+      guard let self else { return }
+      let updatedCount = provider.displayedItemCount(
+        in: self.collectionView,
+        section: favoriteSection
+      )
+      if currentCount != updatedCount {
+        self.collectionView.reloadSections(IndexSet([favoriteSection, favoriteSection + 1]))
+      }
+    }
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -423,14 +478,6 @@ class NewTabPageViewController: UIViewController {
     backgroundView.imageView.image = parent == nil ? nil : background.backgroundImage
 
     lastViewedSponsoredBackgroundId = nil
-  }
-
-  override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
-    if previousTraitCollection?.verticalSizeClass
-      != traitCollection.verticalSizeClass
-    {
-      calculateBackgroundCenterPoints()
-    }
   }
 
   // MARK: - Background
@@ -1019,7 +1066,7 @@ class NewTabPageViewController: UIViewController {
 extension NewTabPageViewController: PreferencesObserver {
   func preferencesDidChange(for key: String) {
     if key == Preferences.NewTabPage.showNewTabPrivacyHub.key
-      || key == Preferences.NewTabPage.showNewTabFavourites.key
+      || key == Preferences.NewTabPage.topsitesMode.key
     {
       collectionView.reloadData()
       return
@@ -1270,28 +1317,11 @@ extension NewTabPageViewController: UICollectionViewDelegateFlowLayout {
     layout collectionViewLayout: UICollectionViewLayout,
     insetForSectionAt section: Int
   ) -> UIEdgeInsets {
-    let sectionProvider = sections[section]
-    var inset =
-      sectionProvider.collectionView?(
-        collectionView,
-        layout: collectionViewLayout,
-        insetForSectionAt: section
-      ) ?? .zero
-    if sectionProvider.landscapeBehavior == .halfWidth {
-      let isIphone = UIDevice.isPhone
-      let isLandscape = view.frame.width > view.frame.height
-      if isLandscape {
-        let availableWidth =
-          collectionView.bounds.width - collectionView.safeAreaInsets.left
-          - collectionView.safeAreaInsets.right
-        if isIphone {
-          inset.left = availableWidth / 2.0
-        } else {
-          inset.right = availableWidth / 2.0
-        }
-      }
-    }
-    return inset
+    sections[section].collectionView?(
+      collectionView,
+      layout: collectionViewLayout,
+      insetForSectionAt: section
+    ) ?? .zero
   }
   func collectionView(
     _ collectionView: UICollectionView,
@@ -1384,37 +1414,36 @@ extension NewTabPageViewController: UICollectionViewDataSource {
   }
   func collectionView(
     _ collectionView: UICollectionView,
-    contextMenuConfigurationForItemAt indexPath: IndexPath,
+    contextMenuConfigurationForItemsAt indexPaths: [IndexPath],
     point: CGPoint
   ) -> UIContextMenuConfiguration? {
-    sections[indexPath.section].collectionView?(
+    guard let indexPath = indexPaths.first else { return nil }
+    return sections[indexPath.section].collectionView?(
       collectionView,
-      contextMenuConfigurationForItemAt: indexPath,
+      contextMenuConfigurationForItemsAt: indexPaths,
       point: point
     )
   }
   func collectionView(
     _ collectionView: UICollectionView,
-    previewForHighlightingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
+    contextMenuConfiguration configuration: UIContextMenuConfiguration,
+    highlightPreviewForItemAt indexPath: IndexPath
   ) -> UITargetedPreview? {
-    guard let indexPath = configuration.identifier as? IndexPath else {
-      return nil
-    }
     return sections[indexPath.section].collectionView?(
       collectionView,
-      previewForHighlightingContextMenuWithConfiguration: configuration
+      contextMenuConfiguration: configuration,
+      highlightPreviewForItemAt: indexPath
     )
   }
   func collectionView(
     _ collectionView: UICollectionView,
-    previewForDismissingContextMenuWithConfiguration configuration: UIContextMenuConfiguration
+    contextMenuConfiguration configuration: UIContextMenuConfiguration,
+    dismissalPreviewForItemAt indexPath: IndexPath
   ) -> UITargetedPreview? {
-    guard let indexPath = configuration.identifier as? IndexPath else {
-      return nil
-    }
     return sections[indexPath.section].collectionView?(
       collectionView,
-      previewForHighlightingContextMenuWithConfiguration: configuration
+      contextMenuConfiguration: configuration,
+      dismissalPreviewForItemAt: indexPath
     )
   }
   func collectionView(

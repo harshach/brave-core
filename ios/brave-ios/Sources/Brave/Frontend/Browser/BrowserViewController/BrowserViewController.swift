@@ -23,7 +23,6 @@ import ScreenTime
 import Shared
 import SnapKit
 import SpeechRecognition
-import Storage
 import StoreKit
 import SwiftUI
 import Translation
@@ -291,6 +290,8 @@ public class BrowserViewController: UIViewController {
 
   let defaultBrowserHelper: DefaultBrowserHelper = .init()
 
+  let downloadBackgroundTaskModel: DownloadBackgroundTaskScheduler?
+
   public init(
     windowId: UUID,
     profile: LegacyBrowserProfile,
@@ -300,7 +301,8 @@ public class BrowserViewController: UIViewController {
     rewards: BraveRewards,
     crashedLastSession: Bool,
     newsFeedDataSource: FeedDataSource,
-    privateBrowsingManager: PrivateBrowsingManager
+    privateBrowsingManager: PrivateBrowsingManager,
+    downloadBackgroundTaskModel: DownloadBackgroundTaskScheduler?,
   ) {
     self.windowId = windowId
     self.profile = profile
@@ -314,6 +316,8 @@ public class BrowserViewController: UIViewController {
     self.feedDataSource = newsFeedDataSource
     self.prefsChangeRegistrar = PrefChangeRegistrar(prefService: profileController.profile.prefs)
     self.braveTalkJitsiCoordinator = .init(prefService: profileController.profile.prefs)
+    self.downloadBackgroundTaskModel = downloadBackgroundTaskModel
+
     feedDataSource.historyAPI = profileController.historyAPI
     backgroundDataSource = .init(
       service: profileController.backgroundImagesService,
@@ -743,10 +747,6 @@ public class BrowserViewController: UIViewController {
     obscuredInsets.top = toolbarInsets.top
     obscuredInsets.bottom = toolbarInsets.bottom
 
-    // Setting obscuredInsets actually includes a side-effect of setting the web views contentInset
-    webViewProxy.obscuredInsets = obscuredInsets
-
-    // But we still need to update the scroll indicator insets manually
     var scrollIndicatorInsets = UIEdgeInsets(
       top: max(0, toolbarInsets.top - view.safeAreaInsets.top),
       left: 0,
@@ -757,15 +757,21 @@ public class BrowserViewController: UIViewController {
     if let keyboardState, case let keyboardHeight = keyboardState.intersectionHeightForView(view),
       keyboardHeight > 0
     {
-      var contentInsets = webViewProxy.scrollView?.contentInset ?? .zero
-      contentInsets.bottom = keyboardHeight + toolbarInsets.bottom
-      webViewProxy.scrollView?.contentInset = contentInsets
+      // The keyboard must be included in the obscured insets themselves. WKWebView derives and
+      // re-asserts the scroll view's contentInset from obscuredContentInsets, so adjusting the
+      // scroll view's contentInset manually would be overwritten by the web process.
+      obscuredInsets.bottom = max(obscuredInsets.bottom, keyboardHeight)
       if isUsingBottomBar {
         scrollIndicatorInsets.bottom = 0
       } else {
         scrollIndicatorInsets.bottom -= toolbarInsets.bottom
       }
     }
+
+    // Setting obscuredInsets actually includes a side-effect of setting the web views contentInset
+    webViewProxy.obscuredInsets = obscuredInsets
+
+    // But we still need to update the scroll indicator insets manually
     webViewProxy.scrollView?.scrollIndicatorInsets = scrollIndicatorInsets
   }
 
@@ -787,7 +793,6 @@ public class BrowserViewController: UIViewController {
         toolbar?.setSearchButtonState(url: tabManager.selectedTab?.visibleURL)
         footer.addSubview(toolbar!)
         toolbar?.tabToolbarDelegate = self
-        toolbar?.menuButton.setBadges(Array(topToolbar.menuButton.badges.keys))
       }
       view.setNeedsUpdateConstraints()
     }
@@ -1040,12 +1045,6 @@ public class BrowserViewController: UIViewController {
         name: UIApplication.willTerminateNotification,
         object: nil
       )
-      $0.addObserver(
-        self,
-        selector: #selector(resetNTPNotification),
-        name: .adsOrRewardsToggledInSettings,
-        object: nil
-      )
       if profileController.profile.prefs.isBraveVPNAvailable {
         $0.addObserver(
           self,
@@ -1175,26 +1174,28 @@ public class BrowserViewController: UIViewController {
       }
       .store(in: &cancellables)
 
-    Task { @MainActor in
-      // Track sync chain restoration via backup
-      let shouldDeleteSyncChain = try await profileController.syncAPI
-        .isSyncChainFromCloudRestoration()
-      if shouldDeleteSyncChain {
-        let alert = UIAlertController(
-          title: Strings.Sync.deviceRestoreDetectedTitle,
-          message: Strings.Sync.deviceRestoreDetectedMessage,
-          preferredStyle: .alert
-        )
-        alert.addAction(
-          .init(title: Strings.Sync.deviceRestoreResetActionTitle, style: .default) {
-            [weak self] _ in
-            self?.profileController.syncAPI.resetSyncChain()
-          }
-        )
+    Task { @MainActor [self] in
+      do {
+        // Track sync chain restoration via backup
+        let shouldDeleteSyncChain = try await profileController.syncAPI
+          .isSyncChainFromCloudRestoration()
+        if shouldDeleteSyncChain {
+          let alert = UIAlertController(
+            title: Strings.Sync.deviceRestoreDetectedTitle,
+            message: Strings.Sync.deviceRestoreDetectedMessage,
+            preferredStyle: .alert
+          )
+          alert.addAction(
+            .init(title: Strings.Sync.deviceRestoreResetActionTitle, style: .default) {
+              [weak self] _ in
+              self?.profileController.syncAPI.resetSyncChain()
+            }
+          )
 
-        alert.addAction(.init(title: Strings.CancelString, style: .destructive))
-        self.present(alert, animated: true)
-      }
+          alert.addAction(.init(title: Strings.CancelString, style: .destructive))
+          self.present(alert, animated: true)
+        }
+      } catch {}
     }
 
     checkCrashRestorationOrSetupTabs()
@@ -1408,15 +1409,13 @@ public class BrowserViewController: UIViewController {
   public override func viewIsAppearing(_ animated: Bool) {
     super.viewIsAppearing(animated)
 
-    if #available(iOS 17, *) {
-      // Have to defer this to the next cycle to avoid an iOS bug which lays out the toolbars without any
-      // bottom safe area, resulting in a layout bug.
-      DispatchQueue.main.async {
-        // On iOS 17 rotating the device with a full screen modal presented (e.g. Playlist, Tab Tray)
-        // to landscape then back to portrait does not trigger `traitCollectionDidChange`/`willTransition`/etc
-        // calls and so the toolbar remains in the wrong state.
-        self.updateToolbarStateForTraitCollection(self.traitCollection)
-      }
+    // Have to defer this to the next cycle to avoid an iOS bug which lays out the toolbars without any
+    // bottom safe area, resulting in a layout bug.
+    DispatchQueue.main.async {
+      // On iOS 17 rotating the device with a full screen modal presented (e.g. Playlist, Tab Tray)
+      // to landscape then back to portrait does not trigger `traitCollectionDidChange`/`willTransition`/etc
+      // calls and so the toolbar remains in the wrong state.
+      self.updateToolbarStateForTraitCollection(self.traitCollection)
     }
 
     // Present Onboarding to new users, existing users will not see the onboarding
@@ -1531,13 +1530,17 @@ public class BrowserViewController: UIViewController {
 
   override public func updateViewConstraints() {
     readerModeBar?.snp.remakeConstraints { make in
+      var insets: UIEdgeInsets = .zero
+      if #available(iOS 26, *) {
+        insets = UIEdgeInsets(equalInset: 8)
+      }
       if self.isUsingBottomBar {
         make.top.equalTo(self.view.safeArea.top)
       } else {
-        make.top.equalTo(self.header.snp.bottom)
+        make.top.equalTo(self.header.snp.bottom).offset(insets.top)
       }
       make.height.equalTo(UIConstants.toolbarHeight)
-      make.leading.trailing.equalTo(self.view)
+      make.leading.trailing.equalTo(self.view).inset(insets)
     }
 
     if let screenTimeViewController = screenTimeViewController,
@@ -2507,37 +2510,10 @@ extension BrowserViewController: PresentingModalViewControllerDelegate {
 }
 
 extension BrowserViewController: TabsBarViewControllerDelegate {
-  func tabsBarDidSelectAddNewTab(_ isPrivate: Bool) {
-    recordCreateTabAction(location: .toolbar)
-    // if user is switching from regular to private browsing, pin is required
-    if !privateBrowsingManager.isPrivateBrowsing,
-      isPrivate,
-      Preferences.Privacy.privateBrowsingLock.value
-    {
-      self.askForLocalAuthentication { [weak self] success, error in
-        if success {
-          self?.openBlankNewTab(
-            attemptLocationFieldFocus: Preferences.General.openKeyboardOnNTPSelection.value,
-            isPrivate: isPrivate
-          )
-        }
-      }
-    } else {
-      self.openBlankNewTab(
-        attemptLocationFieldFocus: Preferences.General.openKeyboardOnNTPSelection.value,
-        isPrivate: isPrivate
-      )
-    }
-  }
-
   func tabsBarDidSelectTab(_ tabsBarController: TabsBarViewController, _ tab: some TabState) {
     if tab === tabManager.selectedTab { return }
     dismissSearchInput()
     tabManager.selectTab(tab)
-  }
-
-  func tabsBarDidLongPressAddTab(_ tabsBarController: TabsBarViewController, button: UIButton) {
-    // The actions are carried to menu actions for Tab-Tray Button
   }
 
   func tabsBarDidChangeReaderModeVisibility(_ isHidden: Bool = true) {
@@ -2553,10 +2529,6 @@ extension BrowserViewController: TabsBarViewControllerDelegate {
     default:
       break
     }
-  }
-
-  func tabsBarDidSelectAddNewWindow(_ isPrivate: Bool) {
-    self.openInNewWindow(url: nil, isPrivate: isPrivate)
   }
 }
 

@@ -178,6 +178,12 @@ class MockConversationHandlerClient : public mojom::ConversationUI {
               (std::vector<mojom::AssociatedContentPtr>),
               (override));
 
+  MOCK_METHOD(void,
+              OnContentToolsChanged,
+              (const std::string& content_uuid,
+               std::vector<mojom::ToolInfoPtr> tools),
+              (override));
+
   MOCK_METHOD(void, OnConversationDeleted, (), (override));
 
  private:
@@ -279,7 +285,8 @@ class AIChatServiceUnitTest : public testing::Test,
             &url_loader_factory_);
 
     model_service_ = std::make_unique<ModelService>(
-        &prefs_, os_crypt_.get(), network::NetworkContextGetter());
+        &prefs_, os_crypt_.get(), network::NetworkContextGetter(),
+        /*url_loader_factory=*/nullptr, base::FilePath());
     tab_tracker_service_ = std::make_unique<TabTrackerService>();
 
     CreateService();
@@ -529,18 +536,17 @@ TEST_P(AIChatServiceUnitTest,
                     base::OnceCallback<void(
                         base::expected<EngineConsumer::GenerationResultData,
                                        EngineConsumer::Error>)> done_callback) {
-        resolve =
-            base::BindOnce(
-                [](base::OnceCallback<void(
-                       base::expected<EngineConsumer::GenerationResultData,
-                                      EngineConsumer::Error>)> done_callback) {
-                  std::move(done_callback)
-                      .Run(base::ok(EngineConsumer::GenerationResultData(
-                          mojom::ConversationEntryEvent::NewCompletionEvent(
-                              mojom::CompletionEvent::New("")),
-                          std::nullopt /* model_key */)));
-                },
-                std::move(done_callback));
+        resolve = base::BindOnce(
+            [](base::OnceCallback<void(
+                   base::expected<EngineConsumer::GenerationResultData,
+                                  EngineConsumer::Error>)> done_callback) {
+              std::move(done_callback)
+                  .Run(base::ok(EngineConsumer::GenerationResultData(
+                      mojom::ConversationEntryEvent::NewCompletionEvent(
+                          mojom::CompletionEvent::New("")),
+                      std::nullopt /* model_key */)));
+            },
+            std::move(done_callback));
       });
 
   // Conversation should exist in memory.
@@ -1434,6 +1440,86 @@ TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_CacheTopics) {
   TestGetSuggestedTopics(topics2);
 }
 
+TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_ModelChangeDropsCache) {
+  ai_chat_service_->SetTabOrganizationEngineForTesting(
+      std::make_unique<testing::NiceMock<ai_chat::MockEngineConsumer>>());
+  auto* engine = static_cast<MockEngineConsumer*>(
+      ai_chat_service_->GetTabOrganizationEngineForTesting());
+
+  std::vector<std::string> topics1{"topic1"};
+  EXPECT_CALL(*engine, GetSuggestedTopics(_, _))
+      .WillOnce(base::test::RunOnceCallback<1>(topics1));
+
+  TestGetSuggestedTopics(topics1);
+  TestGetSuggestedTopics(topics1);
+
+  // Topics describe what one model made of the tabs, so picking a different
+  // model for tab focus has to ask again rather than reuse them.
+  prefs_.SetString(prefs::kBraveAIChatTabOrganizationModelKey,
+                   kClaudeSonnetModelKey);
+
+  ai_chat_service_->SetTabOrganizationEngineForTesting(
+      std::make_unique<testing::NiceMock<ai_chat::MockEngineConsumer>>());
+  auto* new_engine = static_cast<MockEngineConsumer*>(
+      ai_chat_service_->GetTabOrganizationEngineForTesting());
+  std::vector<std::string> topics2{"topic2"};
+  EXPECT_CALL(*new_engine, GetSuggestedTopics(_, _))
+      .WillOnce(base::test::RunOnceCallback<1>(topics2));
+
+  TestGetSuggestedTopics(topics2);
+}
+
+TEST_P(AIChatServiceUnitTest,
+       GetSuggestedTopics_SendPageContentChangeDropsCache) {
+  ai_chat_service_->SetTabOrganizationEngineForTesting(
+      std::make_unique<testing::NiceMock<ai_chat::MockEngineConsumer>>());
+  auto* engine = static_cast<MockEngineConsumer*>(
+      ai_chat_service_->GetTabOrganizationEngineForTesting());
+
+  std::vector<std::string> topics1{"topic1"};
+  std::vector<std::string> topics2{"topic2"};
+  EXPECT_CALL(*engine, GetSuggestedTopics(_, _))
+      .WillOnce(base::test::RunOnceCallback<1>(topics1))
+      .WillOnce(base::test::RunOnceCallback<1>(topics2));
+
+  TestGetSuggestedTopics(topics1);
+  TestGetSuggestedTopics(topics1);
+
+  // Whether page excerpts went out is part of what the model was asked, so
+  // changing it has to ask again rather than reuse the previous answer.
+  prefs_.SetBoolean(prefs::kBraveAIChatTabOrganizationSendPageContent, true);
+
+  TestGetSuggestedTopics(topics2);
+}
+
+// Page excerpts arrive from background indexing, which is neither a pref
+// change nor a tab list change, so the cache has to notice them itself.
+TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_PassagesArrivingDropCache) {
+  ai_chat_service_->SetTabOrganizationEngineForTesting(
+      std::make_unique<testing::NiceMock<ai_chat::MockEngineConsumer>>());
+  auto* engine = static_cast<MockEngineConsumer*>(
+      ai_chat_service_->GetTabOrganizationEngineForTesting());
+
+  std::vector<std::string> title_only_topics{"from the title"};
+  std::vector<std::string> content_topics{"from the page text"};
+  EXPECT_CALL(*engine, GetSuggestedTopics(_, _))
+      .WillOnce(base::test::RunOnceCallback<1>(title_only_topics))
+      .WillOnce(base::test::RunOnceCallback<1>(content_topics));
+
+  // The same tab either way: only its passages differ.
+  std::vector<Tab> before_indexing{{"id", "title", url::Origin()}};
+  std::vector<Tab> after_indexing{
+      {"id", "title", url::Origin(), {"an indexed excerpt"}}};
+
+  TestGetSuggestedTopics(title_only_topics, before_indexing);
+  // Still nothing indexed, so the answer is reused rather than asked again.
+  TestGetSuggestedTopics(title_only_topics, before_indexing);
+  // Passages showed up, so ask again instead of serving the title-only topics.
+  TestGetSuggestedTopics(content_topics, after_indexing);
+  // And the new count is what gets cached, so this one is reused too.
+  TestGetSuggestedTopics(content_topics, after_indexing);
+}
+
 TEST_P(AIChatServiceUnitTest, GetSuggestedTopics_EmptyTabs) {
   base::RunLoop run_loop;
   ai_chat_service_->GetSuggestedTopics(
@@ -1544,19 +1630,16 @@ TEST_P(AIChatServiceUnitTest, TemporaryConversation_NoDatabaseInteraction) {
   testing::Mock::VerifyAndClearExpectations(mock_db_ptr);
 }
 
-TEST_P(AIChatServiceUnitTest,
-       GetDefaultAIEngineFallsBackToConfiguredDefaultWhenStale) {
-  base::test::ScopedFeatureList feature_list;
-  feature_list.InitAndEnableFeatureWithParameters(
-      features::kAIChat,
-      {{features::kAIModelsDefaultKey.name, kClaudeHaikuModelKey}});
-
+TEST_P(AIChatServiceUnitTest, GetDefaultAIEngineFallsBackToAutomaticWhenStale) {
   model_service_->SetDefaultModelKeyWithoutValidationForTesting(
       "this-model-key-does-not-exist");
 
   auto engine = ai_chat_service_->GetDefaultAIEngine();
   ASSERT_TRUE(engine);
-  EXPECT_EQ(engine->GetModelName(), kClaudeHaikuModelName);
+  auto expected_name =
+      model_service_->GetLeoModelNameByKey(kChatAutomaticModelKey);
+  ASSERT_TRUE(expected_name.has_value());
+  EXPECT_EQ(engine->GetModelName(), expected_name.value());
 }
 
 TEST_P(AIChatServiceUnitTest,

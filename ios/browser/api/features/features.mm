@@ -26,7 +26,9 @@
 #include "brave/components/serp_metrics/serp_metrics_feature.h"
 #include "brave/components/skus/common/features.h"
 #include "brave/ios/browser/api/translate/features.h"
+#include "brave/ios/browser/most_visited_sites/features.h"
 #include "brave/ios/browser/playlist/features.h"
+#include "brave/ios/browser/toolbar/features.h"
 #include "brave/ios/browser/ui/commerce/features.h"
 #include "brave/ios/browser/ui/quick_view/features.h"
 #include "brave/ios/browser/ui/web_view/features.h"
@@ -161,12 +163,6 @@
                                               kBraveNTPBrandedWallpaper];
 }
 
-+ (Feature*)kBraveNTPBrandedWallpaperSurveyPanelist {
-  return [[Feature alloc]
-      initWithFeature:&ntp_background_images::features::
-                          kBraveNTPBrandedWallpaperSurveyPanelist];
-}
-
 + (Feature*)kBraveNewsCardPeekFeature {
   return [[Feature alloc]
       initWithFeature:&brave_news::features::kBraveNewsCardPeekFeature];
@@ -215,6 +211,12 @@
 + (Feature*)kBraveIOSEnableFarblingPlugins {
   return [[Feature alloc]
       initWithFeature:&brave_shields::features::kBraveIOSEnableFarblingPlugins];
+}
+
++ (Feature*)kTransitionToUpstreamHttpsUpgrades {
+  return
+      [[Feature alloc] initWithFeature:&brave_shields::features::
+                                           kTransitionToUpstreamHttpsUpgrades];
 }
 
 + (Feature*)kBraveShowStrictFingerprintingMode {
@@ -368,6 +370,11 @@
                                            kWebKitAdvancedPrivacyProtections];
 }
 
++ (Feature*)kWebKitGlobalPrivacyControl {
+  return [[Feature alloc]
+      initWithFeature:&brave_shields::features::kWebKitGlobalPrivacyControl];
+}
+
 + (Feature*)kBraveOrigin {
   return
       [[Feature alloc] initWithFeature:&brave_origin::features::kBraveOrigin];
@@ -398,6 +405,16 @@
 + (Feature*)kPlaylistCacheFirstEnabled {
   return [[Feature alloc]
       initWithFeature:&playlist::features::kPlaylistCacheFirstEnabled];
+}
+
++ (Feature*)kTopsitesEnabled {
+  return
+      [[Feature alloc] initWithFeature:&topsites::features::kTopsitesEnabled];
+}
+
++ (Feature*)kBrowserToolbarRefactorEnabled {
+  return [[Feature alloc]
+      initWithFeature:&brave::features::kBrowserToolbarRefactorEnabled];
 }
 
 @end

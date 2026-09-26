@@ -1,8 +1,8 @@
 diff --git a/build/config/siso/main.star b/build/config/siso/main.star
-index b66a7091dad7610374b1fdabfd7d30ef536954d4..c76cb4cfe6582a2b7424d4c8a1df5272943c7d1a 100644
+index 7c05ef5591e491ee9d0afd7c8951f63b47ef9704..1c9e60d33c654cb23dcbb5b2a26d0180eea5f50c 100644
 --- a/build/config/siso/main.star
 +++ b/build/config/siso/main.star
-@@ -23,6 +23,7 @@ load("./rust.star", "rust")
+@@ -24,6 +24,7 @@ load("./rust.star", "rust")
  load("./simple.star", "simple")
  load("./typescript_all.star", "typescript_all")
  load("./windows.star", chromium_windows = "chromium")
@@ -10,7 +10,7 @@ index b66a7091dad7610374b1fdabfd7d30ef536954d4..c76cb4cfe6582a2b7424d4c8a1df5272
  
  def __setup_python(ctx, step_config):
      for rule in step_config["rules"]:
-@@ -122,6 +123,7 @@ def init(ctx):
+@@ -139,6 +140,7 @@ def init(ctx):
      handlers.update(reclient.handlers)
      handlers.update(typescript_all.handlers)
  

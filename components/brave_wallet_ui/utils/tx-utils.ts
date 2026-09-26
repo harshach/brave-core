@@ -45,7 +45,7 @@ import { getAccountLabel, getAddressLabel } from './account-utils'
 import { makeSerializableTimeDelta } from './model-serialization-utils'
 import {
   NetworksRegistry,
-  networkEntityAdapter,
+  networkSelectors,
 } from '../common/slices/entities/network.entity'
 import { Uint128ToBigInt } from './polkadot-utils'
 
@@ -305,6 +305,18 @@ export function isPolkadotTransaction(
   return tx.txDataUnion.polkadotTxData !== undefined
 }
 
+export function isPolkadotAssetTransaction(
+  tx?: Pick<TransactionInfo, 'txDataUnion'>,
+): tx is PolkadotTransactionInfo & {
+  txDataUnion: { polkadotTxData: { assetId: BraveWallet.PolkadotAssetId } }
+} {
+  return (
+    isPolkadotTransaction(tx)
+    // Mojo optional fields decode as null when unset, not undefined.
+    && tx.txDataUnion.polkadotTxData.assetId != null
+  )
+}
+
 export const getTransactionNonce = (tx: TransactionInfo): string => {
   // Handle EIP1559 transactions
   if (tx.txDataUnion?.ethTxData1559?.baseData.nonce) {
@@ -515,6 +527,20 @@ export const findTransactionToken = <
     return undefined
   }
 
+  // Polkadot asset transfer: resolve the asset token by its id. DOT asset user
+  // tokens are keyed by their (decimal) asset id as the contract address (see
+  // GetUserAssetAddress). Unlike every other coin's contract address, an asset
+  // id is only unique within a chain, so match on the chain and coin too.
+  if (isPolkadotAssetTransaction(tx)) {
+    const assetId = String(tx.txDataUnion.polkadotTxData.assetId.id)
+    return tokensList.find(
+      (t) =>
+        t.contractAddress === assetId
+        && t.chainId === tx.chainId
+        && t.coin === tx.fromAccountId.coin,
+    )
+  }
+
   // Native Asset Send
   if (
     tx.txType === BraveWallet.TransactionType.SolanaSystemTransfer
@@ -593,25 +619,19 @@ export const parseSwapInfo = ({
   }
 
   // Extract source network and native asset
-  const sourceNetwork =
-    networksRegistry?.entities[
-      networkEntityAdapter.selectId({
-        chainId: swapInfo.sourceChainId,
-        coin: swapInfo.sourceCoin,
-      })
-    ]
+  const sourceNetwork = networkSelectors.selectById(
+    networksRegistry,
+    swapInfo.sourceChainId,
+  )
   const sourceNativeAsset = sourceNetwork
     ? makeNetworkAsset(sourceNetwork)
     : undefined
 
   // Extract destination network and native asset
-  const destinationNetwork =
-    networksRegistry?.entities[
-      networkEntityAdapter.selectId({
-        chainId: swapInfo.destinationChainId,
-        coin: swapInfo.destinationCoin,
-      })
-    ]
+  const destinationNetwork = networkSelectors.selectById(
+    networksRegistry,
+    swapInfo.destinationChainId,
+  )
   const destinationNativeAsset = destinationNetwork
     ? makeNetworkAsset(destinationNetwork)
     : undefined
@@ -873,6 +893,15 @@ export function getTransactionTransferredValue(
 
   // Cardano Send Token
   if (isCardanoSendTokenTransaction(tx)) {
+    const wei = new Amount(getTransactionBaseValue(tx))
+    return {
+      wei,
+      normalized: wei.divideByDecimals(token?.decimals ?? txNetwork.decimals),
+    }
+  }
+
+  // Polkadot Asset Transfer
+  if (isPolkadotAssetTransaction(tx)) {
     const wei = new Amount(getTransactionBaseValue(tx))
     return {
       wei,
@@ -1380,8 +1409,9 @@ export const accountHasInsufficientFundsForTransaction = ({
     return false
   }
 
-  // SPL
-  if (isSolanaSplTransaction(tx)) {
+  // SPL and Polkadot asset sends. The fee is paid in the native token, so it
+  // must not be added to the amount or compared against the token balance.
+  if (isSolanaSplTransaction(tx) || isPolkadotAssetTransaction(tx)) {
     return (
       accountTokenBalance !== ''
       && new Amount(getTransactionBaseValue(tx)).gt(accountTokenBalance)
@@ -1438,6 +1468,7 @@ export function getTransactionTransferredToken({
     || tx.txType === BraveWallet.TransactionType.ERC721SafeTransferFrom
     || isSolanaSplTransaction(tx)
     || isCardanoSendTokenTransaction(tx)
+    || isPolkadotAssetTransaction(tx)
   ) {
     return token
   }
@@ -1473,6 +1504,7 @@ export function getTransactionTokenSymbol({
     || tx.txType === BraveWallet.TransactionType.ERC721SafeTransferFrom
     || isSolanaSplTransaction(tx)
     || isCardanoSendTokenTransaction(tx)
+    || isPolkadotAssetTransaction(tx)
   ) {
     return token?.symbol || ''
   }
@@ -1536,8 +1568,8 @@ export const getTransactionIntent = ({
       : getLocale(S.BRAVE_WALLET_TRANSACTION_INTENT_DAPP_INTERACTION)
   }
 
-  // SPL
-  if (isSolanaSplTransaction(tx)) {
+  // SPL or Polkadot Asset
+  if (isSolanaSplTransaction(tx) || isPolkadotAssetTransaction(tx)) {
     return getLocale(S.BRAVE_WALLET_TRANSACTION_INTENT_SEND).replace(
       '$1',
       new Amount(normalizedTransferredValue).formatAsAsset(6, token?.symbol),
@@ -1783,8 +1815,7 @@ export const getTransactionFiatValues = ({
     }
   }
 
-  // SPL
-  if (isSolanaSplTransaction(tx)) {
+  if (isSolanaSplTransaction(tx) || isPolkadotAssetTransaction(tx)) {
     const price = token
       ? getTokenPriceAmountFromRegistry(spotPrices, token)
       : Amount.empty()

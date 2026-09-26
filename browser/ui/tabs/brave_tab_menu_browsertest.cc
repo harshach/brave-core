@@ -6,16 +6,15 @@
 #include <memory>
 
 #include "brave/browser/ui/tabs/brave_tab_menu_model.h"
-#include "brave/browser/ui/tabs/brave_tab_menu_model_factory.h"
 #include "brave/browser/ui/views/tabs/brave_browser_tab_strip_controller.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/split_tab_menu_model.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
+#include "chrome/browser/ui/tabs/tab_menu_model_delegate.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/tabs/browser_tab_strip_controller.h"
 #include "chrome/browser/ui/views/tabs/tab/tab_context_menu_controller.h"
@@ -56,11 +55,9 @@ class BraveTabMenuBrowserTest : public InProcessBrowserTest {
   ui::SimpleMenuModel* CreateMenuModelAt(
       TabContextMenuController* context_menu_controller,
       int tab_index) {
-    brave::BraveTabMenuModelFactory factory;
-    auto model =
-        factory.Create(context_menu_controller,
-                       browser()->GetFeatures().tab_menu_model_delegate(),
-                       browser()->tab_strip_model(), tab_index);
+    auto model = std::make_unique<BraveTabMenuModel>(
+        context_menu_controller, TabMenuModelDelegate::From(browser()),
+        browser()->tab_strip_model(), tab_index);
 
     auto* model_ptr = model.get();
     context_menu_controller->LoadModel(std::move(model));
@@ -478,6 +475,19 @@ IN_PROC_BROWSER_TEST_F(BraveTabMenuBrowserTest,
         << "Case 3: CommandSwapWithActiveSplit should be last before first "
            "separator";
   }
+}
+
+IN_PROC_BROWSER_TEST_F(BraveTabMenuBrowserTest,
+                       UpstreamVerticalTabsToggleIsNotDuplicated) {
+  auto menu = CreateMenuControllerAt(0);
+  auto* menu_model = CreateMenuModelAt(menu.get(), 0);
+
+  EXPECT_TRUE(
+      menu_model->GetIndexOfCommandId(TabStripModel::CommandShowVerticalTabs)
+          .has_value());
+  EXPECT_FALSE(
+      menu_model->GetIndexOfCommandId(TabStripModel::CommandToggleVertical)
+          .has_value());
 }
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
