@@ -32,6 +32,11 @@ gfx::Rect CalculateTemporaryLinkWindowBounds(const gfx::Rect& anchor_bounds);
 // Returns the stable web-content canvas below the temporary-link header.
 gfx::Rect CalculateTemporaryLinkContentBounds(const gfx::Rect& client_bounds);
 
+// Returns whether ConfigureNavigation() will send `url` to a window it picks
+// and shows, rather than leave it in `fallback_browser`.
+bool RoutesNavigation(const GURL& url,
+                      BrowserWindowInterface* fallback_browser);
+
 // Routes an operating-system link directly to a mapped Space, or to the
 // profile's single ephemeral link window when no mapping exists.
 void ConfigureNavigation(const GURL& url,

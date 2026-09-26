@@ -24,10 +24,13 @@ int BraveNonClientHitTestHelper::NonClientHitTest(
   }
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The toolbar stays a caption area while hidden, but the page drawn over its
+  // strip must get the click rather than start a window drag.
   if (auto* brave_browser_view = BraveBrowserView::From(browser_view);
       brave_browser_view &&
-      brave_browser_view->IsPointInOriginTemporaryLinkHeader(
-          point_in_widget)) {
+      (brave_browser_view->IsPointInOriginTemporaryLinkHeader(
+           point_in_widget) ||
+       brave_browser_view->IsPointInOriginPageUnderTopBar(point_in_widget))) {
     return HTCLIENT;
   }
 #endif

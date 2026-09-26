@@ -123,6 +123,8 @@ class BraveBrowserView : public BrowserView,
       std::optional<ui::KeyboardCode> activation_key = std::nullopt);
   bool IsPointInOriginTemporaryLinkHeader(
       const gfx::Point& point_in_widget) const;
+  // True where the page has taken over the strip of a hidden top bar.
+  bool IsPointInOriginPageUnderTopBar(const gfx::Point& point_in_widget);
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a

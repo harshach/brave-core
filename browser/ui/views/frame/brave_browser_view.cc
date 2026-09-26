@@ -2084,6 +2084,29 @@ bool BraveBrowserView::IsPointInOriginTemporaryLinkHeader(
   return false;
 }
 
+bool BraveBrowserView::IsPointInOriginPageUnderTopBar(
+    const gfx::Point& point_in_widget) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* origin_toolbar = views::AsViewClass<BraveToolbarView>(toolbar());
+  views::View* contents = contents_container();
+  if (browser()->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL ||
+      !origin_toolbar ||
+      origin_toolbar->origin_page_chrome_reveal_fraction() >= 1.0 ||
+      !contents || !contents->GetVisible() || !top_container() ||
+      top_container()->GetWidget() != GetWidget()) {
+    return false;
+  }
+  gfx::Point point_in_contents(point_in_widget);
+  views::View::ConvertPointFromWidget(contents, &point_in_contents);
+  gfx::Point point_in_top_container(point_in_widget);
+  views::View::ConvertPointFromWidget(top_container(), &point_in_top_container);
+  return contents->HitTestPoint(point_in_contents) &&
+         top_container()->HitTestPoint(point_in_top_container);
+#else
+  return false;
+#endif
+}
+
 content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
     const input::NativeWebKeyboardEvent& event) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -2096,11 +2119,25 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
     if (origin_temporary_link_view_) {
       // This runs before the renderer sees the key, so anything claimed here
       // is taken from the page. A temporary window is still a page the user
-      // may want to read, type in, or use site shortcuts on, so only
-      // modified combinations are claimed; every plain key goes through.
+      // may want to read, type in, or use site shortcuts on, so apart from D
+      // only modified combinations are claimed.
       // Escape is deliberately not claimed: the page gets first refusal so it
       // can close its own menus, and BraveBrowserView::AcceleratorPressed
       // discards the window only if the page left it unhandled.
+      if (!has_modifiers && accelerator.key_code() == ui::VKEY_D && contents &&
+          !contents->IsFocusedElementEditable()) {
+        // D closes a page everywhere else in Origin. Discard after the key
+        // event is done with the page it would destroy.
+        base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+            FROM_HERE, base::BindOnce(
+                           [](base::WeakPtr<BraveBrowserView> view) {
+                             if (view && view->origin_temporary_link_view_) {
+                               view->origin_temporary_link_view_->Discard();
+                             }
+                           },
+                           weak_ptr_.GetWeakPtr()));
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
       if (accelerator.modifiers() == ui::EF_PLATFORM_ACCELERATOR) {
         if (accelerator.key_code() >= ui::VKEY_1 &&
             accelerator.key_code() <= ui::VKEY_5 &&

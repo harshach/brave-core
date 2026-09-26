@@ -175,6 +175,14 @@ OriginSpaceController* GetSpaceController(Browser* browser) {
   return browser ? browser->GetFeatures().origin_space_controller() : nullptr;
 }
 
+WorkspaceService* GetRoutingWorkspaceService(const GURL& url,
+                                             Profile* profile) {
+  if (!profile || !url.SchemeIsHTTPOrHTTPS()) {
+    return nullptr;
+  }
+  return WorkspaceServiceFactory::GetForProfile(profile);
+}
+
 }  // namespace
 
 gfx::Rect CalculateTemporaryLinkWindowBounds(
@@ -216,21 +224,24 @@ bool IsTemporaryLinkBrowser(const BrowserWindowInterface* browser) {
          init_state->create_params().app_name == kTemporaryLinkAppName;
 }
 
+bool RoutesNavigation(const GURL& url,
+                      BrowserWindowInterface* fallback_browser) {
+  return fallback_browser &&
+         GetRoutingWorkspaceService(url, fallback_browser->GetProfile());
+}
+
 void ConfigureNavigation(const GURL& url,
                          BrowserWindowInterface* fallback_browser,
                          NavigateParams* params) {
-  if (!params || !url.SchemeIsHTTPOrHTTPS()) {
+  if (!params) {
     return;
   }
   Profile* profile = params->initiating_profile.get();
   if (!profile && fallback_browser) {
     profile = fallback_browser->GetProfile();
   }
-  if (!profile) {
-    return;
-  }
   WorkspaceService* workspace_service =
-      WorkspaceServiceFactory::GetForProfile(profile);
+      GetRoutingWorkspaceService(url, profile);
   if (!workspace_service) {
     return;
   }

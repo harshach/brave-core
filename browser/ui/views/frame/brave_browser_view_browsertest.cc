@@ -45,9 +45,14 @@
 #include "brave/components/constants/pref_names.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "base/command_line.h"
 #include "chrome/browser/extensions/extension_apitest.h"
 #include "chrome/browser/extensions/extension_view_host.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/extensions/extension_action_test_helper.h"
+#include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
+#include "chrome/browser/ui/startup/startup_tab.h"
+#include "chrome/browser/ui/startup/startup_types.h"
 #include "chrome/browser/ui/views/extensions/extension_popup.h"
 #include "extensions/browser/extension_host_test_helper.h"
 #include "extensions/common/mojom/view_type.mojom.h"
@@ -62,8 +67,8 @@
 #include "chrome/browser/ui/browser_init_state.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
-#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_bubble_type.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_context.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
@@ -99,11 +104,12 @@
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
+#include "ui/base/accelerators/accelerator.h"
+#include "ui/base/base_window.h"
 #include "ui/base/hit_test.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
-#include "ui/base/accelerators/accelerator.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
@@ -270,6 +276,43 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_FALSE(toolbar->origin_page_chrome_revealed());
 }
 
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginHiddenTopBarLeavesItsStripToThePage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  ASSERT_TRUE(content::NavigateToURL(
+      browser()->tab_strip_model()->GetActiveWebContents(),
+      embedded_test_server()->GetURL("/title1.html")));
+  browser_view()->contents_web_view()->RequestFocus();
+
+  auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
+  ASSERT_TRUE(toolbar);
+  toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return toolbar->origin_page_chrome_reveal_fraction() == 0.0; }));
+  browser_view()->DeprecatedLayoutImmediately();
+
+  // The middle of the hidden bar's strip, which the page now covers.
+  const gfx::Rect strip =
+      toolbar->ConvertRectToWidget(toolbar->GetLocalBounds());
+  const gfx::Rect page = contents_container()->ConvertRectToWidget(
+      contents_container()->GetLocalBounds());
+  const gfx::Point point(page.CenterPoint().x(), strip.CenterPoint().y());
+  ASSERT_TRUE(strip.Contains(point));
+  ASSERT_TRUE(page.Contains(point));
+
+  // A caption hit here would turn every click on the page into a window drag.
+  views::Widget* widget = browser_view()->GetWidget();
+  auto* frame_view = widget->non_client_view()->frame_view();
+  ASSERT_TRUE(frame_view);
+  gfx::Point point_in_frame(point);
+  views::View::ConvertPointFromWidget(frame_view, &point_in_frame);
+  EXPECT_EQ(HTCLIENT, frame_view->NonClientHitTest(point_in_frame));
+
+  views::View* target = widget->GetRootView()->GetEventHandlerForPoint(point);
+  ASSERT_TRUE(target);
+  EXPECT_TRUE(contents_container()->Contains(target)) << target->GetClassName();
+}
+
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
   ASSERT_TRUE(origin_quick_open_view());
   EXPECT_FALSE(origin_quick_open_view()->GetVisible());
@@ -433,10 +476,10 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
       [&] { return !temporary_contents->IsFocusedElementEditable(); }));
 
   // A temporary window is still a page the user may want to work in, so plain
-  // keys reach it even with nothing editable focused. Claiming them here would
-  // take Enter, Escape and every single-letter site shortcut from the page.
-  for (const auto key_code : {ui::VKEY_D, ui::VKEY_S, ui::VKEY_R, ui::VKEY_1,
-                              ui::VKEY_RETURN, ui::VKEY_ESCAPE}) {
+  // keys other than D reach it even with nothing editable focused. Claiming
+  // them here would take Enter, Escape and single-letter site shortcuts.
+  for (const auto key_code :
+       {ui::VKEY_S, ui::VKEY_R, ui::VKEY_1, ui::VKEY_RETURN, ui::VKEY_ESCAPE}) {
     plain_event.windows_key_code = key_code;
     EXPECT_EQ(content::KeyboardEventProcessingResult::NOT_HANDLED,
               temporary_view->PreHandleKeyboardEvent(plain_event))
@@ -458,6 +501,63 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
       temporary_browser->GetWeakPtr();
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             temporary_view->PreHandleKeyboardEvent(keep_event));
+  EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
+}
+
+// The main window may sit on another macOS desktop. An OS link goes to the
+// temporary window, so showing the main window too would switch desktops.
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginExternalLinkLeavesMainWindowAlone) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL url = embedded_test_server()->GetURL("/title1.html");
+  // Hidden, so anything that shows it again is observable.
+  browser()->GetWindow()->Hide();
+  ASSERT_FALSE(browser()->GetWindow()->IsVisible());
+
+  StartupTabs tabs;
+  tabs.emplace_back(url, /*is_untrusted_launch=*/true);
+  tabs.back().is_origin_external_link = true;
+  const base::CommandLine command_line(base::CommandLine::NO_PROGRAM);
+  StartupBrowserCreatorImpl launch(base::FilePath(), command_line,
+                                   chrome::startup::IsFirstRun::kNo);
+  launch.OpenTabsInBrowser(browser(), chrome::startup::IsProcessStartup::kNo,
+                           tabs, StartupBrowserCreatorImpl::TabOverWrite::kNo);
+
+  EXPECT_FALSE(browser()->GetWindow()->IsVisible());
+  Browser* temporary_browser = nullptr;
+  for (BrowserWindowInterface* candidate : GetAllBrowserWindowInterfaces()) {
+    if (origin_external_link::IsTemporaryLinkBrowser(candidate)) {
+      temporary_browser = candidate->GetBrowserForMigrationOnly();
+    }
+  }
+  ASSERT_TRUE(temporary_browser);
+  EXPECT_TRUE(temporary_browser->GetWindow()->IsVisible());
+  EXPECT_EQ(url, temporary_browser->tab_strip_model()
+                     ->GetActiveWebContents()
+                     ->GetVisibleURL());
+}
+
+// D closes a page in Origin, and the temporary window is no exception.
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTemporaryLinkClosesOnD) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  Browser* temporary_browser =
+      OpenOriginTemporaryLink(embedded_test_server()->GetURL("/title1.html"));
+  ASSERT_TRUE(temporary_browser);
+  content::WebContents* temporary_contents =
+      temporary_browser->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(content::WaitForLoadStop(temporary_contents));
+  ASSERT_FALSE(temporary_contents->IsFocusedElementEditable());
+
+  input::NativeWebKeyboardEvent d_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  d_event.windows_key_code = ui::VKEY_D;
+  base::WeakPtr<BrowserWindowInterface> temporary_browser_weak =
+      temporary_browser->GetWeakPtr();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            BrowserView::GetBrowserViewForBrowser(temporary_browser)
+                ->PreHandleKeyboardEvent(d_event));
   EXPECT_TRUE(base::test::RunUntil([&] { return !temporary_browser_weak; }));
 }
 
