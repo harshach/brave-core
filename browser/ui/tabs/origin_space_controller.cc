@@ -39,6 +39,23 @@ std::string SessionIdKey(SessionID id) {
   return base::NumberToString(id.id());
 }
 
+// The SessionID an entry had in the session file being restored, if the
+// restore passed it along. See kBraveOriginRestoredTabIdKey.
+std::optional<SessionID> RestoredSessionId(
+    const std::map<std::string, std::string>& extra_data,
+    const char* key) {
+  const std::string* value = base::FindOrNull(extra_data, key);
+  int id = 0;
+  if (!value || !base::StringToInt(*value, &id)) {
+    return std::nullopt;
+  }
+  const SessionID session_id = SessionID::FromSerializedValue(id);
+  return session_id.is_valid() ? std::optional<SessionID>(session_id)
+                               : std::nullopt;
+}
+
+bool g_simulate_session_without_space_data = false;
+
 void SetSessionSpaceBackup(PrefService* prefs,
                            const char* pref_name,
                            SessionID session_id,
@@ -362,11 +379,18 @@ bool OriginSpaceController::SelectAdjacentSpace(bool next) {
   return SelectSpace(spaces[target].id);
 }
 
+// static
+void OriginSpaceController::SetSimulateSessionWithoutSpaceDataForTesting(
+    bool simulate) {
+  g_simulate_session_without_space_data = simulate;
+}
+
 void OriginSpaceController::MaybePopulateTabExtraData(
     int index,
     std::map<std::string, std::string>* extra_data) {
   CHECK(extra_data);
-  if (!tab_strip_model_->ContainsIndex(index)) {
+  if (g_simulate_session_without_space_data ||
+      !tab_strip_model_->ContainsIndex(index)) {
     return;
   }
   (*extra_data)[kBraveOriginSpaceIdKey] =
@@ -382,14 +406,30 @@ void OriginSpaceController::MaybeRestoreTabSpace(
   if (restored_space_id &&
       workspace_service_->GetOriginSpace(*restored_space_id)) {
     space_id = *restored_space_id;
-  } else if (const auto* session_helper =
-                 sessions::SessionTabHelper::FromWebContents(
-                     restored_contents)) {
-    std::optional<std::string> backup = GetSessionSpaceBackup(
-        profile_->GetPrefs(), kOriginTabSessionSpacesPref,
-        session_helper->session_id());
-    if (backup && workspace_service_->GetOriginSpace(*backup)) {
-      space_id = std::move(*backup);
+  }
+  // A session file can lack Space data -- older builds lost it whenever the
+  // session was rebuilt -- but every move is also backed up under the tab's
+  // SessionID. The restored tab has a new ID, so look the backup up under the
+  // one it had in the file first.
+  if (space_id.empty()) {
+    if (const std::optional<SessionID> saved_id =
+            RestoredSessionId(extra_data, kBraveOriginRestoredTabIdKey)) {
+      std::optional<std::string> backup = GetSessionSpaceBackup(
+          profile_->GetPrefs(), kOriginTabSessionSpacesPref, *saved_id);
+      if (backup && workspace_service_->GetOriginSpace(*backup)) {
+        space_id = std::move(*backup);
+      }
+    }
+  }
+  if (space_id.empty()) {
+    if (const auto* session_helper =
+            sessions::SessionTabHelper::FromWebContents(restored_contents)) {
+      std::optional<std::string> backup = GetSessionSpaceBackup(
+          profile_->GetPrefs(), kOriginTabSessionSpacesPref,
+          session_helper->session_id());
+      if (backup && workspace_service_->GetOriginSpace(*backup)) {
+        space_id = std::move(*backup);
+      }
     }
   }
   if (space_id.empty()) {
@@ -415,6 +455,9 @@ void OriginSpaceController::MaybeRestoreTabSpace(
 void OriginSpaceController::MaybePopulateWindowExtraData(
     std::map<std::string, std::string>* extra_data) const {
   CHECK(extra_data);
+  if (g_simulate_session_without_space_data) {
+    return;
+  }
   (*extra_data)[kBraveOriginActiveSpaceIdKey] = active_space_id_;
 }
 
@@ -424,8 +467,17 @@ void OriginSpaceController::BeginWindowRestore(
       base::FindOrNull(extra_data, kBraveOriginActiveSpaceIdKey);
   if (!restored_space_id ||
       !workspace_service_->GetOriginSpace(*restored_space_id)) {
-    const std::optional<std::string> backup = GetSessionSpaceBackup(
-        profile_->GetPrefs(), kOriginWindowSessionSpacesPref, window_id_);
+    // As for tabs: prefer the backup under the window's ID in the file.
+    std::optional<std::string> backup;
+    if (const std::optional<SessionID> saved_id =
+            RestoredSessionId(extra_data, kBraveOriginRestoredWindowIdKey)) {
+      backup = GetSessionSpaceBackup(profile_->GetPrefs(),
+                                     kOriginWindowSessionSpacesPref, *saved_id);
+    }
+    if (!backup || !workspace_service_->GetOriginSpace(*backup)) {
+      backup = GetSessionSpaceBackup(
+          profile_->GetPrefs(), kOriginWindowSessionSpacesPref, window_id_);
+    }
     if (backup && workspace_service_->GetOriginSpace(*backup)) {
       restoring_active_space_id_ = *backup;
       active_space_id_ = *backup;
@@ -632,7 +684,7 @@ void OriginSpaceController::WriteTabSessionData(
   SetTabSessionSpaceBackup(profile_->GetPrefs(), contents, space_id);
   SessionService* session_service =
       SessionServiceFactory::GetForProfileIfExisting(profile_);
-  if (!session_service) {
+  if (!session_service || g_simulate_session_without_space_data) {
     return;
   }
   session_service->AddTabExtraData(window_id_, session_helper->session_id(),
@@ -644,7 +696,7 @@ void OriginSpaceController::WriteWindowSessionData() {
                         window_id_, active_space_id_);
   SessionService* session_service =
       SessionServiceFactory::GetForProfileIfExisting(profile_);
-  if (!session_service) {
+  if (!session_service || g_simulate_session_without_space_data) {
     return;
   }
   session_service->AddWindowExtraData(window_id_, kBraveOriginActiveSpaceIdKey,

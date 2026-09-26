@@ -33,4 +33,13 @@ inline constexpr char kBraveOriginSpaceIdKey[] = "brave_origin_space_id";
 inline constexpr char kBraveOriginActiveSpaceIdKey[] =
     "brave_origin_active_space_id";
 
+// Set in memory while a session is being restored and never written back: the
+// SessionIDs a tab and its window had in the session file. Restored tabs and
+// windows get new IDs, so these are the only link to the Space backups that
+// were recorded under the old ones.
+inline constexpr char kBraveOriginRestoredTabIdKey[] =
+    "brave_origin_restored_tab_id";
+inline constexpr char kBraveOriginRestoredWindowIdKey[] =
+    "brave_origin_restored_window_id";
+
 #endif  // BRAVE_BROWSER_SESSIONS_BRAVE_SESSION_KEYS_H_

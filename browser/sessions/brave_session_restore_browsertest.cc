@@ -188,48 +188,84 @@ class BraveOriginSpaceRelaunchBrowserTest
     return nullptr;
   }
 
+  // One page in the first Space, one in the second with the second selected,
+  // then the full session rebuild that used to drop Space data.
+  void ArrangePagesInTwoSpaces() {
+    ASSERT_TRUE(controller());
+    ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
+    const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
+    const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
+
+    ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), kFirstSpacePage));
+    ASSERT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
+        browser(), kSecondSpacePage, WindowOpenDisposition::NEW_FOREGROUND_TAB,
+        ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
+    content::WebContents* second = FindTab(kSecondSpacePage);
+    ASSERT_TRUE(second);
+    controller()->MoveTabToSpace(second, second_space);
+    ASSERT_TRUE(controller()->SelectSpace(second_space));
+    ASSERT_EQ(first_space,
+              controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
+    ASSERT_EQ(second_space, controller()->GetSpaceIdForTab(second));
+
+    SessionServiceFactory::GetForProfile(browser()->GetProfile())
+        ->ResetFromCurrentBrowsers();
+  }
+
+  void ExpectPagesBackInTheirSpaces() {
+    ASSERT_TRUE(controller());
+    ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
+    const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
+    const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
+
+    ASSERT_TRUE(base::test::RunUntil([&] {
+      return FindTab(kFirstSpacePage) && FindTab(kSecondSpacePage);
+    })) << "the previous session was not restored";
+    EXPECT_EQ(first_space,
+              controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
+    EXPECT_EQ(second_space,
+              controller()->GetSpaceIdForTab(FindTab(kSecondSpacePage)));
+    EXPECT_EQ(second_space, controller()->active_space_id());
+  }
+
   const GURL kFirstSpacePage{"brave://version/"};
   const GURL kSecondSpacePage{"brave://history/"};
 };
 
 IN_PROC_BROWSER_TEST_F(BraveOriginSpaceRelaunchBrowserTest,
                        PRE_PagesReturnToTheirSpacesAfterRelaunch) {
-  ASSERT_TRUE(controller());
-  ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
-  const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
-  const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
-
-  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), kFirstSpacePage));
-  ASSERT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
-      browser(), kSecondSpacePage, WindowOpenDisposition::NEW_FOREGROUND_TAB,
-      ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
-  content::WebContents* second = FindTab(kSecondSpacePage);
-  ASSERT_TRUE(second);
-  controller()->MoveTabToSpace(second, second_space);
-  ASSERT_TRUE(controller()->SelectSpace(second_space));
-  ASSERT_EQ(first_space,
-            controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
-  ASSERT_EQ(second_space, controller()->GetSpaceIdForTab(second));
-
-  SessionServiceFactory::GetForProfile(browser()->GetProfile())
-      ->ResetFromCurrentBrowsers();
+  ArrangePagesInTwoSpaces();
 }
 
 IN_PROC_BROWSER_TEST_F(BraveOriginSpaceRelaunchBrowserTest,
                        PagesReturnToTheirSpacesAfterRelaunch) {
-  ASSERT_TRUE(controller());
-  ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
-  const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
-  const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
+  ExpectPagesBackInTheirSpaces();
+}
 
-  ASSERT_TRUE(base::test::RunUntil([&] {
-    return FindTab(kFirstSpacePage) && FindTab(kSecondSpacePage);
-  })) << "the previous session was not restored";
-  EXPECT_EQ(first_space,
-            controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
-  EXPECT_EQ(second_space,
-            controller()->GetSpaceIdForTab(FindTab(kSecondSpacePage)));
-  EXPECT_EQ(second_space, controller()->active_space_id());
+// A session file can arrive with no Space data in it at all -- builds before
+// the rebuild fix lost it whenever the session was rewritten -- while the
+// backups still record where every page was, under the tab and window IDs in
+// that file. Restored pages get new IDs, so recovery depends on looking the
+// backups up under the old ones.
+class BraveOriginSpaceBackupRelaunchBrowserTest
+    : public BraveOriginSpaceRelaunchBrowserTest {
+ protected:
+  void TearDown() override {
+    OriginSpaceController::SetSimulateSessionWithoutSpaceDataForTesting(false);
+    BraveOriginSpaceRelaunchBrowserTest::TearDown();
+  }
+};
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceBackupRelaunchBrowserTest,
+                       PRE_PagesRecoverTheirSpacesFromBackups) {
+  // Left on through shutdown, which can write the session one last time.
+  OriginSpaceController::SetSimulateSessionWithoutSpaceDataForTesting(true);
+  ArrangePagesInTwoSpaces();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceBackupRelaunchBrowserTest,
+                       PagesRecoverTheirSpacesFromBackups) {
+  ExpectPagesBackInTheirSpaces();
 }
 #endif
 

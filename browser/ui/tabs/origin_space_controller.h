@@ -88,6 +88,10 @@ class OriginSpaceController : public TabStripModelObserver,
   void MaybeRestoreTabSpace(
       content::WebContents* restored_contents,
       const std::map<std::string, std::string>& extra_data);
+  // Leaves Space data out of the session file while still recording the
+  // backups, as builds that lost it on every session rebuild did.
+  static void SetSimulateSessionWithoutSpaceDataForTesting(bool simulate);
+
   void MaybePopulateWindowExtraData(
       std::map<std::string, std::string>* extra_data) const;
   void BeginWindowRestore(const std::map<std::string, std::string>& extra_data);
