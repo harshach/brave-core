@@ -91,3 +91,14 @@ gh workflow run origin-build-macos.yml \
 ```
 
 Use `architecture=X64` for the Intel macOS package.
+
+## Arch Linux
+
+`installer/linux/arch/PKGBUILD` repackages the Linux `.deb` from a GitHub
+Release as `socket-bin`. After publishing a new `.deb`, update `_tag`,
+`pkgver`, and `sha256sums`, then run `makepkg` on an x86_64 Arch system and
+attach the resulting `.pkg.tar.zst` to the same release. Users install it with
+`sudo pacman -U <url>`.
+
+The package launches through `/usr/bin/socket-browser-stable`, which reads extra
+flags from `~/.config/socket-flags.conf`.
