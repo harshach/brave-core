@@ -61,7 +61,20 @@ std::string GetDesktopName(base::Environment* env) {
   }
 #if defined(OFFICIAL_BUILD)
   version_info::Channel product_channel(chrome::GetChannel());
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  // Must match the package's desktop file so Wayland compositors can find the
+  // app's icon and so it can be set as the default browser.
+  switch (product_channel) {
+    case version_info::Channel::DEV:
+      return "socket-browser-dev.desktop";
+    case version_info::Channel::BETA:
+      return "socket-browser-beta.desktop";
+    case version_info::Channel::CANARY:
+      return "socket-browser-nightly.desktop";
+    default:
+      return "socket-browser.desktop";
+  }
+#elif BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   switch (product_channel) {
     case version_info::Channel::DEV:
       return "brave-origin-dev.desktop";
