@@ -26,7 +26,9 @@ jobs:
       - name: Check out brave-core
         uses: actions/checkout@v7.0.1
         with:
-          fetch-depth: 1
+          # Brave stamps LASTCHANGE (the build date) from the latest version
+          # commit, which a shallow clone doesn't have.
+          fetch-depth: 0
           path: workspace/src/brave
 
       - name: Set up Node.js
