@@ -50,7 +50,7 @@ primitives so Chromium security updates remain mergeable.
   Command/Ctrl+L. Hovering the bar holds it open but never summons it, because
   the page owns that strip while the bar is away and revealing on approach
   would move whatever the pointer was reaching for.
-- Navigation mode maps the arrow keys to adjacent pages, `1`-`9` to the Space
+- Navigation mode maps the arrow keys and `j`/`k` to adjacent pages, `1`-`9` to the Space
   in that position of the bottom row, Command/Ctrl+Up and Command/Ctrl+Down to
   adjacent spaces, `o` and `n` to the native Quick Open palette, `d` to close
   the selected branch, `z` to restore, `r` to reload the active page, `s` to

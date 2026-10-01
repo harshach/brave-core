@@ -2203,6 +2203,7 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         case ui::VKEY_I:
           origin_insert_mode_ = true;
           return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_J:
         case ui::VKEY_DOWN: {
           auto* controller = browser()->GetFeatures().origin_space_controller();
           if (controller) {
@@ -2210,6 +2211,7 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }
+        case ui::VKEY_K:
         case ui::VKEY_UP: {
           auto* controller = browser()->GetFeatures().origin_space_controller();
           if (controller) {

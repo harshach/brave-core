@@ -386,6 +386,27 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyReload) {
   EXPECT_EQ(test_url, contents->GetLastCommittedURL());
 }
 
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSingleKeyPageNavigation) {
+  auto* model = browser()->tab_strip_model();
+  chrome::AddTabAt(browser(), GURL("about:blank#2"), -1, /*foreground=*/false);
+  chrome::AddTabAt(browser(), GURL("about:blank#3"), -1, /*foreground=*/false);
+  model->ActivateTabAt(0);
+
+  input::NativeWebKeyboardEvent key_event(
+      blink::WebInputEvent::Type::kRawKeyDown,
+      blink::WebInputEvent::kNoModifiers,
+      blink::WebInputEvent::GetStaticTimeStampForTests());
+  key_event.windows_key_code = ui::VKEY_J;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(key_event));
+  EXPECT_EQ(1, model->active_index());
+
+  key_event.windows_key_code = ui::VKEY_K;
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            brave_browser_view()->PreHandleKeyboardEvent(key_event));
+  EXPECT_EQ(0, model->active_index());
+}
+
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                        OriginSingleKeyCloseSelectsNextPage) {
   ASSERT_TRUE(embedded_test_server()->Start());
