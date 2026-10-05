@@ -58,7 +58,10 @@ primitives so Chromium security updates remain mergeable.
   unpin the page, `m` to mute or unmute whatever is making sound anywhere in
   the window, and `f` to focus mode. Space belongs to the page: sites use it
   to scroll and to pause video. Command/Ctrl+K opens Brave Commander
-  and Command/Ctrl+Right closes the active split. `i` enters edit mode and
+  and Command/Ctrl+Right closes the active split. Command/Ctrl+Backslash toggles
+  the sidebar even when focus is outside the page; the macOS View menu exposes
+  the same command. Command/Ctrl+Left also toggles the sidebar when a page has
+  focus outside editable content. `i` enters edit mode and
   `Escape` returns to navigation mode. Editable page fields continue to
   receive their original input.
 - A Space carries an equalizer badge only while an unmuted page in it is

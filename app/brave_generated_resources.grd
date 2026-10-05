@@ -1656,6 +1656,10 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
         Your searches and page contents are processed on this device. Nothing is sent to Brave or seen by human reviewers.
       </message>
 
+      <message name="IDS_ORIGIN_TOGGLE_SIDEBAR" desc="View menu item that shows or hides Origin's left sidebar containing spaces and pages.">
+        Toggle Sidebar
+      </message>
+
       <!-- Origin temporary external-link window -->
       <message name="IDS_ORIGIN_TEMPORARY_LINK_OPEN_IN" desc="Label before the destination space selector in an Origin temporary external-link window.">
         Open in

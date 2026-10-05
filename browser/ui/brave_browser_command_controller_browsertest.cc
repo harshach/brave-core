@@ -799,6 +799,19 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
 #endif
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
+                       SidebarToggleDisabledForPopupWindow) {
+  EXPECT_TRUE(
+      chrome::BrowserCommandController::From(browser())->IsCommandEnabled(
+          IDC_TOGGLE_VERTICAL_TABS_EXPANDED));
+  auto* popup = CreateBrowserWindow(BrowserWindowCreateParams(
+      BrowserWindowInterface::TYPE_POPUP, browser()->GetProfile(), true));
+  chrome::AddTabAt(popup, GURL("about:blank"), -1, true);
+  BrowserWindow::FromBrowser(popup)->Show();
+  EXPECT_FALSE(chrome::BrowserCommandController::From(popup)->IsCommandEnabled(
+      IDC_TOGGLE_VERTICAL_TABS_EXPANDED));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
                        BraveCommandsToggleVerticalTabs) {
   auto* command_controller = chrome::BrowserCommandController::From(browser());
   EXPECT_TRUE(command_controller->IsCommandEnabled(IDC_TOGGLE_VERTICAL_TABS));

@@ -816,6 +816,12 @@ bool BraveToolbarView::DoesIntersectRect(const views::View* target,
   // faded-out bar must let clicks through to the page underneath. The leading
   // strip still belongs to the bar: that is where the window controls are.
   if (target == this && !origin_page_chrome_revealed_) {
+    // Collapsing the sidebar removes that strip, but its toggle must still
+    // receive clicks so the sidebar can be shown again.
+    if (vertical_tab_toggle_ && vertical_tab_toggle_->GetVisible() &&
+        vertical_tab_toggle_->bounds().Intersects(rect)) {
+      return true;
+    }
     const int strip_width = GetOriginWindowControlsStripWidth();
     if (strip_width <= 0) {
       return false;
@@ -1332,9 +1338,9 @@ void BraveToolbarView::UpdateVerticalTabToggleState() {
       is_expanded ? u"Hide left panel" : u"Show left panel";
   std::u16string tooltip = accessible_name;
 #if BUILDFLAG(IS_MAC)
-  tooltip.append(u"   ⌘←");
+  tooltip.append(u"   ⌘\\");
 #else
-  tooltip.append(u"   Ctrl+←");
+  tooltip.append(u"   Ctrl+\\");
 #endif
   vertical_tab_toggle_->SetTooltipText(tooltip);
   vertical_tab_toggle_->SetAccessibleName(accessible_name);

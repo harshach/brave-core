@@ -20,7 +20,11 @@
 #include "brave/app/brave_command_ids.h"
 #include "brave/browser/brave_browser_features.h"
 #include "brave/browser/brave_browser_process.h"
+#include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tor/buildflags/buildflags.h"
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
@@ -39,7 +43,11 @@
 #include "components/bookmarks/browser/bookmark_utils.h"
 #include "components/bookmarks/test/bookmark_test_helpers.h"
 #include "components/policy/core/common/policy_pref_names.h"
+#include "components/prefs/pref_service.h"
 #include "content/public/test/browser_test.h"
+#include "ui/events/keycodes/keyboard_code_conversion_mac.h"
+#include "ui/events/keycodes/keyboard_codes.h"
+#include "ui/views/widget/widget.h"
 
 #if BUILDFLAG(ENABLE_TOR)
 #include "brave/browser/tor/tor_profile_service_factory.h"
@@ -82,6 +90,61 @@ class BraveAppControllerCleanLinkFeatureDisabledBrowserTest
  private:
   base::test::ScopedFeatureList features_;
 };
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveAppControllerBrowserTest,
+                       OriginSidebarMenuRestoresHiddenSidebar) {
+  using State = BraveVerticalTabStripRegionView::State;
+  auto* browser_view = BraveBrowserView::GetBrowserViewForBrowser(browser());
+  auto* region = browser_view->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(State::kExpanded, region->state());
+
+  NSMenu* view_menu = [[[NSApp mainMenu] itemWithTag:IDC_VIEW_MENU] submenu];
+  NSMenuItem* item = [view_menu itemWithTag:IDC_TOGGLE_VERTICAL_TABS_EXPANDED];
+  ASSERT_TRUE(item);
+  EXPECT_FALSE(item.hidden);
+  EXPECT_TRUE([item.keyEquivalent isEqualToString:@"\\"]);
+  EXPECT_EQ(NSEventModifierFlagCommand, item.keyEquivalentModifierMask);
+
+  NSWindow* window =
+      browser_view->GetWidget()->GetNativeWindow().GetNativeNSWindow();
+  [window makeKeyAndOrderFront:nil];
+  NSEvent* shortcut =
+      [NSEvent keyEventWithType:NSEventTypeKeyDown
+                             location:NSZeroPoint
+                        modifierFlags:NSEventModifierFlagCommand
+                            timestamp:0
+                         windowNumber:window.windowNumber
+                              context:nil
+                           characters:@"\\"
+          charactersIgnoringModifiers:@"\\"
+                            isARepeat:NO
+                              keyCode:ui::MacKeyCodeForWindowsKeyCode(
+                                          ui::VKEY_OEM_5, 0, nullptr, nullptr)];
+
+  // The menu and shortcut restore both shared and per-window sidebar state,
+  // including when focus is in browser chrome instead of a web page.
+  for (bool per_window : {false, true}) {
+    browser()->GetProfile()->GetPrefs()->SetBoolean(
+        brave_tabs::kVerticalTabsExpandedStatePerWindow, per_window);
+    region->ToggleState();
+    ASSERT_EQ(State::kCollapsed, region->state());
+    chrome::FocusLocationBar(browser());
+    [view_menu update];
+    ASSERT_TRUE(item.enabled);
+    ASSERT_TRUE([[NSApp mainMenu] performKeyEquivalent:shortcut]);
+    EXPECT_EQ(State::kExpanded, region->state());
+    EXPECT_TRUE(region->GetVisible());
+
+    region->ToggleState();
+    ASSERT_EQ(State::kCollapsed, region->state());
+    [view_menu performActionForItemAtIndex:[view_menu indexOfItem:item]];
+    EXPECT_EQ(State::kExpanded, region->state());
+  }
+}
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
 IN_PROC_BROWSER_TEST_F(BraveAppControllerCleanLinkFeatureDisabledBrowserTest,
                        CopyLinkItemVisible) {

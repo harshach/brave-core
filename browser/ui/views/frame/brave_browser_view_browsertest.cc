@@ -90,6 +90,7 @@
 #include "chrome/browser/ui/views/frame/top_container_view.h"
 #include "chrome/browser/ui/views/infobars/infobar_container_view.h"
 #include "chrome/browser/ui/views/side_panel/side_panel.h"
+#include "chrome/browser/ui/views/toolbar/toolbar_button.h"
 #include "chrome/browser/ui/window_feature_controller/window_feature_controller.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/test/base/in_process_browser_test.h"
@@ -116,10 +117,12 @@
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
+#include "ui/views/controls/button/button_test_api.h"
 #include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget_delegate.h"
 #include "ui/views/window/non_client_view.h"
@@ -314,6 +317,54 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   views::View* target = widget->GetRootView()->GetEventHandlerForPoint(point);
   ASSERT_TRUE(target);
   EXPECT_TRUE(contents_container()->Contains(target)) << target->GetClassName();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginHiddenSidebarToggleRemainsClickable) {
+  using State = BraveVerticalTabStripRegionView::State;
+  auto scoped_animation_mode =
+      gfx::AnimationTestApi::SetRichAnimationRenderMode(
+          gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+  ASSERT_TRUE(embedded_test_server()->Start());
+  ASSERT_TRUE(content::NavigateToURL(
+      browser()->tab_strip_model()->GetActiveWebContents(),
+      embedded_test_server()->GetURL("/title1.html")));
+  browser_view()->contents_web_view()->RequestFocus();
+
+  auto* toolbar =
+      views::AsViewClass<BraveToolbarView>(browser_view()->toolbar());
+  ASSERT_TRUE(toolbar);
+  auto* toggle = toolbar->vertical_tab_toggle_button();
+  ASSERT_TRUE(toggle);
+  auto* region = brave_browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  ASSERT_EQ(State::kExpanded, region->state());
+
+  toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return toolbar->origin_page_chrome_reveal_fraction() == 0.0; }));
+  const ui::KeyEvent click(ui::EventType::kKeyPressed, ui::VKEY_RETURN,
+                           ui::EF_NONE);
+  views::test::ButtonTestApi(toggle).NotifyClick(click);
+  ASSERT_EQ(State::kCollapsed, region->state());
+  browser_view()->DeprecatedLayoutImmediately();
+
+  // The visible restore button must receive the click, not the page beneath
+  // the faded toolbar, even though the sidebar no longer reserves any width.
+  ASSERT_TRUE(toggle->IsDrawn());
+  const gfx::Point point =
+      toggle->ConvertRectToWidget(toggle->GetLocalBounds()).CenterPoint();
+  auto* target =
+      browser_view()->GetWidget()->GetRootView()->GetEventHandlerForPoint(
+          point);
+  ASSERT_TRUE(target);
+  ASSERT_TRUE(toggle->Contains(target)) << target->GetClassName();
+
+  views::test::ButtonTestApi(toggle).NotifyClick(click);
+  EXPECT_EQ(State::kExpanded, region->state());
+  EXPECT_TRUE(region->GetVisible());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPaletteAccelerators) {
