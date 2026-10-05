@@ -356,6 +356,9 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(toggle->IsDrawn());
   const gfx::Point point =
       toggle->ConvertRectToWidget(toggle->GetLocalBounds()).CenterPoint();
+  EXPECT_FALSE(contents_container()
+                   ->ConvertRectToWidget(contents_container()->GetLocalBounds())
+                   .Contains(point));
   auto* target =
       browser_view()->GetWidget()->GetRootView()->GetEventHandlerForPoint(
           point);

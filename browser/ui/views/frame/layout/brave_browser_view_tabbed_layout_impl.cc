@@ -252,6 +252,11 @@ void BraveBrowserViewTabbedLayoutImpl::ApplyOriginFloatingTopBarLayout(
       delegate().IsFullscreenForBrowser() || delegate().IsFullscreenForTab()) {
     return;
   }
+  // Keep the toolbar strip when the sidebar is hidden so native web contents
+  // cannot cover the restore button and window controls.
+  if (!IsVerticalTabStripAtContentsEdge()) {
+    return;
+  }
   auto* contents_layout = layout.GetLayoutFor(views().multi_contents_view);
   if (!contents_layout) {
     return;
