@@ -8,6 +8,7 @@
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_session_manager.h"
 #include "brave/components/containers/buildflags/buildflags.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
