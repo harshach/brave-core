@@ -6,15 +6,24 @@
 #ifndef BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 #define BRAVE_BROWSER_UI_VIEWS_TOOLBAR_BRAVE_TOOLBAR_VIEW_H_
 
+#include <memory>
+#include <optional>
+#include <vector>
+
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
 #include "base/scoped_observation.h"
+#include "base/time/time.h"
+#include "base/timer/timer.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile_attributes_storage.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "components/prefs/pref_member.h"
+#include "third_party/skia/include/core/SkColor.h"
+#include "ui/gfx/animation/slide_animation.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/views/view_targeter_delegate.h"
 
 #if BUILDFLAG(ENABLE_AI_CHAT)
 class AIChatButton;
@@ -25,6 +34,7 @@ class BraveVPNButton;
 #endif
 
 class BraveBookmarkButton;
+class BraveShieldsToolbarButton;
 class BrowserWindowInterface;
 class ScreenshotButton;
 class SidePanelButton;
@@ -33,7 +43,8 @@ class ToolbarButton;
 class WalletButton;
 
 class BraveToolbarView : public ToolbarView,
-                         public ProfileAttributesStorage::Observer {
+                         public ProfileAttributesStorage::Observer,
+                         public views::ViewTargeterDelegate {
   METADATA_HEADER(BraveToolbarView, ToolbarView)
  public:
   class LayoutGuard;
@@ -43,6 +54,9 @@ class BraveToolbarView : public ToolbarView,
   ~BraveToolbarView() override;
 
   BraveBookmarkButton* bookmark_button() const { return bookmark_; }
+  BraveShieldsToolbarButton* origin_shields_button() const {
+    return origin_shields_button_;
+  }
   WalletButton* wallet_button() const { return wallet_; }
   SidePanelButton* side_panel_button() const { return side_panel_; }
   ScreenshotButton* screenshot_button() const { return screenshot_button_; }
@@ -64,9 +78,18 @@ class BraveToolbarView : public ToolbarView,
 #endif
 
   void UpdateHorizontalPadding();
+  void SetOriginPageChromeColors(SkColor surface,
+                                 SkColor location_bar_color,
+                                 SkColor location_bar_ring,
+                                 SkColor foreground);
+
+  std::optional<SkColor> origin_page_chrome_color_for_testing() const {
+    return origin_page_chrome_surface_;
+  }
 
   void Init() override;
   void Layout(PassKey) override;
+  void OnPaintBackground(gfx::Canvas* canvas) override;
   void Update(content::WebContents* tab) override;
   void OnThemeChanged() override;
   void OnEditBookmarksEnabledChanged();
@@ -75,14 +98,53 @@ class BraveToolbarView : public ToolbarView,
   void OnShowScreenshotButtonChanged();
   void ShowBookmarkBubble(const GURL& url, bool already_bookmarked) override;
   void VisibilityChanged(views::View* starting_from, bool visible) override;
+  void AddedToWidget() override;
+  void RemovedFromWidget() override;
+
+  // views::ViewTargeterDelegate:
+  bool DoesIntersectRect(const views::View* target,
+                         const gfx::Rect& rect) const override;
+
+  // views::AnimationDelegateViews:
+  void AnimationProgressed(const gfx::Animation* animation) override;
+  void AnimationEnded(const gfx::Animation* animation) override;
+
+  // Origin's page chrome hides until it is wanted; call this to bring it back
+  // for an action that needs the address field, such as Command+L.
+  void RevealOriginPageChrome();
+
+  // Reading moves the address field out of the way; coming back up brings it
+  // back. Hover and omnibox focus still override both.
+  void OnOriginPageScrolled(bool scrolled_down);
+
+  bool origin_page_chrome_revealed() const {
+    return origin_page_chrome_revealed_;
+  }
+
+  // 0 while hidden, 1 while shown, and everything between during the reveal.
+  double origin_page_chrome_reveal_fraction() const;
 
  private:
+  // views::View already declares OnEvent() with an incompatible signature, so
+  // the pointer watch lives in its own observer.
+  class OriginPointerWatcher;
   FRIEND_TEST_ALL_PREFIXES(BraveToolbarViewTest, ToolbarCornerRadiusTest);
   FRIEND_TEST_ALL_PREFIXES(BraveToolbarViewTest, ToolbarDividerNotShownTest);
 
   void LoadImages() override;
   void ResetLocationBarBounds();
   void ResetBookmarkButtonBounds();
+  void EnsureOriginExtensionsToolbar();
+  void UpdateOriginPageChromeControls();
+  void SetOriginPageChromeRevealed(bool revealed);
+  void OnOriginPointerMoved(const gfx::Point& screen_point);
+  void ApplyOriginScrollState(bool scrolled_down);
+  void ScheduleOriginPageChromeReveal(bool revealed);
+  bool ShouldHoldOriginPageChromeOpen() const;
+  std::vector<views::View*> GetOriginPageChromeViews();
+  // Width of the leading strip the window controls and navigation buttons
+  // occupy, which stays live even while the rest of the bar is faded out.
+  int GetOriginWindowControlsStripWidth() const;
   void UpdateBookmarkVisibility();
   void UpdateVerticalTabToggleVisibility();
   void UpdateVerticalTabTogglePlacement();
@@ -113,6 +175,7 @@ class BraveToolbarView : public ToolbarView,
   raw_ptr<ToolbarButton> vertical_tab_toggle_ = nullptr;
   raw_ptr<ToolbarButton> workspaces_button_ = nullptr;
   raw_ptr<BraveBookmarkButton> bookmark_ = nullptr;
+  raw_ptr<BraveShieldsToolbarButton> origin_shields_button_ = nullptr;
   // Tracks the preference to determine whether bookmark editing is allowed.
   BooleanPrefMember edit_bookmarks_enabled_;
 
@@ -154,6 +217,26 @@ class BraveToolbarView : public ToolbarView,
 
   // Whether this toolbar has been initialized.
   bool brave_initialized_ = false;
+  // Origin's top bar carries only the window controls until the pointer comes
+  // to rest in it: the address field and page actions are transient.
+  bool origin_page_chrome_revealed_ = true;
+  gfx::SlideAnimation origin_page_chrome_animation_{this};
+  bool origin_pointer_in_page_chrome_ = false;
+  // Scrolling owns the bar: once the reader comes back up it stays until they
+  // go down again. Starts true because a fresh page is at its top.
+  bool origin_scroll_wants_page_chrome_ = true;
+  base::OneShotTimer origin_page_chrome_reveal_timer_;
+  base::OneShotTimer origin_scroll_settle_timer_;
+  // Showing or hiding the bar resizes the page, and that reflow reports its
+  // own scroll direction change. Acting on it would flip the bar straight
+  // back, so ignore scrolling until the resize has settled.
+  base::TimeTicks origin_scroll_resume_at_;
+  std::unique_ptr<OriginPointerWatcher> origin_page_chrome_pointer_watcher_;
+
+  std::optional<SkColor> origin_page_chrome_surface_;
+  std::optional<SkColor> origin_page_chrome_location_bar_;
+  std::optional<SkColor> origin_page_chrome_location_bar_ring_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
   // Tracks profile count to determine whether profile switcher should be shown.
   base::ScopedObservation<ProfileAttributesStorage,
                           ProfileAttributesStorage::Observer>

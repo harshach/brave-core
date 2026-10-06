@@ -9,5 +9,8 @@ static_library("common") {
     "features.h",
   ]
 
-  deps = [ "//base" ]
+  deps = [
+    "//base",
+    "//brave/components/brave_origin/buildflags",
+  ]
 }

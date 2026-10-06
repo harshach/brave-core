@@ -23,18 +23,26 @@ namespace install_static {
 
 // The brand-specific company name to be included as a component of the install
 // and user data directory paths. May be empty if no such dir is to be used.
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+inline constexpr wchar_t kCompanyPathName[] = L"Socket";
+#else
 inline constexpr wchar_t kCompanyPathName[] = L"BraveSoftware";
+#endif
 
 // The brand-specific product name to be included as a component of the install
 // and user data directory paths.
+#if BUILDFLAG(IS_SOCKET_BRANDED)
 #if defined(OFFICIAL_BUILD)
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+inline constexpr wchar_t kProductPathName[] = L"Socket";
+#else
+inline constexpr wchar_t kProductPathName[] = L"Socket-Development";
+#endif
+#elif defined(OFFICIAL_BUILD) && BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 // Brave Origin uses "Brave-Origin" instead of "Brave-Browser" to allow
 // side-by-side installation with Brave Browser.
 inline constexpr wchar_t kProductPathName[] = L"Brave-Origin";
-#else
+#elif defined(OFFICIAL_BUILD)
 inline constexpr wchar_t kProductPathName[] = L"Brave-Browser";
-#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 #else
 // If you change this, then you also need to change occurrences of this string
 // in mini_installer_constants.cc.
@@ -80,15 +88,15 @@ inline constexpr auto kInstallModes = std::to_array<InstallConstants>({
             L"",  // Empty install suffix - "Origin" is in kProductPathName.
         .logo_suffix = L"",  // No logo suffix for the primary install mode.
         .app_guid = L"{F1EF32DE-F987-4289-81D2-6C4780027F9B}",
-        .base_app_name = L"Brave Origin",         // A distinct base_app_name.
+        .base_app_name = L"Socket",               // A distinct base_app_name.
         .base_app_id = L"BraveOrigin",            // A distinct base_app_id.
         .browser_prog_id_prefix = L"BraveOHTML",  // Browser ProgID prefix.
         .browser_prog_id_description =
-            L"Brave Origin HTML Document",  // Browser ProgID description.
+            L"Socket HTML Document",  // Browser ProgID description.
         .direct_launch_url_scheme = "brave-origin",
         .pdf_prog_id_prefix = L"BraveOPDF",  // PDF ProgID prefix.
         .pdf_prog_id_description =
-            L"Brave Origin PDF Document",  // PDF ProgID description.
+            L"Socket PDF Document",  // PDF ProgID description.
         .active_setup_guid =
             L"{F1EF32DE-F987-4289-81D2-6C4780027F9B}",  // Active Setup GUID.
         .toast_activator_clsid = {0x8a7b6c5d,
@@ -126,15 +134,15 @@ inline constexpr auto kInstallModes = std::to_array<InstallConstants>({
         .logo_suffix = L"Beta",           // Logo suffix.
         .app_guid =
             L"{56DA94FD-D872-416B-BFC4-1D7011DA7473}",  // A distinct app GUID.
-        .base_app_name = L"Brave Origin Beta",     // A distinct base_app_name.
+        .base_app_name = L"Socket Beta",           // A distinct base_app_name.
         .base_app_id = L"BraveOriginBeta",         // A distinct base_app_id.
         .browser_prog_id_prefix = L"BraveOBHTML",  // Browser ProgID prefix.
         .browser_prog_id_description =
-            L"Brave Origin Beta HTML Document",  // Browser ProgID description.
+            L"Socket Beta HTML Document",  // Browser ProgID description.
         .direct_launch_url_scheme = "brave-origin-beta",
         .pdf_prog_id_prefix = L"BraveOBPDF",  // PDF ProgID prefix.
         .pdf_prog_id_description =
-            L"Brave Origin Beta PDF Document",  // PDF ProgID description.
+            L"Socket Beta PDF Document",  // PDF ProgID description.
         .active_setup_guid =
             L"{56DA94FD-D872-416B-BFC4-1D7011DA7473}",  // Active Setup GUID.
         .toast_activator_clsid = {0x3c4d5e6f,
@@ -172,15 +180,15 @@ inline constexpr auto kInstallModes = std::to_array<InstallConstants>({
         .logo_suffix = L"Dev",           // Logo suffix.
         .app_guid =
             L"{716D6A4A-D071-47A8-AC64-DBDE3EE3797B}",  // A distinct app GUID.
-        .base_app_name = L"Brave Origin Dev",      // A distinct base_app_name.
+        .base_app_name = L"Socket Dev",            // A distinct base_app_name.
         .base_app_id = L"BraveOriginDev",          // A distinct base_app_id.
         .browser_prog_id_prefix = L"BraveODHTML",  // Browser ProgID prefix.
         .browser_prog_id_description =
-            L"Brave Origin Dev HTML Document",  // Browser ProgID description.
+            L"Socket Dev HTML Document",  // Browser ProgID description.
         .direct_launch_url_scheme = "brave-origin-dev",
         .pdf_prog_id_prefix = L"BraveODPDF",  // PDF ProgID prefix.
         .pdf_prog_id_description =
-            L"Brave Origin Dev PDF Document",  // PDF ProgID description.
+            L"Socket Dev PDF Document",  // PDF ProgID description.
         .active_setup_guid =
             L"{716D6A4A-D071-47A8-AC64-DBDE3EE3797B}",  // Active Setup GUID.
         .toast_activator_clsid = {0x6f7a8b9c,
@@ -219,16 +227,16 @@ inline constexpr auto kInstallModes = std::to_array<InstallConstants>({
         .logo_suffix = L"Canary",        // Logo suffix.
         .app_guid =
             L"{50474E96-9CD2-4BC8-B0A7-0D4B6EF2E709}",  // A distinct app GUID.
-        .base_app_name = L"Brave Origin Nightly",  // A distinct base_app_name.
+        .base_app_name = L"Socket Nightly",  // A distinct base_app_name.
         .base_app_id = L"BraveOriginNightly",      // A distinct base_app_id.
         .browser_prog_id_prefix = L"BraveOSHTM",   // Browser ProgID prefix.
         .browser_prog_id_description =
-            L"Brave Origin Nightly HTML Document",  // Browser ProgID
+            L"Socket Nightly HTML Document",  // Browser ProgID
                                                     // description.
         .direct_launch_url_scheme = "brave-origin-nightly",
         .pdf_prog_id_prefix = L"BraveOSPDF",  // PDF ProgID prefix.
         .pdf_prog_id_description =
-            L"Brave Origin Nightly PDF Document",  // PDF ProgID description.
+            L"Socket Nightly PDF Document",  // PDF ProgID description.
         .active_setup_guid =
             L"{50474E96-9CD2-4BC8-B0A7-0D4B6EF2E709}",  // Active Setup GUID.
         .toast_activator_clsid = {0x9c0d1e2f,

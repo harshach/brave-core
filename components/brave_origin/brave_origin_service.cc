@@ -71,13 +71,21 @@ BraveOriginService::BraveOriginService(
   CHECK(profile_prefs_);
   CHECK(!profile_id_.empty());
 
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  // Socket is independently distributed and does not use Brave's paid Origin
+  // entitlement. Apply the Origin policy set without contacting the SKU
+  // service.
+  BraveOriginPolicyManager::GetInstance()->SetPurchased(true);
+  local_state_->SetBoolean(kOriginPurchaseValidated, true);
+  local_state_->SetBoolean(kOriginPoliciesWereEnforced, true);
+#else
 #if BUILDFLAG(IS_LINUX)
   // On Linux, treat free tier acceptance as a valid purchase so policies
   // are applied immediately at startup without waiting for the SKU check.
   if (local_state_->GetBoolean(kOriginFreeTierAccepted)) {
     BraveOriginPolicyManager::GetInstance()->SetPurchased(true);
   }
-#endif
+#endif  // BUILDFLAG(IS_LINUX)
 
   // Eagerly check purchase state on startup so the cached value is available.
   CheckPurchaseState(base::DoNothing());
@@ -89,6 +97,7 @@ BraveOriginService::BraveOriginService(
       skus::prefs::kSkusState,
       base::BindRepeating(&BraveOriginService::OnSkusStateChanged,
                           base::Unretained(this)));
+#endif  // BUILDFLAG(IS_SOCKET_BRANDED)
 
   // Record whether Origin was enforcing policies in the previous session.
   startup_was_enforcing_ =

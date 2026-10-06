@@ -34,12 +34,25 @@ std::optional<gfx::Insets> GetBraveLayoutInsets(LayoutInset inset) {
     case TOOLBAR_BUTTON:
       // Use 4 inset - (TOOLBAR_BUTTON_HEIGHT(28) - icon size(20)) / 2
       // icon size - ToolbarButton::kDefaultIconSize
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      // Origin's titlebar controls use an 18dp glyph inside the existing 28dp
+      // target. This matches the lighter SigmaOS control cluster without
+      // shrinking its clickable area.
+      return gfx::Insets(touch_ui ? 12 : 5);
+#else
       return gfx::Insets(touch_ui ? 12 : 4);
+#endif
     case TOOLBAR_INTERIOR_MARGIN:
       if (touch_ui) {
         return gfx::Insets();
       }
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      // A 28dp address capsule centered in 8dp vertical insets produces the
+      // literal 44dp unified titlebar used by the Origin shell.
+      return gfx::Insets::VH(8, 6);
+#else
       return gfx::Insets::VH(compact ? 2 : 4, 6);
+#endif
     default:
       break;
   }
@@ -94,12 +107,22 @@ std::optional<int> GetBraveLayoutConstant(LayoutConstant constant) {
       // See also SidebarButtonView::kSidebarButtonSize
       return touch ? 48 : 28;
     }
+    case LayoutConstant::kToolbarButtonIconSize:
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      return touch ? kDefaultTouchableIconSize : 18;
+#else
+      return std::nullopt;
+#endif
     case LayoutConstant::kToolbarCornerRadius:
       return 8;
 
     case LayoutConstant::kLocationBarHeight:
       // Consider adjust below element padding also when this height is changed.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+      return 28;
+#else
       return UseCompactHorizontalTabs() ? 28 : 32;
+#endif
     case LayoutConstant::kLocationBarElementPadding:
     case LayoutConstant::kLocationBarPageInfoIconVerticalPadding:
       return UseCompactHorizontalTabs() ? 1 : 2;

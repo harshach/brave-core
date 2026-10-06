@@ -51,7 +51,11 @@ def BraveModifyPartsForSigning(parts, config):
     del parts['libchromecompaneros.dylib']
     del parts['liboptimization_guide_internal.dylib']
 
-    development = config.provisioning_profile_basename is None
+    # Developer ID releases do not require a provisioning profile. Use the
+    # signing configuration's explicit development entitlement instead of the
+    # profile's presence so release builds still re-sign Sparkle for
+    # notarization.
+    development = config.inject_get_task_allow_entitlement
 
     full_hardened_runtime_options = (
         CodeSignOptions.HARDENED_RUNTIME
@@ -60,8 +64,8 @@ def BraveModifyPartsForSigning(parts, config):
         | CodeSignOptions.KILL
     )
 
-    # Add Sparkle
-    if not development:
+    # Add Sparkle. Socket is built without it (see enable_sparkle).
+    if not development and config.app_product != 'Socket':
         # Add Sparkle binaries
         parts['sparkle-framework-fileop'] = CodeSignedProduct(
             '{0.framework_dir}/Versions/{0.version}/Frameworks/Sparkle.framework/Versions/A/Resources/Autoupdate.app/Contents/MacOS/fileop'.format(  # pylint: disable=line-too-long

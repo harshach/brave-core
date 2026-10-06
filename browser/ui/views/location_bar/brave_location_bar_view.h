@@ -7,6 +7,7 @@
 #define BRAVE_BROWSER_UI_VIEWS_LOCATION_BAR_BRAVE_LOCATION_BAR_VIEW_H_
 
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include "base/gtest_prod_util.h"
@@ -15,6 +16,7 @@
 #include "brave/browser/ui/views/view_shadow.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 
 #if BUILDFLAG(ENABLE_PLAYLIST_WEBUI)
@@ -59,6 +61,10 @@ class BraveLocationBarView : public LocationBarView {
   std::vector<views::View*> GetRightMostTrailingViews() override;
   views::View* GetSearchPromotionButton() const override;
   void RefreshBackground() override;
+  SkColor GetIconLabelBubbleSurroundingForegroundColor() const override;
+  SkColor GetIconLabelBubbleBackgroundColor() const override;
+  SkColor GetSecurityChipColor(
+      security_state::SecurityLevel security_level) const override;
   void OnOmniboxBlurred() override;
   void Layout(PassKey) override;
   void OnVisibleBoundsChanged() override;
@@ -74,6 +80,10 @@ class BraveLocationBarView : public LocationBarView {
   int GetBorderRadius() const override;
   void FocusLocation(bool is_user_initiated,
                      bool clear_focus_if_failed) override;
+
+  void SetOriginPageChromeColors(SkColor background,
+                                 SkColor ring,
+                                 SkColor foreground);
 
   SkPath GetFocusRingHighlightPath() const;
   ContentSettingImageView* GetContentSettingsImageViewForTesting(size_t idx);
@@ -99,12 +109,17 @@ class BraveLocationBarView : public LocationBarView {
   friend class ::BraveActionsContainerTest;
   friend class ::RewardsBrowserTest;
 
+  bool ShouldUseOriginPageChromeColors() const;
+  void ApplyOriginPageChromeColors();
   void SetupShadow();
 
   // Prevent layout with invalid rect.
   // It also could make omnibox popup have wrong position.
   // See the comments of BraveToolbarView::Layout().
   bool ignore_layout_ = false;
+  std::optional<SkColor> origin_page_chrome_background_;
+  std::optional<SkColor> origin_page_chrome_ring_;
+  std::optional<SkColor> origin_page_chrome_foreground_;
   std::unique_ptr<ViewShadow> shadow_;
   raw_ptr<BraveActionsContainer> brave_actions_ = nullptr;
   std::unique_ptr<PromotionButtonController> promotion_controller_;

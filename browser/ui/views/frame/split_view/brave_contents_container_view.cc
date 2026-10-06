@@ -11,6 +11,7 @@
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view_mini_toolbar.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
 #include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
@@ -139,6 +140,12 @@ void BraveContentsContainerView::UpdateBorderAndOverlay(bool is_in_split,
       mini_toolbar_->SetVisible(false);
     }
 
+    // Origin's page canvas is separated from the shell by its inset and
+    // rounded clip. An additional outline creates the dark rectangular ring
+    // visible around light pages and makes the surface look boxed-in.
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    SetBorder(nullptr);
+#else
     // Not in split view: draw a subtle 1px outline instead of the
     // active/inactive split borders below. GetCornerRadius() returns all-zero
     // corners whenever rounded corners aren't applicable here (feature
@@ -152,6 +159,7 @@ void BraveContentsContainerView::UpdateBorderAndOverlay(bool is_in_split,
       SetBorder(BraveContentsViewUtil::CreateContentsOutlineBorder(
           GetColorProvider(), outline_corner_radius));
     }
+#endif
     return;
   }
 
@@ -163,6 +171,12 @@ void BraveContentsContainerView::UpdateBorderAndOverlay(bool is_in_split,
     mini_toolbar_->SetVisible(!IsActive());
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Split pages keep the same clean inset-canvas treatment. Selection is
+  // communicated by the sidebar row and divider affordance, not a rectangular
+  // focus ring around the renderer.
+  SetBorder(nullptr);
+#else
   // Draw active/inactive outlines around the contents areas and updates mini
   // toolbar visibility.
   const auto border_corner_radius(GetCornerRadius(kBorderThickness));
@@ -184,6 +198,7 @@ void BraveContentsContainerView::UpdateBorderAndOverlay(bool is_in_split,
             /*should_border_scale*/ true),
         gfx::Insets(kBorderThickness)));
   }
+#endif
 }
 
 void BraveContentsContainerView::UpdateBorderRoundedCorners() {

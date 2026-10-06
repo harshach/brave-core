@@ -13,8 +13,7 @@
 namespace {
 
 // Brave doesn't use CHROME_CONFIG_HOME or Google Chrome's directory names; it
-// always lives under BraveSoftware, with a channel-specific suffix and a
-// separate name when Brave Origin branded.
+// uses a brand-specific directory with a channel-specific suffix.
 bool BraveGetDefaultUserDataDirectory(base::FilePath* result) {
   auto env = base::Environment::Create();
   base::FilePath config_dir = base::nix::GetXDGDirectory(
@@ -23,7 +22,9 @@ bool BraveGetDefaultUserDataDirectory(base::FilePath* result) {
   std::string data_dir_suffix;
   brave::GetChannelImpl(nullptr, &data_dir_suffix);
 
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  *result = config_dir.Append("Socket/Socket" + data_dir_suffix);
+#elif BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   *result = config_dir.Append("BraveSoftware/Brave-Origin" + data_dir_suffix);
 #else
   *result = config_dir.Append("BraveSoftware/Brave-Browser" + data_dir_suffix);

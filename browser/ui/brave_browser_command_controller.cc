@@ -382,7 +382,9 @@ void BraveBrowserCommandController::InitBraveCommandState() {
 
   UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS, true);
   UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS_WINDOW_TITLE, true);
-  UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS_EXPANDED, true);
+  UpdateCommandEnabled(
+      IDC_TOGGLE_VERTICAL_TABS_EXPANDED,
+      browser_->GetType() == BrowserWindowInterface::TYPE_NORMAL);
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
   UpdateCommandEnabled(IDC_CONFIGURE_BRAVE_NEWS,

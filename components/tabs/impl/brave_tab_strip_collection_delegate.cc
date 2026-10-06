@@ -15,6 +15,12 @@ BraveTabStripCollectionDelegate::BraveTabStripCollectionDelegate(
 
 BraveTabStripCollectionDelegate::~BraveTabStripCollectionDelegate() = default;
 
+bool BraveTabStripCollectionDelegate::ReparentTreeTabNode(
+    TabInterface* child,
+    TabInterface* parent) {
+  return false;
+}
+
 base::PassKey<BraveTabStripCollectionDelegate>
 BraveTabStripCollectionDelegate::GetPassKey() const {
   return {};

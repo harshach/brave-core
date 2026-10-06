@@ -25,7 +25,9 @@
 #include "ui/views/layout/layout_types.h"
 
 namespace views {
+class Label;
 class ScrollView;
+class View;
 }  // namespace views
 
 class BraveVerticalTabStripRegionView;
@@ -55,6 +57,11 @@ class BraveTabContainer : public TabContainerImpl,
   // depending on Browser/BrowserView lookups. Pass nullptr on teardown.
   void SetVerticalTabStripRegionView(
       BraveVerticalTabStripRegionView* region_view);
+
+  // Installs Origin's trailing "New page" action inside the tab container.
+  // Keeping the action here makes it part of the same scroll geometry as the
+  // page rows instead of pinning it above the sidebar footer.
+  views::View* SetOriginNewPageButton(std::unique_ptr<views::View> button);
 
   // Returns the scroll direction if scrolling is enabled. Returns nullopt if
   // browser is null or scrolling is not enabled.
@@ -164,6 +171,12 @@ class BraveTabContainer : public TabContainerImpl,
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            RichAnimationIsDisabled);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSplitTabSidebarSection);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginNewPageFollowsPageRows);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginPinnedTilesClipScrollingRows);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            ScrollFastPathMatchesFullLayout);
 
   class DropArrow {
@@ -204,6 +217,14 @@ class BraveTabContainer : public TabContainerImpl,
   void PaintBoundingBoxForSplitTabs(gfx::Canvas& canvas);
   void PaintBoundingBoxForSplitTab(gfx::Canvas& canvas,
                                    const std::vector<int>& indices);
+  void PaintOriginHierarchyMarkers(gfx::Canvas& canvas);
+
+  // Returns the model indices of the right-hand pages in native split pairs.
+  // Brave Origin keeps the left-hand page in the main page list and presents
+  // these pages together beneath a Sigma-style Side heading.
+  std::vector<size_t> GetOriginSideTabIndices() const;
+  bool IsOriginTabInActiveSpace(size_t index) const;
+  bool HasVisibleOriginSideTabs() const;
 
   static gfx::ImageSkia* GetDropArrowImage(
       BraveTabContainer::DropArrow::Position pos,
@@ -225,9 +246,9 @@ class BraveTabContainer : public TabContainerImpl,
   // visible rect of unpinned tabs.
   int GetPinnedTabsAreaBottom() const;
 
-  // Returns the boundary coordinate of the pinned tabs area. For vertical tabs,
-  // returns the bottom (y-coordinate). For horizontal tabs, returns the right
-  // (x-coordinate). This represents where unpinned tabs begin.
+  // Returns the boundary between fixed UI and the unpinned tabs viewport. For
+  // vertical tabs, this includes the pinned area and any fixed section heading.
+  // For horizontal tabs, this is the right edge of the pinned tabs area.
   int GetPinnedTabsAreaBoundary() const;
 
   // Sets the scroll offset for unpinned tabs. If the offset changes, triggers
@@ -255,7 +276,7 @@ class BraveTabContainer : public TabContainerImpl,
   int GetUnpinnedTabsTotalHeight() const;
 
   // Returns the viewport height available for unpinned tabs.
-  // This excludes the pinned tabs area if any pinned tabs exist.
+  // This excludes pinned tabs and any fixed section heading.
   int GetUnpinnedTabsViewportHeight() const;
 
   // Returns the total size (height for vertical, width for horizontal) of
@@ -376,6 +397,11 @@ class BraveTabContainer : public TabContainerImpl,
   // Separator view between pinned and unpinned tabs
   raw_ptr<views::View> separator_ = nullptr;
 
+  // Non-interactive headings which make the vertical tab model read as a
+  // Sigma-style page list instead of a generic browser tab strip.
+  raw_ptr<views::View> origin_pinned_section_header_ = nullptr;
+  raw_ptr<views::View> origin_split_section_header_ = nullptr;
+  raw_ptr<views::View> origin_new_page_button_ = nullptr;
   base::WeakPtrFactory<BraveTabContainer> weak_factory_{this};
 };
 

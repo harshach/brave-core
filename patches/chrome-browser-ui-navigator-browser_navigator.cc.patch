@@ -1,8 +1,16 @@
 diff --git a/chrome/browser/ui/navigator/browser_navigator.cc b/chrome/browser/ui/navigator/browser_navigator.cc
-index 5029e2640598dfffb79ec88703f4a9fc13d0f4db..d08f8d59b8024ff842ab7a31c95b214125261df7 100644
+index 5029e2640598dfffb79ec88703f4a9fc13d0f4db..e19e14a110692ee1260b84cf08421c564d122b12 100644
 --- a/chrome/browser/ui/navigator/browser_navigator.cc
 +++ b/chrome/browser/ui/navigator/browser_navigator.cc
-@@ -200,6 +200,7 @@ bool ShouldForceCaptivePortalSigninIntoCurrentTab(
+@@ -119,6 +119,7 @@ struct AdditionalParams {
+ // popups. TYPE_APP will open a new tab if the browser was launched from a
+ // template, otherwise only if the URL is within the app scope.
+ bool WindowCanOpenTabs(const NavigateParams& params) {
++  BRAVE_WINDOW_CAN_OPEN_TABS
+   if (!params.browser) {
+     return false;
+   }
+@@ -200,6 +201,7 @@ bool ShouldForceCaptivePortalSigninIntoCurrentTab(
  // Returns true on success. Otherwise, if changing params leads the browser
  // into an erroneous state, returns false.
  bool AdjustNavigateParamsForURL(NavigateParams* params) {
@@ -10,7 +18,7 @@ index 5029e2640598dfffb79ec88703f4a9fc13d0f4db..d08f8d59b8024ff842ab7a31c95b2141
    // Check for some chrome:// pages which we always want to open in a
    // non-incognito window. Note that even though a ChromeOS guest session is
    // technically an incognito window, these URLs are allowed.
-@@ -505,7 +506,11 @@ std::unique_ptr<content::WebContents> CreateTargetContents(
+@@ -505,7 +507,11 @@ std::unique_ptr<content::WebContents> CreateTargetContents(
    scoped_refptr<content::SiteInstance> initial_site_instance_for_new_contents =
        params.opener ? params.opener->GetSiteInstance()
                      : tab_util::GetSiteInstanceForNewTab(
@@ -23,23 +31,29 @@ index 5029e2640598dfffb79ec88703f4a9fc13d0f4db..d08f8d59b8024ff842ab7a31c95b2141
  
    WebContents::CreateParams create_params(
        params.browser->GetProfile(), initial_site_instance_for_new_contents);
-@@ -892,6 +897,9 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -892,6 +898,13 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
           params->user_gesture)) {
        tab_to_insert->set_opener(
            tabs::TabInterface::MaybeGetFromContents(params->source_contents));
-+      if (params->navigation_initiated_from_sync) {            
-+        tab_to_insert->set_opener_was_set_for_empty_new_tab(); 
++      // Tree tabs should only inherit hierarchy from a genuine page-created
++      // navigation. Browser commands such as Ctrl+T, Quick Open, and typed
++      // address-bar navigations receive the active tab as source context too,
++      // but that is not a parent/child relationship.
++      if (params->navigation_initiated_from_sync || user_initiated) {
++        tab_to_insert->set_opener_was_set_for_empty_new_tab();
 +      }
      }
    }
  
-@@ -909,6 +917,9 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
+@@ -909,6 +922,11 @@ base::WeakPtr<content::NavigationHandle> NavigateImpl(
             params->user_gesture)) {
          tab_to_insert->set_opener(
              tabs::TabInterface::MaybeGetFromContents(params->source_contents));
-+      if (params->navigation_initiated_from_sync) {            
-+        tab_to_insert->set_opener_was_set_for_empty_new_tab(); 
-+      }
++        // See the contents-to-insert path above. Web-triggerable link opens
++        // keep their opener and therefore remain nested under their source.
++        if (params->navigation_initiated_from_sync || user_initiated) {
++          tab_to_insert->set_opener_was_set_for_empty_new_tab();
++        }
        }
        contents_to_navigate_or_insert = tab_to_insert->GetContents();
  

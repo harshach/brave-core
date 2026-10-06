@@ -15,7 +15,10 @@ source_set("focus_mode") {
 
   public_deps = [ "//base" ]
 
-  deps = [ "//chrome/browser/ui/browser_window" ]
+  deps = [
+    "//brave/components/brave_origin/buildflags",
+    "//chrome/browser/ui/browser_window",
+  ]
 }
 
 source_set("unit_tests") {

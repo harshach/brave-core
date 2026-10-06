@@ -1,0 +1,56 @@
+# Maintainer: Socket Contributors <harshach@users.noreply.github.com>
+
+# Repackages the Socket Linux .deb from a GitHub release for Arch Linux.
+# Build with `makepkg -si` next to this file.
+
+pkgname=socket-bin
+pkgver=1.98.33
+pkgrel=2
+_tag=socket-v0.1.0-preview.18
+pkgdesc="A keyboard-first browser with Spaces and a page sidebar, built on Brave"
+arch=('x86_64')
+url="https://github.com/harshach/brave-core"
+license=('MPL-2.0' 'BSD-3-Clause')
+depends=('alsa-lib' 'bash' 'dbus' 'expat' 'glib2' 'gtk3' 'hicolor-icon-theme'
+         'libcups' 'libxss' 'libxtst' 'mesa' 'nss' 'systemd-libs'
+         'ttf-liberation' 'xdg-utils')
+optdepends=('pipewire: screen sharing on Wayland'
+            'libva: hardware video decoding'
+            'gnome-keyring: password storage'
+            'kwallet: password storage'
+            'qt6-base: Qt theme integration')
+provides=('socket-browser')
+conflicts=('socket-browser')
+options=('!strip' '!debug')
+source=("https://github.com/harshach/brave-core/releases/download/${_tag}/socket-browser_${pkgver}_amd64.deb"
+        'socket-browser.sh')
+noextract=("socket-browser_${pkgver}_amd64.deb")
+sha256sums=('bb0f53af8d143c636cff75cd310fbe1058abcf969d2341fc5abc40542ed03e10'
+            'fc69ae8ecab9cfb6344a574222698d7cc6378851c4eb8c1ae0f20d5361797d65')
+
+package() {
+  bsdtar -xOf "socket-browser_${pkgver}_amd64.deb" 'data.tar.*' | bsdtar -xf - -C "$pkgdir"
+
+  # Debian-only apt repo setup.
+  rm -rf "$pkgdir/etc" "$pkgdir/opt/socket/cron"
+  rmdir "$pkgdir/usr/share/doc/socket-browser-stable"
+
+  # The desktop entries run socket-browser-stable; route it through the
+  # launcher so they pick up socket-flags.conf too.
+  rm -f "$pkgdir/usr/bin/socket-browser-stable"
+  install -Dm755 socket-browser.sh "$pkgdir/usr/bin/socket-browser-stable"
+  ln -s socket-browser-stable "$pkgdir/usr/bin/socket-browser"
+  ln -s socket-browser-stable "$pkgdir/usr/bin/socket"
+
+  # The deb installs these from postinst with xdg-icon-resource.
+  for size in 16 24 32 48 64 128 256; do
+    install -Dm644 "$pkgdir/opt/socket/product_logo_${size}.png" \
+      "$pkgdir/usr/share/icons/hicolor/${size}x${size}/apps/socket-browser.png"
+  done
+
+  install -Dm644 "$pkgdir/opt/socket/LICENSE" \
+    "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+  # Chromium's setuid sandbox, used where user namespaces are unavailable.
+  chmod 4755 "$pkgdir/opt/socket/chrome-sandbox"
+}

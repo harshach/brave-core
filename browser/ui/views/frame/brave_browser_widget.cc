@@ -80,6 +80,14 @@ ui::ColorProviderKey BraveBrowserWidget::GetColorProviderKey() const {
     key.custom_theme = GetCustomTheme();
   }
 
+  // Origin windows take their Space's colour. Web app windows already use
+  // this slot for the app's theme, so leave theirs alone.
+  if (!key.app_controller && !theme_supplier_) {
+    if (auto* brave_view = BraveBrowserView::From(browser_view_)) {
+      key.app_controller = brave_view->GetOriginSpaceColorSupplier();
+    }
+  }
+
   // We want to use dark mode for guest profile.
   if (view_->browser()->GetProfile()->IsGuestSession()) {
     key.color_mode = ui::ColorProviderKey::ColorMode::kDark;

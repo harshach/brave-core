@@ -16,3 +16,10 @@ substitutions:
       replace: |-
         \1
             AddDeleteLocalFileQuickAction(actions);
+
+  - description: |
+      Use a looping progress bar after all bytes are saved but the download is
+      still being finalized, rather than leaving a static bar at 100 percent.
+    regex:
+      re_pattern: '(\n  return model\.GetState\(\) == DownloadItem::IN_PROGRESS)'
+      replace: '\n  if (model.GetState() == DownloadItem::IN_PROGRESS && model.AllDataSaved()) return DownloadBubbleProgressBar::LoopingProgressBar();\1'

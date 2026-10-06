@@ -5,13 +5,17 @@
 
 #include "brave/components/sidebar/common/features.h"
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+
 namespace sidebar::features {
 
 BASE_FEATURE(kSidebarShowAlwaysOnStable,
              base::FEATURE_DISABLED_BY_DEFAULT);
 
 BASE_FEATURE(kSidebarWebPanel,
-             base::FEATURE_DISABLED_BY_DEFAULT);
+             BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+                 ? base::FEATURE_ENABLED_BY_DEFAULT
+                 : base::FEATURE_DISABLED_BY_DEFAULT);
 
 const base::FeatureParam<bool> kOpenOneShotLeoPanel{
     &kSidebarShowAlwaysOnStable,

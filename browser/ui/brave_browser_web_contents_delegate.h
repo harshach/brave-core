@@ -11,6 +11,8 @@
 #include "base/memory/raw_ref.h"
 #include "base/memory/scoped_refptr.h"
 #include "chrome/browser/ui/browser_web_contents_delegate/browser_web_contents_delegate.h"
+#include "components/input/native_web_keyboard_event.h"
+#include "content/public/browser/keyboard_event_processing_result.h"
 
 class BrowserUiController;
 
@@ -31,6 +33,11 @@ class BraveBrowserWebContentsDelegate : public BrowserWebContentsDelegate {
       const BraveBrowserWebContentsDelegate&) = delete;
   ~BraveBrowserWebContentsDelegate() override;
 
+  bool ShouldFocusLocationBarByDefault(
+      content::WebContents* source) override;
+  content::KeyboardEventProcessingResult PreHandleKeyboardEvent(
+      content::WebContents* source,
+      const input::NativeWebKeyboardEvent& event) override;
   content::WebContents* AddNewContents(
       content::WebContents* source,
       std::unique_ptr<content::WebContents> new_contents,

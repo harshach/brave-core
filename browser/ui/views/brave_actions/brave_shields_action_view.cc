@@ -101,6 +101,13 @@ void BraveShieldsActionView::Update() {
   controller_->RefreshButtonImages(this);
 }
 
+void BraveShieldsActionView::SetOriginForegroundColor(
+    std::optional<SkColor> color) {
+  if (controller_->SetOriginForegroundColor(color)) {
+    Update();
+  }
+}
+
 std::unique_ptr<views::LabelButtonBorder>
 BraveShieldsActionView::CreateDefaultBorder() const {
   std::unique_ptr<views::LabelButtonBorder> border =

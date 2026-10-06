@@ -76,6 +76,14 @@ source_set("widevine_cdm_component_installer_unittest") {
     "//testing/gtest",
     "//third_party/widevine/cdm:buildflags",
   ]
+  if (is_mac) {
+    deps += [
+      "//media",
+      "//media/cdm:cdm_api",
+      "//media/cdm:cdm_paths",
+      "//third_party/widevine/cdm:headers",
+    ]
+  }
 }
 
 source_set("widevine_permission_android_unittest") {

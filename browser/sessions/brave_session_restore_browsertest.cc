@@ -9,6 +9,7 @@
 #include "base/command_line.h"
 #include "base/containers/map_util.h"
 #include "base/run_loop.h"
+#include "base/strings/string_number_conversions.h"
 #include "base/test/bind.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
@@ -16,7 +17,12 @@
 #include "brave/browser/sessions/brave_session_keys.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_model.h"
+#include "brave/browser/workspaces/pref_names.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/tabs/public/tree_tab_node.h"
 #include "brave/components/tabs/public/tree_tab_node_tab_collection.h"
 #include "chrome/browser/prefs/session_startup_pref.h"
@@ -26,6 +32,7 @@
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/tabs/tab_enums.h"
@@ -36,6 +43,7 @@
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/prefs/pref_service.h"
 #include "components/saved_tab_groups/public/tab_group_sync_service.h"
+#include "components/sessions/content/session_tab_helper.h"
 #include "components/sessions/core/serialized_navigation_entry.h"
 #include "components/sessions/core/session_types.h"
 #include "components/sessions/core/tab_restore_service.h"
@@ -54,6 +62,212 @@
 #include "third_party/blink/public/common/page_state/page_state_serialization.h"
 
 using BraveSessionRestoreBrowserTest = InProcessBrowserTest;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveSessionRestoreBrowserTest,
+                       OriginSpaceDataSurvivesFullSessionRebuild) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+
+  content::WebContents* contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(contents);
+  const SessionID tab_id = sessions::SessionTabHelper::IdForTab(contents);
+  const SessionID window_id = browser()->GetSessionID();
+  const std::string empty_space_id =
+      workspace_service->GetOriginSpaces()[1].id;
+  controller->MoveTabToSpace(contents, empty_space_id);
+  ASSERT_EQ(empty_space_id, controller->GetSpaceIdForTab(contents));
+  ASSERT_TRUE(controller->SelectSpace(empty_space_id));
+  ASSERT_EQ(empty_space_id, controller->active_space_id());
+
+  const PrefService* prefs = browser()->GetProfile()->GetPrefs();
+  const std::string* backed_up_tab_space =
+      prefs->GetDict(kOriginTabSessionSpacesPref)
+          .FindString(base::NumberToString(tab_id.id()));
+  const std::string* backed_up_window_space =
+      prefs->GetDict(kOriginWindowSessionSpacesPref)
+          .FindString(base::NumberToString(window_id.id()));
+  ASSERT_TRUE(backed_up_tab_space);
+  ASSERT_TRUE(backed_up_window_space);
+  EXPECT_EQ(empty_space_id, *backed_up_tab_space);
+  EXPECT_EQ(empty_space_id, *backed_up_window_space);
+
+  SessionService* session_service =
+      SessionServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(session_service);
+  session_service->ResetFromCurrentBrowsers();
+  session_service->MoveCurrentSessionToLastSession();
+
+  std::map<std::string, std::string> saved_tab_data;
+  std::map<std::string, std::string> saved_window_data;
+  base::RunLoop loop;
+  session_service->GetLastSession(base::BindLambdaForTesting(
+      [&](std::vector<std::unique_ptr<sessions::SessionWindow>> windows,
+          SessionID /*active_window*/, bool error_reading) {
+        loop.Quit();
+        ASSERT_FALSE(error_reading);
+        const sessions::SessionWindow* saved_window = nullptr;
+        for (const auto& window : windows) {
+          if (window->window_id == window_id) {
+            saved_window = window.get();
+            break;
+          }
+        }
+        ASSERT_TRUE(saved_window);
+
+        const sessions::SessionTab* saved_tab = nullptr;
+        for (const auto& tab : saved_window->tabs) {
+          if (tab->tab_id == tab_id) {
+            saved_tab = tab.get();
+            break;
+          }
+        }
+        ASSERT_TRUE(saved_tab);
+        saved_tab_data = saved_tab->extra_data;
+        saved_window_data = saved_window->extra_data;
+      }));
+  loop.Run();
+
+  // A full rebuild writes the session from live browser state. The Space data
+  // has to be in it: SessionIDs change on relaunch, so nothing else can
+  // recover which Space a page belonged to.
+  const std::string* saved_tab_space =
+      base::FindOrNull(saved_tab_data, kBraveOriginSpaceIdKey);
+  ASSERT_TRUE(saved_tab_space);
+  EXPECT_EQ(empty_space_id, *saved_tab_space);
+  const std::string* saved_active_space =
+      base::FindOrNull(saved_window_data, kBraveOriginActiveSpaceIdKey);
+  ASSERT_TRUE(saved_active_space);
+  EXPECT_EQ(empty_space_id, *saved_active_space);
+
+  // Restoring from the saved data alone, not from what is still in memory,
+  // has to put the page and the window back where they were.
+  const std::string default_space_id = workspace_service->GetOriginSpaces()[0].id;
+  controller->MoveTabToSpace(contents, default_space_id);
+  ASSERT_TRUE(controller->SelectSpace(default_space_id));
+  controller->BeginWindowRestore(saved_window_data);
+  controller->MaybeRestoreTabSpace(contents, saved_tab_data);
+  controller->FinishWindowRestore();
+  EXPECT_EQ(empty_space_id, controller->active_space_id());
+  EXPECT_EQ(empty_space_id, controller->GetSpaceIdForTab(contents));
+}
+
+// Quitting and relaunching restores every page into the Space it was in, not
+// all of them into the first one. The PRE_ step lays out two Spaces and forces
+// the full session rebuild that used to drop the Space data.
+class BraveOriginSpaceRelaunchBrowserTest
+    : public BraveSessionRestoreBrowserTest {
+ protected:
+  void SetUpOnMainThread() override {
+    BraveSessionRestoreBrowserTest::SetUpOnMainThread();
+    SessionStartupPref::SetStartupPref(
+        browser()->GetProfile(), SessionStartupPref(SessionStartupPref::LAST));
+  }
+
+  OriginSpaceController* controller() {
+    return browser()->GetFeatures().origin_space_controller();
+  }
+  WorkspaceService* workspaces() {
+    return WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  }
+  // Matches on host: brave:// pages load as chrome:// internally, so the full
+  // URL depends on which one the entry reports.
+  content::WebContents* FindTab(const GURL& url) {
+    TabStripModel* model = browser()->tab_strip_model();
+    for (int index = 0; index < model->count(); ++index) {
+      if (model->GetWebContentsAt(index)->GetVisibleURL().host() ==
+          url.host()) {
+        return model->GetWebContentsAt(index);
+      }
+    }
+    return nullptr;
+  }
+
+  // One page in the first Space, one in the second with the second selected,
+  // then the full session rebuild that used to drop Space data.
+  void ArrangePagesInTwoSpaces() {
+    ASSERT_TRUE(controller());
+    ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
+    const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
+    const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
+
+    ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), kFirstSpacePage));
+    ASSERT_TRUE(ui_test_utils::NavigateToURLWithDisposition(
+        browser(), kSecondSpacePage, WindowOpenDisposition::NEW_FOREGROUND_TAB,
+        ui_test_utils::BROWSER_TEST_WAIT_FOR_LOAD_STOP));
+    content::WebContents* second = FindTab(kSecondSpacePage);
+    ASSERT_TRUE(second);
+    controller()->MoveTabToSpace(second, second_space);
+    ASSERT_TRUE(controller()->SelectSpace(second_space));
+    ASSERT_EQ(first_space,
+              controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
+    ASSERT_EQ(second_space, controller()->GetSpaceIdForTab(second));
+
+    SessionServiceFactory::GetForProfile(browser()->GetProfile())
+        ->ResetFromCurrentBrowsers();
+  }
+
+  void ExpectPagesBackInTheirSpaces() {
+    ASSERT_TRUE(controller());
+    ASSERT_GE(workspaces()->GetOriginSpaces().size(), 2u);
+    const std::string first_space = workspaces()->GetOriginSpaces()[0].id;
+    const std::string second_space = workspaces()->GetOriginSpaces()[1].id;
+
+    ASSERT_TRUE(base::test::RunUntil([&] {
+      return FindTab(kFirstSpacePage) && FindTab(kSecondSpacePage);
+    })) << "the previous session was not restored";
+    EXPECT_EQ(first_space,
+              controller()->GetSpaceIdForTab(FindTab(kFirstSpacePage)));
+    EXPECT_EQ(second_space,
+              controller()->GetSpaceIdForTab(FindTab(kSecondSpacePage)));
+    EXPECT_EQ(second_space, controller()->active_space_id());
+  }
+
+  const GURL kFirstSpacePage{"brave://version/"};
+  const GURL kSecondSpacePage{"brave://history/"};
+};
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceRelaunchBrowserTest,
+                       PRE_PagesReturnToTheirSpacesAfterRelaunch) {
+  ArrangePagesInTwoSpaces();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceRelaunchBrowserTest,
+                       PagesReturnToTheirSpacesAfterRelaunch) {
+  ExpectPagesBackInTheirSpaces();
+}
+
+// A session file can arrive with no Space data in it at all -- builds before
+// the rebuild fix lost it whenever the session was rewritten -- while the
+// backups still record where every page was, under the tab and window IDs in
+// that file. Restored pages get new IDs, so recovery depends on looking the
+// backups up under the old ones.
+class BraveOriginSpaceBackupRelaunchBrowserTest
+    : public BraveOriginSpaceRelaunchBrowserTest {
+ protected:
+  void TearDown() override {
+    OriginSpaceController::SetSimulateSessionWithoutSpaceDataForTesting(false);
+    BraveOriginSpaceRelaunchBrowserTest::TearDown();
+  }
+};
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceBackupRelaunchBrowserTest,
+                       PRE_PagesRecoverTheirSpacesFromBackups) {
+  // Left on through shutdown, which can write the session one last time.
+  OriginSpaceController::SetSimulateSessionWithoutSpaceDataForTesting(true);
+  ArrangePagesInTwoSpaces();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveOriginSpaceBackupRelaunchBrowserTest,
+                       PagesRecoverTheirSpacesFromBackups) {
+  ExpectPagesBackInTheirSpaces();
+}
+#endif
 
 IN_PROC_BROWSER_TEST_F(BraveSessionRestoreBrowserTest,
                        SerializationClearNonEmptyPageState) {

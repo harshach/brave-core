@@ -12,10 +12,13 @@
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/tabs/brave_tab.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/tabs/tab_container.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
+#include "ui/base/models/image_model.h"
+#include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/color_utils.h"
 #include "ui/views/view_utils.h"
 
@@ -452,6 +455,39 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's pinned pages are favicon tiles. Nothing else identifies them, so
+  // give the tile a surface and draw the icon well above its 16dp default.
+  if (ShouldShowVerticalTabs() && tab()->data().pinned) {
+    const SkRect tile = GetPath(TabStyle::PathType::kBorder, 1, /*flags=*/{},
+                                /*inset_tab_accent_area=*/false)
+                            .getBounds();
+    {
+      gfx::ScopedCanvas scoped_canvas(canvas);
+      const float scale = canvas->UndoDeviceScaleFactor();
+      cc::PaintFlags flags;
+      flags.setAntiAlias(true);
+      flags.setColor(SkColorSetARGB(0x1A, 0xFF, 0xFF, 0xFF));
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      canvas->DrawPath(
+          GetPath(TabStyle::PathType::kHighlight, scale, /*flags=*/{}), flags);
+    }
+
+    const ui::ImageModel& favicon = tab()->data().favicon;
+    if (!favicon.IsEmpty()) {
+      constexpr int kOriginPinnedFaviconSize = 26;
+      const gfx::ImageSkia image =
+          favicon.Rasterize(tab()->GetColorProvider());
+      canvas->DrawImageInt(
+          image, 0, 0, image.width(), image.height(),
+          tile.x() + (tile.width() - kOriginPinnedFaviconSize) / 2,
+          tile.y() + (tile.height() - kOriginPinnedFaviconSize) / 2,
+          kOriginPinnedFaviconSize, kOriginPinnedFaviconSize,
+          /*filter=*/true);
+    }
+  }
+#endif
+
   // Paint a stroke for pinned tabs.
   if (tab()->data().pinned) {
     const auto* widget = tab()->GetWidget();
@@ -477,6 +513,22 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     flags.setStrokeWidth(scale);
     canvas->DrawPath(stroke_path, flags);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldShowVerticalTabs() && tab()->IsActive()) {
+    gfx::ScopedCanvas scoped_canvas(canvas);
+    const float scale = canvas->UndoDeviceScaleFactor();
+    const SkPath stroke_path =
+        GetPath(TabStyle::PathType::kBorder, scale, /*flags=*/{});
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    flags.setColor(SkColorSetARGB(0x57, 0xFB, 0x54, 0x2B));
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(scale);
+    canvas->DrawPath(stroke_path, flags);
+  }
+#endif
 
   // Paint tab accent if needed.
   if (should_paint_tab_accent) {

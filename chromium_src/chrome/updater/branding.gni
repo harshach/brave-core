@@ -29,6 +29,19 @@ brave_updater_branding = {
   mac_team_identifier = "KL8N8XSYF4"
   grdfile_name = "brave_strings"
 
+  if (is_socket_branded) {
+    browser_name = "Socket"
+    crash_product_name = "Socket"
+    crash_upload_url = ""
+    help_center_url = "https://github.com/harshach/brave-core"
+    updater_company_full_name = "Socket Contributors"
+    updater_company_short_name = "Socket"
+    updater_company_short_name_uppercase = "SOCKET"
+    updater_copyright = "Copyright 2026 Socket Contributors."
+    updater_product_full_name = "SocketUpdater"
+    mac_team_identifier = ""
+  }
+
   # The updater (Omaha 4) is shared between Brave Browser and Brave Origin.
   # It manages multiple applications, so we don't need separate updater
   # installations - just different app registrations within the same updater.
@@ -41,7 +54,9 @@ brave_updater_branding = {
 
   # Brave Origin uses a separate browser bundle identifier for side-by-side
   # installation with Brave Browser.
-  if (is_brave_origin_branded) {
+  if (is_socket_branded) {
+    mac_browser_bundle_identifier = "com.harsha.Socket"
+  } else if (is_brave_origin_branded) {
     mac_browser_bundle_identifier = "com.brave.Browser.origin"
   } else {
     mac_browser_bundle_identifier = "com.brave.Browser"

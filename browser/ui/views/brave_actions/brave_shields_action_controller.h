@@ -17,6 +17,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "chrome/browser/ui/views/bubble/webui_bubble_manager.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/base/models/image_model.h"
 #include "ui/gfx/geometry/size.h"
 #include "ui/views/controls/button/label_button.h"
@@ -40,6 +41,7 @@ class BraveShieldsActionController
   enum class IconStyle {
     kLocationBar,
     kWebAppTitleBar,
+    kOriginTitleBar,
   };
 
   using CreateWebUIBubbleManagerCallback =
@@ -61,10 +63,19 @@ class BraveShieldsActionController
   // Invoked when icon/badge or tooltip should be refreshed.
   void SetOnStateChanged(base::RepeatingClosure callback);
   void SetIconStyle(IconStyle style) { icon_style_ = style; }
+  bool SetOriginForegroundColor(std::optional<SkColor> color) {
+    if (origin_foreground_color_ == color) {
+      return false;
+    }
+    origin_foreground_color_ = color;
+    return true;
+  }
 
   // Updates |button| image for its current preferred size.
   void RefreshButtonImages(views::LabelButton* button);
   ui::ImageModel GetImageModel(const gfx::Size& preferred_size) const;
+  int GetTotalBlockedCount() const;
+  bool IsShieldsEnabled() const;
   std::u16string GetTooltipText() const;
   void OnButtonPressed();
   views::Widget* GetBubbleWidget();
@@ -107,6 +118,7 @@ class BraveShieldsActionController
   std::optional<GURL> last_webui_url_;
 
   IconStyle icon_style_ = IconStyle::kLocationBar;
+  std::optional<SkColor> origin_foreground_color_;
   base::RepeatingClosure on_state_changed_;
 };
 

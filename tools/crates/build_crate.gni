@@ -75,6 +75,12 @@ template("build_crate") {
 
     response_file_contents += rust_host_response_file_contents
 
+    # Avoid selecting an incompatible Homebrew liblzma when the host has both
+    # Intel and Apple Silicon Homebrew installations.
+    if (host_os == "mac") {
+      response_file_contents += [ "LZMA_API_STATIC=1" ]
+    }
+
     response_file_contents += [
       "abs@" + rebase_path(cargo_exe, root_build_dir),
       "build",

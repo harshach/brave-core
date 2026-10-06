@@ -33,6 +33,9 @@ const FORWARD_ENV_CONFIG_VARS_TO_GN_ARGS = [
   'use_clang_coverage',
   'coverage_instrumentation_input_file',
   'is_brave_origin_branded',
+  'is_socket_branded',
+  'mac_notary_keychain_profile',
+  'origin_adblock_components_dir',
 ]
 
 export function getBuildArgs(config: Config) {
@@ -80,7 +83,7 @@ export function getBuildArgs(config: Config) {
 
   config.forwardEnvConfigVarsToObject(FORWARD_ENV_CONFIG_VARS_TO_GN_ARGS, args)
 
-  if (config.isOfficialBuild()) {
+  if (config.isOfficialBuild() && !config.isSocketBranded) {
     args.enable_updater = true
   }
 

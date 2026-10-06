@@ -18,7 +18,7 @@ INSTALLDIR=/opt/brave.com/brave-origin
 ENROLLMENTDIR=/etc/brave-origin/policies/enrollment
 
 # Display string for desktop menu/icon.
-MENUNAME="Brave Origin"
+MENUNAME="Socket"
 
 # Brief package description.
 SHORTDESC="The web browser from Brave"

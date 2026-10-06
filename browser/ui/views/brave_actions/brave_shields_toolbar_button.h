@@ -38,6 +38,10 @@ class BraveShieldsToolbarButton : public ToolbarButton {
       CreateWebUIBubbleManagerCallback create_bubble_manager_callback);
   ~BraveShieldsToolbarButton() override;
 
+  // Switches the standalone/PWA control to Origin's compact, count-bearing
+  // titlebar pill. The underlying controller and real Shields panel remain
+  // the same.
+  void SetOriginTitleBarStyle();
   void Update();
 
   views::Widget* GetBubbleWidget();
@@ -51,6 +55,7 @@ class BraveShieldsToolbarButton : public ToolbarButton {
   void ButtonPressed();
 
   std::unique_ptr<BraveShieldsActionController> controller_;
+  bool origin_title_bar_style_ = false;
   base::WeakPtrFactory<BraveShieldsToolbarButton> weak_ptr_factory_{this};
 };
 

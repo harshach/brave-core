@@ -15,6 +15,8 @@ substitutions:
           containers::ContainerSpecifier container;
         #endif
 
+          bool is_origin_external_link = false;
+
           StartupTab(const StartupTab&);
           StartupTab& operator=(const StartupTab&);
           StartupTab(StartupTab&&) noexcept;

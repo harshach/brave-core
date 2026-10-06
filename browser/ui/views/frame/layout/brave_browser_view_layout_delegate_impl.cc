@@ -6,8 +6,13 @@
 #include "brave/browser/ui/views/frame/layout/brave_browser_view_layout_delegate_impl.h"
 
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/frame/browser_frame_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "brave/browser/ui/startup/origin_external_link_router.h"
+#endif
 
 BrowserLayoutParams BraveBrowserViewLayoutDelegateImpl::GetBrowserLayoutParams(
     bool use_browser_bounds) const {
@@ -37,6 +42,15 @@ BrowserLayoutParams BraveBrowserViewLayoutDelegateImpl::GetBrowserLayoutParams(
     }
   }
 #endif  // BUILDFLAG(IS_MAC)
-  return BrowserViewLayoutDelegateImpl::GetBrowserLayoutParams(
-      use_browser_bounds);
+  BrowserLayoutParams params =
+      BrowserViewLayoutDelegateImpl::GetBrowserLayoutParams(use_browser_bounds);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!params.IsEmpty() &&
+      origin_external_link::IsTemporaryLinkBrowser(browser_view().browser())) {
+    params.visual_client_area =
+        origin_external_link::CalculateTemporaryLinkContentBounds(
+            params.visual_client_area);
+  }
+#endif
+  return params;
 }

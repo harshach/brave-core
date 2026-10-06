@@ -80,6 +80,7 @@ export class Config {
   notary_password: string | undefined
   channel: string
   isBraveOriginBranded: boolean | undefined
+  isSocketBranded: boolean | undefined
   // Parent cache directory for all internal caches (git, siso, vpython).
   readonly cacheDir: string | undefined
   gitCachePath: string | undefined
@@ -219,6 +220,7 @@ export class Config {
     this.isBraveOriginBranded = envConfig.getBoolean([
       'is_brave_origin_branded',
     ])
+    this.isSocketBranded = envConfig.getBoolean(['is_socket_branded'])
     this.cacheDir = envConfig.getPath(['cache_dir'])
     this.gitCachePath =
       envConfig.getPath(['git_cache_path'])

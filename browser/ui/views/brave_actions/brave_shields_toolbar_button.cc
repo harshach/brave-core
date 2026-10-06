@@ -8,14 +8,18 @@
 #include <utility>
 
 #include "base/functional/bind.h"
+#include "base/strings/string_number_conversions.h"
 #include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "components/grit/brave_components_strings.h"
 #include "ui/base/l10n/l10n_util.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/point.h"
 #include "ui/gfx/geometry/skia_conversions.h"
-#include "ui/views/controls/button/menu_button_controller.h"
+#include "ui/views/background.h"
+#include "ui/views/border.h"
 #include "ui/views/controls/highlight_path_generator.h"
 #include "ui/views/view_class_properties.h"
 
@@ -45,14 +49,12 @@ BraveShieldsToolbarButton::BraveShieldsToolbarButton(
               BraveShieldsActionView::kShieldsActionIcon);
   SetBorder(nullptr);
 
-  // Match BraveShieldsActionView: MenuButtonController handles press so the
-  // bubble closes when the button is clicked while already open.
-  auto menu_button_controller = std::make_unique<views::MenuButtonController>(
-      this,
-      base::BindRepeating(&BraveShieldsToolbarButton::ButtonPressed,
-                          weak_ptr_factory_.GetWeakPtr()),
-      std::make_unique<views::Button::DefaultButtonControllerDelegate>(this));
-  SetButtonController(std::move(menu_button_controller));
+  // This control lives in the browser toolbar rather than inside the location
+  // bar. Keep ToolbarButton's standard press path so native mouse and
+  // accessibility activation both dispatch through Button::NotifyClick(). The
+  // controller already owns the open/close toggle for its WebUI bubble.
+  SetCallback(base::BindRepeating(&BraveShieldsToolbarButton::ButtonPressed,
+                                  weak_ptr_factory_.GetWeakPtr()));
 
   controller_->SetOnStateChanged(
       base::BindRepeating(&BraveShieldsToolbarButton::OnControllerStateChanged,
@@ -69,6 +71,18 @@ BraveShieldsToolbarButton::BraveShieldsToolbarButton(
 
 BraveShieldsToolbarButton::~BraveShieldsToolbarButton() = default;
 
+void BraveShieldsToolbarButton::SetOriginTitleBarStyle() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_title_bar_style_ = true;
+  controller_->SetIconStyle(
+      BraveShieldsActionController::IconStyle::kOriginTitleBar);
+  SetImageLabelSpacing(5);
+  SetHorizontalAlignment(gfx::ALIGN_CENTER);
+  SetProperty(views::kMarginsKey, gfx::Insets());
+  Update();
+#endif
+}
+
 void BraveShieldsToolbarButton::ButtonPressed() {
   controller_->OnButtonPressed();
 }
@@ -78,6 +92,26 @@ void BraveShieldsToolbarButton::OnControllerStateChanged() {
 }
 
 void BraveShieldsToolbarButton::Update() {
+  if (origin_title_bar_style_) {
+    constexpr SkColor kEnabledColor = SkColorSetRGB(0xFB, 0x54, 0x2B);
+    constexpr SkColor kDisabledColor = SkColorSetRGB(0x6B, 0x6E, 0x75);
+    const bool enabled = controller_->IsShieldsEnabled();
+    const int blocked = controller_->GetTotalBlockedCount();
+    std::u16string count;
+    if (enabled) {
+      count = blocked > 999 ? u"999+" : base::NumberToString16(blocked);
+    }
+    SetText(count);
+    SetAccessibleName(l10n_util::GetStringUTF16(IDS_BRAVE_SHIELDS));
+    SetEnabledTextColors(enabled ? kEnabledColor : kDisabledColor);
+    SetBackground(views::CreateRoundedRectBackground(
+        enabled ? SkColorSetARGB(0x2B, 0xFB, 0x54, 0x2B)
+                : SkColorSetARGB(0x0D, 0xFF, 0xFF, 0xFF),
+        8));
+    SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(0, 8)));
+    const int digit_width = count.size() > 2u ? 12 : count.size() > 1u ? 6 : 0;
+    SetPreferredSize(gfx::Size(enabled ? 44 + digit_width : 30, 28));
+  }
   controller_->RefreshButtonImages(this);
   PreferredSizeChanged();
 }

@@ -12,3 +12,8 @@ substitutions:
       replace: |-
         \1BraveModifyStartupTabNavigationParams(tab, browser, params);
         \1\2
+  - description: 'Let Brave skip showing the fallback browser after routing tabs'
+    count: 1
+    regex:
+      pattern: 'browser->GetWindow()->Show();'
+      replace: 'BraveShowStartupBrowser(browser, tabs);'

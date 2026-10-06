@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/install_static/install_util.h"
 
 namespace install_static {
@@ -29,6 +30,7 @@ std::wstring& BraveAppendChromeInstallSubDirectory(const InstallConstants& mode,
                                                    bool include_suffix,
                                                    std::wstring* path) {
   AppendChromeInstallSubDirectory(mode, include_suffix, path);
+#if !BUILDFLAG(IS_SOCKET_BRANDED)
   // Special case to handle the Policy version of the path for Brave.
   // Brave uses `SOFTWARE\Policies\BraveSoftware\Brave`
   // instead of `SOFTWARE\Policies\BraveSoftware\Brave-Browser`
@@ -37,6 +39,7 @@ std::wstring& BraveAppendChromeInstallSubDirectory(const InstallConstants& mode,
     *path = path->substr(0, (path->length() - kProductPathNameLength));
     path->append(L"Brave");
   }
+#endif
 
   return *path;
 }

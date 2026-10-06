@@ -10,6 +10,7 @@
 #include "base/command_line.h"
 #include "base/feature_list.h"
 #include "brave/browser/ui/tabs/public/switches.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/common/pref_names.h"
 #include "components/prefs/pref_registry_simple.h"
@@ -17,9 +18,19 @@
 
 namespace brave_tabs {
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+// The Origin sidebar is a fixed 56 px space rail plus a 250 px page column.
+// Keeping this literal here makes the pref default agree with the native view's
+// layout contract and with the titlebar/web-canvas alignment.
+constexpr int kDefaultVerticalTabsExpandedWidth = 306;
+#else
+constexpr int kDefaultVerticalTabsExpandedWidth = 220;
+#endif
+
 void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
   registry->RegisterIntegerPref(kTabHoverMode, TabHoverMode::CARD);
-  registry->RegisterBooleanPref(kVerticalTabsEnabled, false);
+  registry->RegisterBooleanPref(kVerticalTabsEnabled,
+                                BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
   registry->RegisterBooleanPref(kVerticalTabsCollapsed, false);
   registry->RegisterBooleanPref(kVerticalTabsExpandedStatePerWindow, false);
 #if BUILDFLAG(IS_WIN)
@@ -35,9 +46,11 @@ void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
                                   false);
   }
 
-  registry->RegisterBooleanPref(kVerticalTabsFloatingEnabled, true);
+  registry->RegisterBooleanPref(kVerticalTabsFloatingEnabled,
+                                !BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
   registry->RegisterBooleanPref(kVerticalTabsShowToggleButton, true);
-  registry->RegisterIntegerPref(kVerticalTabsExpandedWidth, 220);
+  registry->RegisterIntegerPref(kVerticalTabsExpandedWidth,
+                                kDefaultVerticalTabsExpandedWidth);
   registry->RegisterBooleanPref(kVerticalTabsOnRight, false);
   registry->RegisterBooleanPref(kVerticalTabsShowScrollbar, false);
   registry->RegisterBooleanPref(kShowHorizontalTabScrollButtons, false);
@@ -45,7 +58,8 @@ void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
   registry->RegisterBooleanPref(kSharedPinnedTab, false);
 
   if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
-    registry->RegisterBooleanPref(kTreeTabsEnabled, false);
+    registry->RegisterBooleanPref(kTreeTabsEnabled,
+                                  BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED));
   }
 
   registry->RegisterBooleanPref(kAlwaysHideTabCloseButton, false);
@@ -57,6 +71,14 @@ void RegisterBraveProfilePrefs(PrefRegistrySimple* registry) {
 }
 
 void MigrateBraveProfilePrefs(PrefService* prefs) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin uses the tree workspace as its primary tab surface. Keep vertical
+  // tree tabs enabled, but preserve the user's expanded/collapsed sidebar
+  // state across launches.
+  prefs->SetBoolean(kVerticalTabsEnabled, true);
+  prefs->SetBoolean(kTreeTabsEnabled, true);
+#endif
+
   if (auto* pref = prefs->FindPreference(kVerticalTabsShowScrollbar);
       pref && pref->IsDefaultValue() &&
       base::FeatureList::IsEnabled(tabs::kBraveVerticalTabScrollBar)) {

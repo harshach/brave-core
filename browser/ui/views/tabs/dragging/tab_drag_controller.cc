@@ -13,12 +13,15 @@
 #include "base/check.h"
 #include "base/check_op.h"
 #include "base/feature_list.h"
+#include "base/no_destructor.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
 #include "brave/browser/ui/views/tabs/brave_tab_strip_layout_helper.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/tabs/features.h"
@@ -28,7 +31,35 @@
 #include "components/tabs/public/tab_group.h"
 #include "ui/views/view_utils.h"
 
-BraveTabDragController::BraveTabDragController() = default;
+namespace {
+
+class BraveTabDragPointResolver final : public TabDragPointResolver {
+ public:
+  TabDragTarget* GetDragTarget(
+      BrowserView& browser_view,
+      const gfx::Point& point_in_screen) override {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    auto* brave_browser_view = BraveBrowserView::From(&browser_view);
+    if (auto* container =
+            brave_browser_view->vertical_tab_strip_container_view()) {
+      if (auto* region = container->vertical_tab_strip_region_view()) {
+        if (auto* target =
+                region->GetOriginTabDragTarget(point_in_screen)) {
+          return target;
+        }
+      }
+    }
+#endif
+    return browser_view.GetTabDragTarget(point_in_screen);
+  }
+};
+
+}  // namespace
+
+BraveTabDragController::BraveTabDragController() {
+  static base::NoDestructor<BraveTabDragPointResolver> resolver;
+  TabDragController::SetTabDragPointResolver(*resolver);
+}
 
 BraveTabDragController::~BraveTabDragController() = default;
 
@@ -137,4 +168,26 @@ void BraveTabDragController::DetachAndAttachToNewContext(
   vertical_tab_state_resetter_ = region_view->ExpandTabStripForDragging();
   // Relayout tabs with expanded bounds.
   attached_context_->GetPositioningDelegate()->ForceLayout();
+}
+
+void BraveTabDragController::CompleteDrag() {
+  content::WebContents* child_contents = nullptr;
+  content::WebContents* parent_contents = nullptr;
+  BraveTabStripModel* model = nullptr;
+  if (is_showing_vertical_tabs_ && dragging_tabs_session_ &&
+      attached_context_) {
+    child_contents = drag_data_.source_view_drag_data()->contents;
+    parent_contents =
+        dragging_tabs_session_->origin_hierarchy_drop_target_contents();
+    model =
+        static_cast<BraveTabStripModel*>(attached_context_->GetTabStripModel());
+  }
+
+  TabDragController::CompleteDrag();
+
+  if (model && child_contents && parent_contents &&
+      model->GetIndexOfWebContents(child_contents) != TabStripModel::kNoTab &&
+      model->GetIndexOfWebContents(parent_contents) != TabStripModel::kNoTab) {
+    model->NestTabUnder(child_contents, parent_contents);
+  }
 }

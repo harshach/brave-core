@@ -1,0 +1,102 @@
+# NavKeys Origin Architecture
+
+NavKeys Origin is an Origin-branded desktop configuration centered on a native
+tab tree and keyboard-driven workspaces. It reuses Brave and Chromium browser
+primitives so Chromium security updates remain mergeable.
+
+## Product invariants
+
+- The left tab tree is the only visible tab strip in normal browser windows.
+- New tabs with an opener become children of the opener.
+- Closing a tree node can close its complete subtree; restoring a closed node
+  restores its persisted hierarchy.
+- Single-key commands run only when browser content is in navigation mode.
+  Editable and interactive content receives unmodified keyboard input.
+- Split view uses native `SplitTabCollection` and `BraveMultiContentsView`.
+- The independent right panel uses `SidebarWebPanelController` and remains
+  separate from split-tab state.
+- Focus mode hides browser chrome without changing the underlying workspace.
+
+## Upstream primitives
+
+| Capability         | Existing implementation                           |
+| ------------------ | ------------------------------------------------- |
+| Hierarchical tabs  | `TreeTabNodeTabCollection` and `TreeTabModel`     |
+| Tree persistence   | `TreeTabSessionManager`                           |
+| Vertical UI        | `BraveVerticalTabStripRegionView`                 |
+| Split tabs         | `SplitTabCollection` and `BraveMultiContentsView` |
+| Web side pages     | `SidebarWebPanelController`                       |
+| Focus presentation | Brave focus-mode frame views                      |
+
+## Implemented behavior
+
+- Origin always presents the native tree workspace on the left; stale profile
+  settings cannot bring back a horizontal or icon-only tab strip.
+- Space names, icons, and ordering are profile-persistent. Tab membership,
+  selected space, and the last selected tab in each space are window-local and
+  session-restored. An empty selected space restores without borrowing pages
+  from another space.
+- A page opened from another page is represented by Brave's native tree-tab
+  parentage. Closing a branch and restoring it reuse the native historical-tab
+  and tree-session data.
+- The workspace rail is 56 px, space controls are 32 px, the complete panel
+  starts at 240 px and resizes from 220 px to 420 px. The web canvas has an 8 px
+  separation and 10 px corners.
+- Chrome typography uses SF Pro Text on macOS, Segoe UI on Windows, and Inter on
+  Linux. The sidebar contains only the selected space title and its pages; the
+  duplicate footer-level New Page control is suppressed in Origin.
+- The top bar's address field and page actions follow the page's scroll:
+  reading downward takes them away, coming back up returns them, as does
+  Command/Ctrl+L. Hovering the bar holds it open but never summons it, because
+  the page owns that strip while the bar is away and revealing on approach
+  would move whatever the pointer was reaching for.
+- Navigation mode maps the arrow keys and `j`/`k` to adjacent pages, `1`-`9` to the Space
+  in that position of the bottom row, Command/Ctrl+Up and Command/Ctrl+Down to
+  adjacent spaces, `o` and `n` to the native Quick Open palette, `d` to close
+  the selected branch, `z` to restore, `r` to reload the active page, `s` to
+  split the window and open a new page beside the current one, `p` to pin or
+  unpin the page, `m` to mute or unmute whatever is making sound anywhere in
+  the window, and `f` to focus mode. Space belongs to the page: sites use it
+  to scroll and to pause video. Command/Ctrl+K opens Brave Commander
+  and Command/Ctrl+Right closes the active split. Command/Ctrl+Backslash toggles
+  the sidebar even when focus is outside the page; the macOS View menu exposes
+  the same command. Command/Ctrl+Left also toggles the sidebar when a page has
+  focus outside editable content. `i` enters edit mode and
+  `Escape` returns to navigation mode. Editable page fields continue to
+  receive their original input.
+- A Space carries an equalizer badge only while an unmuted page in it is
+  producing sound. Clicking the badge mutes the Space and hides it. Paused,
+  silent and muted pages have no rail status. `OriginMediaMonitor` supplies
+  the audible state; the badge paints itself rather than using a vector icon,
+  which loses its shape at 16px.
+- Quick Open classifies its input through Brave's native autocomplete stack.
+  Replace and Split are persistent modes for the next result or `Enter`,
+  selectable from the buttons beside the space chip or with Command/Ctrl+R and
+  Command/Ctrl+S; Split creates a native split page before navigating its new
+  pane, and submitting it with no input splits to a new page. Choosing a
+  result that is already open while Split is armed pairs that existing page
+  with the current one rather than loading a second copy beside itself. The
+  shortcut
+  legend stays visible so both modes are discoverable before typing. Empty
+  input uses native zero-suggest history, and the footer enters Brave Commander.
+- Split pages use Brave's native split-tab commands and resizable
+  `BraveMultiContentsView`. A page added to the sidebar opens as an independent,
+  resizable right web panel, suitable for Spotify, YouTube, or another web app.
+- Brave Shields remains attached to each normal and split WebContents; neither
+  spaces nor the right panel replace the network or content-blocking stack.
+
+## Validation
+
+The focused regression set covers Origin defaults, forced vertical-tree
+presentation, Space CRUD and persistence, per-space tab isolation, last-page
+selection, empty-space window restoration, fallback from invalid session data,
+and the right web-panel feature default. Chromium patch files are also checked
+against the patched source before each handoff.
+
+## Update policy
+
+The customization branch merges upstream through reviewable sync pull requests.
+Every sync must complete patch application, targeted unit and browser tests, and
+a local Origin build before it is promoted to the daily browser. Chromium or
+Brave changes that conflict with native UI patches are resolved in the sync
+branch rather than hidden by an automatic force merge.

@@ -8,6 +8,8 @@
 
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include "base/callback_list.h"
 #include "base/functional/callback_helpers.h"
@@ -17,19 +19,33 @@
 #include "base/timer/timer.h"
 #include "base/types/pass_key.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
+#include "brave/browser/ui/tabs/origin_media_monitor.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_owned_bubble.h"
+#include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/views/frame/horizontal_tab_strip_region_view.h"
+#include "chrome/browser/ui/views/tabs/dragging/tab_drag_target.h"
 #include "components/prefs/pref_member.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/gfx/animation/slide_animation.h"
 #include "ui/views/animation/animation_delegate_views.h"
 #include "ui/views/context_menu_controller.h"
 #include "ui/views/controls/resize_area_delegate.h"
+#include "ui/views/controls/textfield/textfield_controller.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/widget/widget_observer.h"
 
 namespace views {
+class Label;
+class LabelButton;
+class ScrollView;
 class MenuRunner;
+class Textfield;
 }  // namespace views
+
+namespace content {
+class WebContents;
+}
 
 class BraveNewTabButton;
 class BrowserView;
@@ -43,9 +59,16 @@ class BraveVerticalTabStripRegionView : public views::View,
                                         public views::AnimationDelegateViews,
                                         public views::WidgetObserver,
                                         public views::ContextMenuController,
-                                        public FocusModeController::Observer {
+                                        public FocusModeController::Observer,
+                                        public WorkspaceService::Observer,
+                                        public OriginSpaceController::Observer,
+                                        public OriginMediaMonitor::Observer,
+                                        public views::TextfieldController,
+                                        public TabDragTarget {
   METADATA_HEADER(BraveVerticalTabStripRegionView, views::View)
  public:
+  using views::TextfieldController::HandleMouseEvent;
+
   // We have a state machine which cycles like:
   //
   //               <hovered>          <pressed button>
@@ -98,6 +121,9 @@ class BraveVerticalTabStripRegionView : public views::View,
   void ResetExpandedWidth();
   bool IsMenuShowing() const;
 
+  // Opens the card for the Space the window is showing.
+  void ShowOriginSpaceCardForActiveSpace();
+
   void ListenFullscreenChanges();
   void StopListeningFullscreenChanges();
 
@@ -110,6 +136,10 @@ class BraveVerticalTabStripRegionView : public views::View,
   // never schedule a collapse, whereas this re-checks the live cursor
   // position on every subsequent move.
   void HandleMouseEvent(const gfx::PointF& point_in_screen);
+
+  // Returns this region as a native tab-drop target while the pointer is over
+  // a Space rail item. Dropping there moves the dragged page and its subtree.
+  TabDragTarget* GetOriginTabDragTarget(const gfx::Point& point_in_screen);
 
   // views::View:
   gfx::Size CalculatePreferredSize(
@@ -147,11 +177,23 @@ class BraveVerticalTabStripRegionView : public views::View,
 
  private:
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, VisualState);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSidebarDocksWhenShownAgain);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSidebarDocksAfterModeChanges);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, ExpandedState);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, ExpandedWidth);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            LayoutAfterFirstTabCreation);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest, LayoutSanity);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginResizeHandleIsInteractive);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSpaceRailIsNativeTabDropTarget);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSpaceCardThemesTheWholeWindow);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginPageListEndsAtTheSpaceRow);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -162,12 +204,68 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   void SetExpandedWidth(int dest_width);
 
+  void FinalizeOriginContentsResize();
+
   void UpdateStateAfterDragAndDropFinished(State original_state);
 
   void OnShowVerticalTabsPrefChanged();
   void OnBrowserPanelsMoved();
 
   void UpdateLayout();
+  void OnOriginWorkspaceSelected(std::string id);
+  void RebuildOriginWorkspaceUI();
+  void CreateOriginWorkspace();
+  void BeginOriginWorkspaceRename();
+  void CommitOriginWorkspaceRename();
+  void CancelOriginWorkspaceRename();
+  void SetOriginWorkspaceRenameMode(bool editing);
+  void ShowOriginWorkspaceIconPicker();
+  int GetOriginWorkspaceHeaderHeight() const;
+  int GetOriginPageListTop() const;
+  void SetOriginWorkspaceIcon(std::string icon);
+  void ShowOriginQuickOpen();
+  void UpdateOriginWorkspaceMeta();
+  // Refreshes the rail's per-Space sound badges from the media monitor.
+  void UpdateOriginWorkspaceAudio();
+  // Mutes the Space, or unmutes it if its sound is already muted.
+  void ToggleOriginWorkspaceMute(std::string space_id);
+  // Right-clicking a Space in the rail opens its card: theme, intensity,
+  // rename, icon and delete. Deleting is refused for the last Space; pages in
+  // a deleted Space move to the first one.
+  void ShowOriginSpaceCard(const std::string& space_id);
+  void DeleteOriginWorkspace(std::string space_id);
+  void EnsureOriginSpaceHasPage();
+  void ApplyOriginWorkspaceTabs();
+
+  // WorkspaceService::Observer:
+  void OnOriginSpacesChanged() override;
+
+  // OriginSpaceController::Observer:
+  void OnOriginSpaceControllerChanged() override;
+
+  // OriginMediaMonitor::Observer:
+  void OnOriginMediaChanged() override;
+
+  // views::TextfieldController:
+  bool HandleKeyEvent(views::Textfield* sender,
+                      const ui::KeyEvent& key_event) override;
+
+  // TabDragTarget:
+  void OnTabDragEntered() override;
+  TabDragContext* OnTabDragUpdated(TabDragTarget::DragController& controller,
+                                   const gfx::Point& point_in_screen) override;
+  void OnTabDragExited(const gfx::Point& point_in_screen) override;
+  void OnTabDragEnded() override;
+  bool CanDropTab() override;
+  void HandleTabDrop(TabDragTarget::DragController& controller) override;
+  base::CallbackListSubscription RegisterWillDestroyCallback(
+      base::OnceClosure callback) override;
+
+  std::string GetOriginWorkspaceDropSpaceId(
+      const gfx::Point& point_in_screen) const;
+  void SetOriginWorkspaceDropTarget(const std::string& space_id);
+  void ClearOriginWorkspaceDropTarget();
+  void CompleteOriginWorkspaceDrop();
 
   void OnCollapsedPrefChanged();
   void OnFloatingModePrefChanged();
@@ -227,6 +325,42 @@ class BraveVerticalTabStripRegionView : public views::View,
   // case, but this seems to fix the issue.
   // https://github.com/brave/brave-browser/issues/51719
   raw_ptr<views::View> region_view_container_ = nullptr;
+
+  // Brave Origin presents the vertical tab model as a Sigma-style workspace.
+  // These views are deliberately part of the native browser chrome so tabs,
+  // split views, profiles, and Shields keep their normal browser semantics.
+  raw_ptr<views::View> origin_workspace_rail_ = nullptr;
+  raw_ptr<views::View> origin_page_column_ = nullptr;
+  raw_ptr<views::View> origin_workspace_header_ = nullptr;
+  raw_ptr<views::View> origin_pages_header_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_title_ = nullptr;
+  raw_ptr<views::Label> origin_workspace_meta_ = nullptr;
+  raw_ptr<views::Textfield> origin_workspace_name_editor_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_save_button_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_icon_button_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_more_button_ = nullptr;
+  raw_ptr<views::View> origin_search_button_ = nullptr;
+  raw_ptr<views::View> origin_new_page_button_ = nullptr;
+  raw_ptr<views::ScrollView> origin_workspace_scroll_ = nullptr;
+  raw_ptr<views::View> origin_workspace_strip_ = nullptr;
+  raw_ptr<views::LabelButton> origin_workspace_add_button_ = nullptr;
+  std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
+  raw_ptr<views::LabelButton> origin_workspace_drop_target_button_ = nullptr;
+  std::string origin_drag_destination_space_id_;
+  std::string origin_pending_drop_space_id_;
+  std::vector<raw_ptr<content::WebContents>> origin_pending_drop_contents_;
+  base::OnceClosureList origin_drag_target_destroy_callbacks_;
+  OriginOwnedBubble origin_workspace_icon_picker_;
+  OriginOwnedBubble origin_space_card_;
+  std::string origin_space_card_space_id_;
+  // Tells a closing card whether a newer one has replaced it.
+  int origin_space_card_generation_ = 0;
+  raw_ptr<WorkspaceService> origin_workspace_service_ = nullptr;
+  raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
+  raw_ptr<OriginMediaMonitor> origin_media_monitor_ = nullptr;
+  std::string origin_active_workspace_id_;
+  bool origin_new_page_pending_ = false;
+  bool origin_workspace_renaming_ = false;
 
   // Separator between tabs and new tab button.
   raw_ptr<views::View> separator_ = nullptr;

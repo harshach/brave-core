@@ -222,6 +222,84 @@ if (!is_android) {
       "//content/public/browser",
     ]
   }
+
+  source_set("origin_space_controller") {
+    sources = [
+      "origin_space_controller.cc",
+      "origin_space_controller.h",
+    ]
+
+    deps = [
+      "//base",
+      "//brave/browser/sessions",
+      "//brave/browser/workspaces",
+      "//chrome/browser/profiles:profile",
+      "//chrome/browser/sessions",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/prefs",
+      "//components/sessions",
+      "//components/sessions:session_id",
+      "//content/public/browser",
+    ]
+  }
+
+  source_set("origin_audio_bars") {
+    sources = [
+      "origin_audio_bars.cc",
+      "origin_audio_bars.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//skia",
+    ]
+
+    deps = [
+      "//cc/paint",
+      "//ui/gfx",
+      "//ui/gfx/geometry",
+    ]
+  }
+
+  source_set("origin_space_theme") {
+    sources = [
+      "origin_space_theme.cc",
+      "origin_space_theme.h",
+    ]
+
+    public_deps = [
+      "//brave/browser/workspaces",
+      "//skia",
+      "//ui/color",
+    ]
+
+    deps = [
+      "//base",
+      "//chrome/browser/ui/color:color_headers",
+    ]
+  }
+
+  source_set("origin_media_monitor") {
+    sources = [
+      "origin_media_monitor.cc",
+      "origin_media_monitor.h",
+    ]
+
+    public_deps = [ "//brave/browser/ui/tabs:origin_space_controller" ]
+
+    deps = [
+      "//base",
+      "//brave/browser/workspaces",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/sessions",
+      "//components/sessions:session_id",
+      "//content/public/browser",
+      "//mojo/public/cpp/bindings",
+      "//services/media_session/public/cpp",
+      "//services/media_session/public/mojom",
+      "//url",
+    ]
+  }
 }
 
 source_set("browser_tests") {

@@ -1,0 +1,56 @@
+name: NavKeys upstream sync
+
+on:
+  schedule:
+    - cron: "23 7 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: navkeys-upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    if: github.repository == 'harshach/brave-core'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Merge upstream
+        id: merge
+        env:
+          UPSTREAM_URL: https://github.com/brave/brave-core.git
+        run: |
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch upstream master --no-tags
+          upstream_sha="$(git rev-parse --short=12 upstream/master)"
+          branch="sync/upstream-${upstream_sha}"
+          git switch -c "$branch"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit upstream/master
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+          echo "upstream_sha=$upstream_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Push sync branch
+        env:
+          BRANCH: ${{ steps.merge.outputs.branch }}
+        run: git push --force-with-lease origin "$BRANCH"
+
+      - name: Open sync pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ steps.merge.outputs.branch }}
+          UPSTREAM_SHA: ${{ steps.merge.outputs.upstream_sha }}
+        run: |
+          gh pr view "$BRANCH" >/dev/null 2>&1 || gh pr create \
+            --base master \
+            --head "$BRANCH" \
+            --title "Sync Brave upstream ${UPSTREAM_SHA}" \
+            --body "Daily review branch for Brave and Chromium updates. Merge only after the native UI tests and Origin build pass."
