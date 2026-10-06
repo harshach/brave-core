@@ -170,8 +170,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, BasicTest) {
   const auto& first_panel_item =
       controller()->model()->GetAllSidebarItems()[first_panel_item_index];
 
-  controller()->ActivateItemAt(
-      model()->GetIndexOf(first_panel_item.built_in_item_type));
+  controller()->OnItemPressed(first_panel_item_index);
   WaitUntil(
       base::BindLambdaForTesting([&]() { return !!model()->active_index(); }));
   EXPECT_THAT(model()->active_index(), Optional(first_panel_item_index));
@@ -185,16 +184,17 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, BasicTest) {
   if (first_web_item_index < model()->GetAllSidebarItems().size()) {
     const auto item = model()->GetAllSidebarItems()[first_web_item_index];
     EXPECT_FALSE(item.open_in_panel);
-    controller()->ActivateItemAt(first_web_item_index);
+    controller()->OnItemPressed(first_web_item_index);
   }
   EXPECT_THAT(model()->active_index(), Optional(active_item_index));
 
-  controller()->DeactivateCurrentPanel();
+  SidePanelUI::From(browser())->Close();
   WaitUntil(
       base::BindLambdaForTesting([&]() { return !model()->active_index(); }));
   EXPECT_THAT(model()->active_index(), Eq(std::nullopt));
 
-  controller()->ActivatePanelItem(first_panel_item.built_in_item_type);
+  SidePanelUI::From(browser())->Show(sidebar::SidePanelIdFromSideBarItemType(
+      first_panel_item.built_in_item_type));
   WaitUntil(
       base::BindLambdaForTesting([&]() { return !!model()->active_index(); }));
   EXPECT_THAT(model()->active_index(), Optional(active_item_index));
@@ -267,7 +267,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, WebTypePanelTest) {
   auto iter =
       std::ranges::find(items, GURL("chrome://settings/"), &SidebarItem::url);
   EXPECT_NE(items.end(), iter);
-  controller()->ActivateItemAt(std::distance(items.begin(), iter));
+  controller()->OnItemPressed(std::distance(items.begin(), iter));
   EXPECT_EQ(0, tab_model()->active_index());
   EXPECT_EQ(tab_model()->GetWebContentsAt(0)->GetVisibleURL(), iter->url);
 
@@ -276,7 +276,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, WebTypePanelTest) {
   iter = std::ranges::find(items, SidebarItem::BuiltInItemType::kWallet,
                            &SidebarItem::built_in_item_type);
   EXPECT_NE(items.end(), iter);
-  controller()->ActivateItemAt(std::distance(items.begin(), iter));
+  controller()->OnItemPressed(std::distance(items.begin(), iter));
   EXPECT_EQ(0, tab_model()->active_index());
   EXPECT_EQ(tab_model()->GetWebContentsAt(0)->GetVisibleURL(), iter->url);
 #endif
@@ -296,16 +296,16 @@ class SidebarBrowserTestWalletSidePanel : public SidebarBrowserTest {
   }
 
  protected:
-  // Activates the wallet side panel via SidePanelUI (not ActivateItemAt, which
-  // only updates the sidebar model). Returns the item index.
+  // Activates the wallet side panel via SidePanelUI (not OnItemPressed, which
+  // also toggles the panel). Returns the item index.
   std::optional<size_t> ActivateWalletPanel() {
     auto index = model()->GetIndexOf(SidebarItem::BuiltInItemType::kWallet);
     EXPECT_TRUE(index.has_value());
 
-    controller()->ActivatePanelItem(SidebarItem::BuiltInItemType::kWallet);
-
     auto* panel_ui = SidePanelUI::From(browser());
     EXPECT_TRUE(panel_ui);
+    panel_ui->Show(SidePanelEntryId::kWallet);
+
     EXPECT_TRUE(base::test::RunUntil([&]() {
       return panel_ui &&
              panel_ui->GetCurrentEntryId() == SidePanelEntryId::kWallet;
@@ -652,7 +652,7 @@ IN_PROC_BROWSER_TEST_P(SidebarBrowserWithWebPanelTest, WebPanelTest) {
         SidebarItem::BuiltInItemType::kNone, /*open_in_panel*/ true));
     EXPECT_NE(tab_model()->GetActiveWebContents()->GetVisibleURL(), item_url);
     // Above item is added at last.
-    controller()->ActivateItemAt(sidebar_service->items().size() - 1);
+    controller()->OnItemPressed(sidebar_service->items().size() - 1);
     EXPECT_EQ(tab_model()->GetActiveWebContents()->GetVisibleURL(), item_url);
 
     // Test toggle existing panel doesn't have any issue even web panel type
@@ -728,13 +728,13 @@ IN_PROC_BROWSER_TEST_P(SidebarBrowserWithWebPanelTest, WebPanelTest) {
   EXPECT_TRUE(model()
                   ->GetAllSidebarItems()[web_panel_item_index - 1]
                   .is_web_panel_type());
-  controller()->ActivateItemAt(web_panel_item_index - 1);
+  controller()->OnItemPressed(web_panel_item_index - 1);
   EXPECT_TRUE(GetBraveMultiContentsView()->IsWebPanelVisible());
   EXPECT_TRUE(
       contents_container_view_for_web_panel->mini_toolbar()->GetVisible());
 
   // Activate another web panel and check panel is still visible.
-  controller()->ActivateItemAt(web_panel_item_index);
+  controller()->OnItemPressed(web_panel_item_index);
   EXPECT_TRUE(GetBraveMultiContentsView()->IsWebPanelVisible());
   EXPECT_TRUE(
       contents_container_view_for_web_panel->mini_toolbar()->GetVisible());
@@ -748,13 +748,13 @@ IN_PROC_BROWSER_TEST_P(SidebarBrowserWithWebPanelTest, WebPanelTest) {
             web_panel_controller()->panel_contents());
 
   // Toggle web panel item and check panel gets hidden.
-  controller()->ActivateItemAt(web_panel_item_index);
+  controller()->OnItemPressed(web_panel_item_index);
   EXPECT_FALSE(web_panel_controller()->panel_contents());
   EXPECT_FALSE(GetBraveMultiContentsView()->IsWebPanelVisible());
   EXPECT_EQ(1, tab_strip_model->count());
 
   // Open web panel.
-  controller()->ActivateItemAt(web_panel_item_index);
+  controller()->OnItemPressed(web_panel_item_index);
   EXPECT_TRUE(GetBraveMultiContentsView()->IsWebPanelVisible());
   EXPECT_EQ(2, tab_strip_model->count());
   tab_for_web_panel = tab_strip_model->GetTabAtIndex(0);
@@ -956,7 +956,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, PrefsMigrationTest) {
 
 IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, DisabledItemsTest) {
   auto* guest_browser = CreateGuestBrowser();
-  auto* controller = guest_browser->GetFeatures().sidebar_controller();
+  auto* controller = sidebar::SidebarController::From(guest_browser);
   auto* model = controller->model();
   for (const auto& item : model->GetAllSidebarItems()) {
     // Check disabled builtin items are not included in guest browser's items
@@ -967,7 +967,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, DisabledItemsTest) {
   }
 
   auto* private_browser = CreateIncognitoBrowser(browser()->GetProfile());
-  controller = private_browser->GetFeatures().sidebar_controller();
+  controller = sidebar::SidebarController::From(private_browser);
   model = controller->model();
   for (const auto& item : model->GetAllSidebarItems()) {
     // Check disabled builtin items are not included in private browser's items
@@ -1292,7 +1292,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTestWithTabSpecificAIChat,
   EXPECT_EQ(model()->active_index(), tab_specific_item_index);
 
   auto* browser2 = CreateBrowser(browser()->GetProfile());
-  auto* browser2_model = browser2->GetFeatures().sidebar_controller()->model();
+  auto* browser2_model = sidebar::SidebarController::From(browser2)->model();
   auto* browser2_tab_model = browser2->tab_strip_model();
 
   auto detached_tab = tab_model()->DetachTabAtForInsertion(1);
@@ -1348,8 +1348,8 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, SidebarRightSideTest) {
   EXPECT_FALSE(IsSidebarUIOnLeft());
 
   brave::ToggleVerticalTabStrip(browser());
-  ASSERT_TRUE(VerticalTabController::FromBrowser(browser())
-                  ->ShouldShowBraveVerticalTabs());
+  ASSERT_TRUE(
+      VerticalTabController::From(browser())->ShouldShowBraveVerticalTabs());
 
   auto* prefs = browser()->GetProfile()->GetPrefs();
   auto* vertical_tabs_container = GetVerticalTabsContainer();
@@ -1503,11 +1503,10 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, PanelPositionTest) {
   // between the panel and the contents container.
   prefs->SetBoolean(prefs::kSidePanelHorizontalAlignment, false);
   brave::ToggleVerticalTabStrip(browser());
-  ASSERT_TRUE(VerticalTabController::FromBrowser(browser())
-                  ->ShouldShowBraveVerticalTabs());
+  ASSERT_TRUE(
+      VerticalTabController::From(browser())->ShouldShowBraveVerticalTabs());
   // VT defaults to left (kVerticalTabsOnRight = false).
-  ASSERT_FALSE(
-      VerticalTabController::FromBrowser(browser())->IsVerticalTabOnRight());
+  ASSERT_FALSE(VerticalTabController::From(browser())->IsVerticalTabOnRight());
   RunScheduledLayouts();
 
   ASSERT_TRUE(sidebar->sidebar_on_left());
@@ -1524,8 +1523,7 @@ IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, PanelPositionTest) {
   // --- VT and sidebar on the same right side (VT right, sidebar right).
   prefs->SetBoolean(prefs::kSidePanelHorizontalAlignment, true);
   prefs->SetBoolean(brave_tabs::kVerticalTabsOnRight, true);
-  ASSERT_TRUE(
-      VerticalTabController::FromBrowser(browser())->IsVerticalTabOnRight());
+  ASSERT_TRUE(VerticalTabController::From(browser())->IsVerticalTabOnRight());
   RunScheduledLayouts();
 
   ASSERT_FALSE(sidebar->sidebar_on_left());
@@ -2061,29 +2059,31 @@ class MockSidePanelUI : public SidePanelUI {
   MOCK_METHOD(void, SetNoDelaysForTesting, (bool), (override));
 };
 
-// Verify suppress_animations is false when opening from a closed state and
-// true when switching panels while one is already active.
-IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, ActivatePanelItemSuppressAnimation) {
+// Pressing a built-in panel item delegates to SidePanelUI::Toggle() with that
+// item's entry key, so that opening, switching and closing are all decided by
+// the side panel rather than mirrored sidebar state.
+IN_PROC_BROWSER_TEST_F(SidebarBrowserTest, PanelItemTogglesSidePanel) {
   MockSidePanelUI mock_ui;
   ScopedSidePanelUIForTesting scoped_ui(controller(), &mock_ui);
 
-  // No active panel: opening should animate (suppress_animations=false).
-  ASSERT_FALSE(model()->active_index().has_value())
-      << "Expected no active panel before first ActivatePanelItem call";
-  EXPECT_CALL(mock_ui,
-              Show(testing::An<SidePanelEntryId>(), testing::Eq(std::nullopt),
-                   /*suppress_animations=*/false));
-  controller()->ActivatePanelItem(SidebarItem::BuiltInItemType::kBookmarks);
-  testing::Mock::VerifyAndClearExpectations(&mock_ui);
-  controller()->UpdateActiveItemState(SidebarItem::BuiltInItemType::kBookmarks);
+  const auto bookmarks_index =
+      model()->GetIndexOf(SidebarItem::BuiltInItemType::kBookmarks);
+  const auto reading_list_index =
+      model()->GetIndexOf(SidebarItem::BuiltInItemType::kReadingList);
+  ASSERT_TRUE(bookmarks_index.has_value());
+  ASSERT_TRUE(reading_list_index.has_value());
 
-  // Active panel present: switching panels should suppress animations.
-  ASSERT_TRUE(model()->active_index().has_value())
-      << "Expected active panel after UpdateActiveItemState";
+  EXPECT_CALL(mock_ui, Toggle(SidePanelEntry::Key(SidePanelEntryId::kBookmarks),
+                              SidePanelOpenTrigger::kToolbarButton));
+  controller()->OnItemPressed(*bookmarks_index);
+  testing::Mock::VerifyAndClearExpectations(&mock_ui);
+
+  // Switching panels goes through Toggle() too; the side panel itself decides
+  // whether that opens the new entry or closes the showing one.
   EXPECT_CALL(mock_ui,
-              Show(testing::An<SidePanelEntryId>(), testing::Eq(std::nullopt),
-                   /*suppress_animations=*/true));
-  controller()->ActivatePanelItem(SidebarItem::BuiltInItemType::kReadingList);
+              Toggle(SidePanelEntry::Key(SidePanelEntryId::kReadingList),
+                     SidePanelOpenTrigger::kToolbarButton));
+  controller()->OnItemPressed(*reading_list_index);
 }
 
 // The toolbar SidePanelButton acts as a "temporal pin" for the sidebar
@@ -2524,7 +2524,7 @@ IN_PROC_BROWSER_TEST_F(SidebarTorBrowserTest,
   ASSERT_TRUE(tor_browser);
   Profile* tor_profile = tor_browser->GetProfile();
   ASSERT_TRUE(tor_profile->IsTor());
-  ASSERT_TRUE(tor_browser->GetFeatures().sidebar_controller());
+  ASSERT_TRUE(sidebar::SidebarController::From(tor_browser));
 
   // Add a web item in the Tor window. Its favicon is not in the regular
   // profile's favicon database, which is the normal case for a page that was

@@ -251,6 +251,11 @@ class MockAIChatDatabase : public AIChatDatabase {
               GetConversationData,
               (std::string_view),
               (override));
+
+  MOCK_METHOD(std::vector<mojom::ConversationTurnPtr>,
+              GetConversationThreadEntries,
+              (std::string_view),
+              (override));
 };
 
 }  // namespace
@@ -931,6 +936,31 @@ TEST_P(AIChatServiceUnitTest, MaybeInitStorage_DisableStoragePref) {
   ExpectConversationsSize(FROM_HERE, 0);
 }
 
+TEST_P(AIChatServiceUnitTest, GetConversations_AgainFromLoadCallback) {
+  if (IsAIChatHistoryEnabled()) {
+    WaitForSyncBridgeReady();
+  }
+  std::vector<std::string> calls;
+  base::RunLoop run_loop;
+  // The first request starts loading the conversations, and the second waits
+  // for it.
+  ai_chat_service_->GetConversations(
+      base::BindLambdaForTesting([&](std::vector<mojom::ConversationPtr>) {
+        calls.push_back("first");
+        ai_chat_service_->GetConversations(base::BindLambdaForTesting(
+            [&](std::vector<mojom::ConversationPtr>) {
+              calls.push_back("again");
+            }));
+      }));
+  ai_chat_service_->GetConversations(
+      base::BindLambdaForTesting([&](std::vector<mojom::ConversationPtr>) {
+        calls.push_back("second");
+        run_loop.Quit();
+      }));
+  run_loop.Run();
+  EXPECT_THAT(calls, testing::ElementsAre("first", "again", "second"));
+}
+
 // With AI Chat sync enabled, toggling the storage pref off then on must keep
 // the sync backend usable. The backend (and the delegate the sync engine
 // holds) is long-lived and never swapped; disabling storage only detaches the
@@ -962,6 +992,22 @@ TEST_P(AIChatServiceUnitTest, SyncBackendSurvivesStorageToggle) {
   EXPECT_TRUE(SyncControllerDelegateResolves());
 
   EXPECT_TRUE(ai_chat_service_->CreateConversation());
+}
+
+TEST_P(AIChatServiceUnitTest, GetConversations_StorageTurnedOffWhileLoading) {
+  if (!IsAIChatHistoryEnabled()) {
+    return;
+  }
+  WaitForSyncBridgeReady();
+  ConversationHandler* conversation_handler = CreateConversation();
+  auto client = CreateConversationClient(conversation_handler);
+  conversation_handler->SetChatHistoryForTesting(CreateSampleChatHistory(1u));
+
+  base::test::TestFuture<std::vector<mojom::ConversationPtr>> future;
+  ai_chat_service_->GetConversations(future.GetCallback());
+  prefs_.SetBoolean(prefs::kBraveChatStorageEnabled, false);
+  // The conversation, still open, is listed from memory.
+  EXPECT_EQ(future.Take().size(), 1u);
 }
 
 TEST_P(AIChatServiceUnitTest, OpenConversationWithStagedEntries_NoPermission) {

@@ -44,6 +44,7 @@ group("ui_public_dependencies") {
   ]
   public_deps = [
     ":brave_tab_prefs",
+    ":ui_features",
     "//brave/components/brave_wallet/common/buildflags",
     "//brave/components/brave_wayback_machine/buildflags",
     "//brave/components/containers/buildflags",
@@ -112,6 +113,7 @@ source_set("ui") {
     "//chrome/browser/ui/toolbar",
     "//chrome/browser/ui/webui:chrome_web_ui_controller_factory",
     "//media",
+    "//ui/base/unowned_user_data",
   ]
 
   if (toolkit_views) {
@@ -157,8 +159,6 @@ source_set("ui") {
   sources = [
     "brave_scheme_utils.cc",
     "brave_scheme_utils.h",
-    "brave_ui_features.cc",
-    "brave_ui_features.h",
     "toolbar/brave_location_bar_model_delegate.cc",
     "toolbar/brave_location_bar_model_delegate.h",
     "webui/brave_adblock_internals_ui.cc",
@@ -217,7 +217,10 @@ source_set("ui") {
       ]
 
       if (enable_snap) {
-        deps += [ "//brave/browser/ui/webui/brave_wallet/snap_host" ]
+        deps += [
+          "//brave/browser/ui/webui/brave_wallet/snap_host",
+          "//brave/browser/ui/webui/brave_wallet/snaps_container",
+        ]
       }
     }
   }
@@ -1581,6 +1584,14 @@ source_set("ui") {
   }
 }
 
+source_set("ui_features") {
+  sources = [
+    "brave_ui_features.cc",
+    "brave_ui_features.h",
+  ]
+  public_deps = [ "//base" ]
+}
+
 source_set("brave_tab_prefs") {
   sources = [
     "tabs/brave_tab_prefs.cc",
@@ -1734,6 +1745,12 @@ source_set("browser_tests") {
 
     if (enable_text_recognition) {
       sources += [ "text_recognition_browsertest.cc" ]
+
+      deps += [ "//brave/ui/base/clipboard/test:test_support" ]
+    }
+
+    if (enable_brave_custom_profile_image_webui) {
+      deps += [ "//brave/browser/ui/views/profiles:browser_tests" ]
     }
   }
 }

@@ -119,7 +119,16 @@ void CopyTextToClipboardAsConfidential(std::string_view text) {
 
 // Determines whether its safe to associate content with a conversation.
 bool CanAssociateContent(AssociatedContentDelegate* delegate) {
-  return delegate && kAllowedContentSchemes.contains(delegate->url().scheme());
+  if (!delegate) {
+    return false;
+  }
+  // Always allow workspace content (identified by content type).
+  if (delegate->cached_page_content().content_type ==
+      mojom::ContentType::Workspace) {
+    return true;
+  }
+  std::string_view scheme = delegate->url().scheme();
+  return kAllowedContentSchemes.contains(scheme);
 }
 
 AIChatService::AIChatService(
@@ -329,6 +338,19 @@ ConversationHandler* AIChatService::GetConversation(
     return nullptr;
   }
   return conversation_handler_it->second.get();
+}
+
+void AIChatService::GetConversationThreadEntries(
+    const std::string& thread_uuid,
+    base::OnceCallback<void(std::vector<mojom::ConversationTurnPtr>)>
+        callback) {
+  if (!base::FeatureList::IsEnabled(features::kAIChatThreads) || !ai_chat_db_) {
+    std::move(callback).Run({});
+    return;
+  }
+  ai_chat_db_.AsyncCall(&AIChatDatabase::GetConversationThreadEntries)
+      .WithArgs(thread_uuid)
+      .Then(std::move(callback));
 }
 
 void AIChatService::GetConversation(
@@ -691,7 +713,8 @@ void AIChatService::OnLoadConversationsLazyData(
       conversations_.emplace(uuid, std::move(conversation));
     }
     auto handler_it = conversation_handlers_.find(uuid);
-    if (handler_it != conversation_handlers_.end()) {
+    // Storage can have been turned off while the conversations loaded.
+    if (handler_it != conversation_handlers_.end() && ai_chat_db_) {
       // Notify the handler that metadata is possibly changed
       ConversationHandler* handler = handler_it->second.get();
       // If a reload was asked for, then we should also update the deeper
@@ -714,10 +737,13 @@ void AIChatService::OnLoadConversationsLazyData(
     }
   }
   if (on_conversations_loaded_callbacks_.has_value()) {
-    for (auto& callback : on_conversations_loaded_callbacks_.value()) {
+    // Taken first, since a callback can ask for the conversations again, and
+    // must then get them straight away.
+    std::vector<ConversationMapCallback> callbacks;
+    callbacks.swap(*on_conversations_loaded_callbacks_);
+    for (auto& callback : callbacks) {
       std::move(callback).Run(conversations_);
     }
-    on_conversations_loaded_callbacks_->clear();
   }
   OnConversationListChanged();
 }
@@ -1131,6 +1157,17 @@ void AIChatService::OnSkillsChanged() {
 bool AIChatService::IsAIChatHistoryEnabled() {
   return (features::IsAIChatHistoryEnabled() &&
           profile_prefs_->GetBoolean(prefs::kBraveChatStorageEnabled));
+}
+
+std::unique_ptr<AssociatedContentDelegate>
+AIChatService::RestoreWorkspaceAssociatedContentFromUrl(const GURL& url) {
+  // Note: This can happen if there's a workspace in the DB but the flag has
+  // been disabled.
+  if (!workspace_content_restorer_) {
+    return nullptr;
+  }
+
+  return workspace_content_restorer_.Run(url);
 }
 
 void AIChatService::OnRequestInProgressChanged(ConversationHandler* handler,

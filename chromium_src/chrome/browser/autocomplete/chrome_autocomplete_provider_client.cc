@@ -9,7 +9,6 @@
 #include "brave/components/commander/common/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
 #include "content/public/browser/web_contents.h"
@@ -31,7 +30,7 @@
 #include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
 #include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
 #include "brave/browser/ui/brave_browser.h"
-#include "brave/browser/ui/sidebar/sidebar_controller.h"
+#include "chrome/browser/ui/side_panel/side_panel_ui.h"
 #endif  // BUILDFLAG(!IS_ANDROID)
 
 #if BUILDFLAG(ENABLE_COMMANDER)
@@ -114,9 +113,9 @@ void ChromeAutocompleteProviderClient::OpenLeo(const std::u16string& query) {
     conversation_handler->MaybeUnlinkAssociatedContent();
 
     // Activate the panel.
-    auto* sidebar_controller = browser->GetFeatures().sidebar_controller();
-    sidebar_controller->ActivatePanelItem(
-        sidebar::SidebarItem::BuiltInItemType::kChatUI);
+    if (auto* side_panel_ui = SidePanelUI::From(browser)) {
+      side_panel_ui->Show(SidePanelEntryId::kChatUI);
+    }
   }
 
   if (!conversation_handler) {

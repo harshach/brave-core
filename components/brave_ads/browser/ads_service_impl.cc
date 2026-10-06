@@ -14,7 +14,6 @@
 #include "base/base64.h"
 #include "base/check.h"
 #include "base/check_is_test.h"
-#include "base/containers/circular_deque.h"
 #include "base/feature_list.h"
 #include "base/files/file.h"
 #include "base/files/file_util.h"
@@ -201,7 +200,11 @@ AdsServiceImpl::AdsServiceImpl(
   if (!http_client_ || !history_service_ || !host_content_settings_map_) {
     CHECK_IS_TEST();
   }
+}
 
+AdsServiceImpl::~AdsServiceImpl() = default;
+
+void AdsServiceImpl::Init() {
   // Must run before the pref change registrars to keep prefs consistent across
   // upgrades regardless of whether the service is eligible to start.
   Migrate();
@@ -218,8 +221,6 @@ AdsServiceImpl::AdsServiceImpl(
       base::BindOnce(&AdsServiceImpl::MaybeStartBatAdsService,
                      weak_ptr_factory_.GetWeakPtr()));
 }
-
-AdsServiceImpl::~AdsServiceImpl() = default;
 
 base::WeakPtr<AdsService> AdsServiceImpl::GetWeakPtr() {
   return weak_ptr_factory_.GetWeakPtr();
@@ -812,6 +813,12 @@ void AdsServiceImpl::OnAdsPrefChanged(const std::string& path) {
                        weak_ptr_factory_.GetWeakPtr(), path));
   }
 
+  if (path == prefs::kNotificationsEnabled) {
+    // Runs before the eligibility check so notification ads opt-out cleanup
+    // completes even if the service also shuts down.
+    MaybeCloseAllNotificationAds();
+  }
+
   if (!CanStartBatAdsService()) {
     // The pref change made the service ineligible to run, so tear it down and
     // release resource components that are no longer needed.
@@ -987,10 +994,6 @@ void AdsServiceImpl::NotificationAdTimedOut(const std::string& placement_id) {
 }
 
 void AdsServiceImpl::CloseAllNotificationAds() {
-  if (!IsNotificationAdsEnabled()) {
-    return;
-  }
-
   const auto& list = prefs_->GetList(prefs::kNotificationAds);
   const base::circular_deque<NotificationAdInfo> ads =
       NotificationAdsFromList(list);
@@ -1000,6 +1003,12 @@ void AdsServiceImpl::CloseAllNotificationAds() {
   }
 
   prefs_->SetList(prefs::kNotificationAds, {});
+}
+
+void AdsServiceImpl::MaybeCloseAllNotificationAds() {
+  if (!IsNotificationAdsEnabled()) {
+    CloseAllNotificationAds();
+  }
 }
 
 void AdsServiceImpl::RegisterOrUnregisterLanguageResourceComponent() {
@@ -1113,6 +1122,12 @@ void AdsServiceImpl::ShutdownAdsService() {
   // Invalidate weak pointers before resetting mojo endpoints so no in-flight
   // callback fires against a partially torn-down service.
   bat_ads_service_weak_ptr_factory_.InvalidateWeakPtrs();
+
+  // Supersedes any `Launch` whose delayed bind is still pending on its own
+  // dedicated thread, so it either drops its receiver or closes the service
+  // it already bound, instead of leaving a stale service running after this
+  // shutdown.
+  bat_ads_service_factory_->Invalidate();
 
   bat_ads_client_notifier_remote_.reset();
   bat_ads_client_notifier_pending_receiver_.reset();
@@ -1335,7 +1350,7 @@ void AdsServiceImpl::TriggerSearchResultAdEvent(
   CHECK(mojom::IsKnownEnumValue(mojom_ad_event_type));
 
   if (!bat_ads_associated_remote_.is_bound()) {
-    return std::move(callback).Run(/*success*/ false);
+    return std::move(callback).Run(/*success=*/false);
   }
 
   bat_ads_associated_remote_->TriggerSearchResultAdEvent(

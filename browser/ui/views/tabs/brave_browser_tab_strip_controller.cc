@@ -184,7 +184,7 @@ void BraveBrowserTabStripController::ExecuteContextMenuCommand(
 bool BraveBrowserTabStripController::IsContextMenuCommandChecked(
     TabStripModel::ContextMenuCommand command_id) {
   if (command_id == TabStripModel::CommandShowVerticalTabs) {
-    return VerticalTabController::FromBrowser(GetBrowserWindowInterface())
+    return VerticalTabController::From(GetBrowserWindowInterface())
         ->ShouldShowBraveVerticalTabs();
   }
 
@@ -448,7 +448,7 @@ bool BraveBrowserTabStripController::ShouldShowTreeTabs() {
     return false;
   }
 
-  if (!VerticalTabController::FromBrowser(GetBrowserWindowInterface())
+  if (!VerticalTabController::From(GetBrowserWindowInterface())
            ->ShouldShowBraveVerticalTabs()) {
     return false;
   }

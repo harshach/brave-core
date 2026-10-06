@@ -146,7 +146,8 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
         std::make_unique<brave_ads::VirtualPrefProviderDelegateIOS>(*profile));
 
     httpClient = std::make_unique<brave_ads::HttpClient>(
-        *self.localStatePrefService, profile->GetSharedURLLoaderFactory(),
+        *self.profilePrefService, *self.localStatePrefService,
+        profile->GetSharedURLLoaderFactory(),
         base::BindRepeating(
             [](ProfileIOS* profile) { return profile->GetNetworkContext(); },
             profile),
@@ -218,15 +219,15 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
                  value:base::Value(isEnabled)];
 }
 
-- (BOOL)isEnabled {
+- (BOOL)isNotificationsEnabled {
   return self.profilePrefService->GetBoolean(brave_rewards::prefs::kEnabled);
 }
 
-- (void)setEnabled:(BOOL)enabled {
+- (void)setNotificationsEnabled:(BOOL)notificationsEnabled {
   [self setProfilePref:brave_rewards::prefs::kEnabled
-                 value:base::Value(enabled)];
+                 value:base::Value(notificationsEnabled)];
   [self setProfilePref:brave_ads::prefs::kNotificationsEnabled
-                 value:base::Value(enabled)];
+                 value:base::Value(notificationsEnabled)];
 }
 
 #pragma mark - Initialization / Shutdown
@@ -327,13 +328,19 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   nw_path_monitor_set_queue(networkMonitor, monitorQueue);
   nw_path_monitor_set_update_handler(
       networkMonitor, ^(nw_path_t _Nonnull path) {
-        const auto strongSelf = weakSelf;
-        if (!strongSelf) {
-          return;
-        }
-        strongSelf.networkConnectivityAvailable =
+        const BOOL networkConnectivityAvailable =
             (nw_path_get_status(path) == nw_path_status_satisfied ||
              nw_path_get_status(path) == nw_path_status_satisfiable);
+        // Ensure `dealloc`, which destroys sequence-checked members, can
+        // only run on the main sequence.
+        dispatch_async(dispatch_get_main_queue(), ^{
+          const auto strongSelf = weakSelf;
+          if (!strongSelf) {
+            return;
+          }
+          strongSelf.networkConnectivityAvailable =
+              networkConnectivityAvailable;
+        });
       });
   nw_path_monitor_start(networkMonitor);
 }

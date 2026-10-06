@@ -148,6 +148,7 @@
 #include "net/base/net_errors.h"
 #include "net/base/registry_controlled_domains/registry_controlled_domain.h"
 #include "net/cookies/site_for_cookies.h"
+#include "services/network/public/mojom/web_transport.mojom.h"
 #include "services/network/public/mojom/websocket.mojom.h"
 #include "services/service_manager/public/cpp/binder_registry.h"
 #include "third_party/blink/public/common/associated_interfaces/associated_interface_registry.h"
@@ -376,6 +377,9 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #include "brave/browser/ui/webui/brave_wallet/wallet_panel/wallet_panel_ui.h"
 #include "brave/components/brave_wallet/common/ledger_bridge.mojom.h"
 #endif
+#if BUILDFLAG(ENABLE_SNAP)
+#include "brave/browser/ui/webui/brave_wallet/snaps_container/snaps_container_ui.h"
+#endif
 #endif
 
 namespace {
@@ -542,6 +546,22 @@ bool IsJsBlockingEnforced(content::BrowserContext* browser_context,
   return settings_service->IsJsBlockingEnforced(url);
 }
 
+bool ShouldBlockOnionRequest(content::BrowserContext* browser_context,
+                             const GURL& url) {
+#if BUILDFLAG(ENABLE_TOR)
+  if (!browser_context) {
+    return false;
+  }
+  if (!browser_context->IsTor() &&
+      user_prefs::UserPrefs::Get(browser_context)
+          ->GetBoolean(tor::prefs::kOnionOnlyInTorWindows) &&
+      net::IsOnion(url)) {
+    return true;
+  }
+#endif
+  return false;
+}
+
 }  // namespace
 
 BraveContentBrowserClient::BraveContentBrowserClient() = default;
@@ -694,7 +714,7 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
   if (brave_account::features::IsBraveAccountEnabled()) {
     registry.ForWebUI<BraveSettingsUI>()
         .Add<brave_account::mojom::Authentication>()
-        .Add<brave_account::mojom::DialogController>();
+        .Add<brave_account::mojom::DialogOpener>();
   }
   registry.ForWebUI<BraveSettingsUI>()
       .Add<brave_origin::mojom::BraveOriginSettingsHandler>();
@@ -748,7 +768,7 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
       ;
 #if BUILDFLAG(ENABLE_SNAP)
   if (brave_wallet::IsSnapFeatureEnabled()) {
-    registry.ForWebUI<brave_wallet::WalletPageUI>()
+    registry.ForWebUI<brave_wallet::SnapsContainerUI>()
         .Add<brave_wallet::mojom::SnapService>();
   }
 #endif  // BUILDFLAG(ENABLE_SNAP)
@@ -773,8 +793,7 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
           .Add<brave_news::mojom::BraveNewsController>()
 #endif
-          .Add<
-              ntp_background_images::mojom::SponsoredRichMediaAdEventHandler>();
+          .Add<ntp_background_images::mojom::SponsoredContentAdEventHandler>();
 
   auto ntp_registration =
       registry.ForWebUI<BraveNewTabUI>()
@@ -847,6 +866,7 @@ void BraveContentBrowserClient::RegisterTrustedWebUIInterfaceBrokers(
   if (brave_account::features::IsBraveAccountEnabled()) {
     registry.ForWebUI<BraveAccountUIAndroid>()
         .Add<brave_account::mojom::Authentication>()
+        .Add<brave_account::mojom::DialogOpener>()
         .Add<brave_account::mojom::DialogController>()
         .Add<password_strength_meter::mojom::PasswordStrengthMeter>();
   }
@@ -1294,6 +1314,30 @@ bool BraveContentBrowserClient::WillInterceptWebSocket(
       features::kBraveEnableShieldsForWebSocketsFromWorkers);
 }
 
+void BraveContentBrowserClient::WillCreateWebTransport(
+    int process_id,
+    int frame_routing_id,
+    const GURL& url,
+    const url::Origin& initiator_origin,
+    mojo::PendingRemote<network::mojom::WebTransportHandshakeClient>
+        handshake_client,
+    WillCreateWebTransportCallback callback) {
+  if (auto* render_process_host =
+          content::RenderProcessHost::FromID(process_id)) {
+    if (ShouldBlockOnionRequest(render_process_host->GetBrowserContext(),
+                                url)) {
+      auto error = network::mojom::WebTransportError::New();
+      error->net_error = net::ERR_NAME_NOT_RESOLVED;
+      std::move(callback).Run(std::move(handshake_client), std::move(error));
+      return;
+    }
+  }
+
+  ChromeContentBrowserClient::WillCreateWebTransport(
+      process_id, frame_routing_id, url, initiator_origin,
+      std::move(handshake_client), std::move(callback));
+}
+
 template <template <typename> class T>
 void BraveContentBrowserClient::CreateChromeWebSocket(
     content::RenderFrameHost* frame,
@@ -1346,17 +1390,12 @@ void BraveContentBrowserClient::CreateWebSocketWithFrameId(
     request_initiator = initiator_origin;
   }
 
-#if BUILDFLAG(ENABLE_TOR)
-  Profile* profile = Profile::FromBrowserContext(browser_context);
-  if (!profile->IsTor() &&
-      profile->GetPrefs()->GetBoolean(tor::prefs::kOnionOnlyInTorWindows) &&
-      net::IsOnion(url)) {
+  if (ShouldBlockOnionRequest(browser_context, url)) {
     mojo::Remote<network::mojom::WebSocketHandshakeClient> client(
         std::move(handshake_client));
     client->OnFailure(std::string(), net::ERR_NAME_NOT_RESOLVED, 0);
     return;
   }
-#endif
 
   if (base::FeatureList::IsEnabled(features::kBraveRequestInfoUniquePtr)) {
     auto* proxy = BraveProxyingWebSocket<base::WeakPtr>::ProxyWebSocket(
@@ -1626,6 +1665,11 @@ void BraveContentBrowserClient::OverrideWebPreferences(
   ChromeContentBrowserClient::OverrideWebPreferences(
       web_contents, main_frame_site, web_prefs);
   UpdateGlobalPrivacyControlWebPreference(web_contents, web_prefs);
+
+  // WebPreferences are rebuilt from defaults on every recompute (theme, font
+  // and other pref changes), so derive `is_tor_window` here. Otherwise the
+  // renderer would drop its Tor-only restrictions (e.g. RTCPeerConnection).
+  web_prefs->is_tor_window = web_contents->GetBrowserContext()->IsTor();
 
 #if BUILDFLAG(ENABLE_PLAYLIST)
   if (playlist::PlaylistBackgroundWebContentsHelper::FromWebContents(

@@ -40,7 +40,7 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kBraveDebounce;
 @property(class, nonatomic, readonly) Feature* kBraveDomainBlock;
 @property(class, nonatomic, readonly) Feature* kBraveDomainBlock1PES;
-@property(class, nonatomic, readonly) Feature* kBraveNTPBrandedWallpaper;
+@property(class, nonatomic, readonly) Feature* kBraveNTPNewTabTakeoverWallpaper;
 @property(class, nonatomic, readonly) Feature* kBraveNewsCardPeekFeature;
 @property(class, nonatomic, readonly) Feature* kBraveNewsFeedUpdate;
 @property(class, nonatomic, readonly) Feature* kBraveReduceLanguage;
@@ -97,6 +97,7 @@ OBJC_EXPORT
 @property(class, nonatomic, readonly) Feature* kPlaylistCacheFirstEnabled;
 @property(class, nonatomic, readonly) Feature* kTopsitesEnabled;
 @property(class, nonatomic, readonly) Feature* kBrowserToolbarRefactorEnabled;
+@property(class, nonatomic, readonly) Feature* kUseChromiumSearchEngines;
 @end
 
 NS_ASSUME_NONNULL_END

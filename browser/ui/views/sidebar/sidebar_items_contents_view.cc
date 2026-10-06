@@ -17,8 +17,6 @@
 #include "base/notreached.h"
 #include "base/strings/utf_string_conversions.h"
 #include "brave/app/vector_icons/vector_icons.h"
-#include "brave/browser/misc_metrics/profile_misc_metrics_service.h"
-#include "brave/browser/misc_metrics/profile_misc_metrics_service_factory.h"
 #include "brave/browser/profiles/profile_util.h"
 #include "brave/browser/ui/brave_browser.h"
 #include "brave/browser/ui/color/brave_color_id.h"
@@ -26,7 +24,6 @@
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_model.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
-#include "brave/browser/ui/sidebar/sidebar_utils.h"
 #include "brave/browser/ui/views/sidebar/sidebar_edit_item_bubble_delegate_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_item_added_feedback_bubble.h"
 #include "brave/browser/ui/views/sidebar/sidebar_item_view.h"
@@ -42,7 +39,6 @@
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/views/event_utils.h"
@@ -63,11 +59,6 @@
 #include "ui/views/controls/menu/menu_runner.h"
 #include "ui/views/controls/separator.h"
 #include "ui/views/layout/box_layout.h"
-
-#if BUILDFLAG(ENABLE_AI_CHAT)
-#include "brave/components/ai_chat/core/browser/ai_chat_metrics.h"
-#include "brave/components/ai_chat/core/common/features.h"
-#endif  // BUILDFLAG(ENABLE_AI_CHAT)
 
 namespace {
 
@@ -100,7 +91,7 @@ SidebarItemsContentsView::SidebarItemsContentsView(
     views::DragController* drag_controller)
     : browser_(browser),
       drag_controller_(drag_controller),
-      sidebar_model_(browser->GetFeatures().sidebar_controller()->model()) {
+      sidebar_model_(sidebar::SidebarController::From(browser)->model()) {
   DCHECK(browser_);
   set_context_menu_controller(this);
   SetLayoutManager(std::make_unique<views::BoxLayout>(
@@ -168,8 +159,7 @@ void SidebarItemsContentsView::UpdateAllBuiltInItemsViewState() {
     if (item.built_in_item_type ==
         sidebar::SidebarItem::BuiltInItemType::kBraveTalk) {
       UpdateItemViewStateAt(item_index,
-                            browser_->GetFeatures()
-                                .sidebar_controller()
+                            sidebar::SidebarController::From(browser_)
                                 ->DoesBrowserHaveOpenedTabForItem(item));
       continue;
     }
@@ -392,11 +382,6 @@ void SidebarItemsContentsView::ShowItemAddedFeedbackBubble(
   bubble->Show();
 }
 
-bool SidebarItemsContentsView::IsBuiltInTypeItemView(views::View* view) const {
-  auto index = GetIndexOf(view);
-  return sidebar_model_->GetAllSidebarItems()[*index].is_built_in_type();
-}
-
 void SidebarItemsContentsView::SetImageForItem(const sidebar::SidebarItem& item,
                                                const gfx::ImageSkia& image) {
   auto index = sidebar_model_->GetIndexOf(item);
@@ -525,48 +510,16 @@ void SidebarItemsContentsView::UpdateItemViewStateAt(size_t index,
 
 void SidebarItemsContentsView::OnItemPressed(const views::View* item,
                                              const ui::Event& event) {
-  auto* controller = browser_->GetFeatures().sidebar_controller();
   auto index = GetIndexOf(item);
-  if (controller->IsActiveIndex(index)) {
-    controller->DeactivateCurrentPanel();
-    return;
-  }
+  CHECK(index);
 
-  const auto& item_model = controller->model()->GetAllSidebarItems()[*index];
-
-  // web panel is not a side panel that's handled by SidePanelCoordinator.
-  // It'll be loaded into another contents view in MultiContentsView.
-  if (sidebar::IsWebPanelFeatureEnabled() && item_model.is_web_panel_type()) {
-    controller->ActivateItemAt(index);
-    return;
-  }
-
-  if (!item_model.is_web_type() && item_model.open_in_panel) {
-#if BUILDFLAG(ENABLE_AI_CHAT)
-    if (item_model.built_in_item_type ==
-        sidebar::SidebarItem::BuiltInItemType::kChatUI) {
-      auto* profile_metrics =
-          misc_metrics::ProfileMiscMetricsServiceFactory::GetServiceForContext(
-              browser_->GetProfile());
-      if (profile_metrics) {
-        auto* ai_chat_metrics = profile_metrics->GetAIChatMetrics();
-        if (ai_chat_metrics) {
-          ai_chat_metrics->HandleOpenViaEntryPoint(
-              ai_chat::EntryPoint::kSidebar);
-        }
-      }
-    }
-#endif  // BUILDFLAG(ENABLE_AI_CHAT)
-    controller->ActivatePanelItem(item_model.built_in_item_type);
-    return;
-  }
-
-  WindowOpenDisposition open_disposition = WindowOpenDisposition::CURRENT_TAB;
+  auto open_disposition = WindowOpenDisposition::CURRENT_TAB;
   if (event_utils::IsPossibleDispositionEvent(event)) {
     open_disposition = ui::DispositionFromEventFlags(event.flags());
   }
 
-  controller->ActivateItemAt(index, open_disposition);
+  sidebar::SidebarController::From(browser_)->OnItemPressed(*index,
+                                                            open_disposition);
 }
 
 ui::ImageModel SidebarItemsContentsView::GetImageForBuiltInItems(

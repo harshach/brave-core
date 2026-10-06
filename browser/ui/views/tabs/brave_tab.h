@@ -97,6 +97,7 @@ class BraveTab : public Tab
   void OnPaint(gfx::Canvas* canvas) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
+  bool IsHovering() const override;
 
   // Marks this row as the page hierarchy target during an Origin tab drag.
   void SetOriginHierarchyDropTarget(bool targeted);

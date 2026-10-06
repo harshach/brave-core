@@ -43,11 +43,15 @@ public class BrowserViewController: UIViewController {
     return helper
   }()
 
+  /// The state displayed by all toolbars
+  private(set) lazy var toolbarState = BrowserToolbarState(tabManager: tabManager)
+
   private(set) lazy var topToolbar: TopToolbarView = {
     // Setup the URL bar, wrapped in a view to get transparency effect
     let topToolbar = TopToolbarView(
       speechRecognizer: speechRecognizer,
-      privateBrowsingManager: privateBrowsingManager
+      privateBrowsingManager: privateBrowsingManager,
+      toolbarState: toolbarState
     )
     topToolbar.translatesAutoresizingMaskIntoConstraints = false
     topToolbar.delegate = self
@@ -134,7 +138,7 @@ public class BrowserViewController: UIViewController {
   private var pageZoomListener: NSObjectProtocol?
   private var openTabsModelStateListener: SendTabToSelfModelStateListener?
   private var syncServiceStateListener: AnyObject?
-  let collapsedURLBarView = CollapsedURLBarView()
+  private(set) lazy var collapsedURLBarView = CollapsedURLBarView(toolbarState: toolbarState)
 
   // Single data source used for all favorites vcs
   public let backgroundDataSource: NTPDataSource
@@ -177,6 +181,13 @@ public class BrowserViewController: UIViewController {
   let tabManager: TabManager
   let bookmarkManager: BookmarkManager
   public let privateBrowsingManager: PrivateBrowsingManager
+
+  /// The most visited sites shown by the top sites section of every NTP in this window.
+  private lazy var mostVisitedSites: MostVisitedSites = {
+    let mostVisitedSites = MostVisitedSitesFactory.get(for: profileController.profile)
+    mostVisitedSites.enableTopSitesOnlyTileTypes()
+    return mostVisitedSites
+  }()
 
   /// Whether last session was a crash or not
   private let crashedLastSession: Bool
@@ -569,7 +580,7 @@ public class BrowserViewController: UIViewController {
       })
     }
 
-    rewardsEnabledObserveration = rewards.ads.observe(\.isEnabled, options: [.new]) {
+    rewardsEnabledObserveration = rewards.ads.observe(\.isNotificationsEnabled, options: [.new]) {
       [weak self] _, _ in
       guard let self = self else { return }
       self.updateRewardsButtonState()
@@ -789,36 +800,21 @@ public class BrowserViewController: UIViewController {
       toolbar = nil
 
       if showToolbar {
-        toolbar = BottomToolbarView(privateBrowsingManager: privateBrowsingManager)
-        toolbar?.setSearchButtonState(url: tabManager.selectedTab?.visibleURL)
+        toolbar = BottomToolbarView(
+          privateBrowsingManager: privateBrowsingManager,
+          toolbarState: toolbarState
+        )
         footer.addSubview(toolbar!)
         toolbar?.tabToolbarDelegate = self
       }
       view.setNeedsUpdateConstraints()
     }
 
-    updateToolbarUsingTabManager(tabManager)
     updateUsingBottomBar(using: newCollection)
-
-    if let tab = tabManager.selectedTab {
-      updateURLBar()
-      updateBackForwardActionStatus(for: tab)
-      topToolbar.locationView.loading = tab.isLoading
-    }
+    updateURLBar()
 
     toolbarVisibilityViewModel.toolbarState = .expanded
     updateTabsBarVisibility()
-  }
-
-  func updateToolbarSecureContentState(_ secureContentState: SecureContentState) {
-    topToolbar.secureContentState = secureContentState
-    collapsedURLBarView.secureContentState = secureContentState
-  }
-
-  func updateToolbarCurrentURL(_ currentURL: URL?) {
-    topToolbar.currentURL = currentURL
-    collapsedURLBarView.currentURL = currentURL
-    updateScreenTimeUrl(currentURL)
   }
 
   override public func willTransition(
@@ -1401,11 +1397,6 @@ public class BrowserViewController: UIViewController {
     return tabManager.selectedTab?.webViewProxy?.becomeFirstResponder() ?? false
   }
 
-  override public func viewWillAppear(_ animated: Bool) {
-    super.viewWillAppear(animated)
-    updateToolbarUsingTabManager(tabManager)
-  }
-
   public override func viewIsAppearing(_ animated: Bool) {
     super.viewIsAppearing(animated)
 
@@ -1672,6 +1663,7 @@ public class BrowserViewController: UIViewController {
       let ntpController = NewTabPageViewController(
         tab: selectedTab,
         profilePrefs: profileController.profile.prefs,
+        mostVisitedSites: selectedTab.isPrivate ? nil : mostVisitedSites,
         dataSource: backgroundDataSource,
         feedDataSource: feedDataSource,
         rewards: rewards,
@@ -1906,7 +1898,7 @@ public class BrowserViewController: UIViewController {
         }
       }
     } else {
-      updateToolbarCurrentURL(url)
+      updateScreenTimeUrl(url)
       dismissSearchInput()
 
       guard let tab = tabManager.selectedTab else {
@@ -1964,18 +1956,6 @@ public class BrowserViewController: UIViewController {
     return false
   }
 
-  func updateBackForwardActionStatus(for tab: some TabState) {
-    if let forwardListItem = tab.backForwardList?.forwardList.first,
-      forwardListItem.url.isInternalURL(for: .readermode)
-    {
-      navigationToolbar.updateForwardStatus(false)
-    } else {
-      navigationToolbar.updateForwardStatus(tab.canGoForward)
-    }
-
-    navigationToolbar.updateBackStatus(tab.canGoBack)
-  }
-
   func updateUIForReaderHomeStateForTab(_ tab: some TabState) {
     updateURLBar()
     toolbarVisibilityViewModel.toolbarState = .expanded
@@ -2021,13 +2001,7 @@ public class BrowserViewController: UIViewController {
       }
     }
 
-    updateToolbarCurrentURL(tab.visibleURL?.displayURL)
-    if tabManager.selectedTab === tab {
-      self.updateToolbarSecureContentState(tab.visibleSecureContentState)
-    }
-
-    let isPage = tab.visibleURL?.isWebPage() ?? false
-    navigationToolbar.updatePageStatus(isPage)
+    updateScreenTimeUrl(tab.visibleURL?.displayURL)
     updateWebViewPageZoom(tab: tab)
   }
 
@@ -2093,9 +2067,7 @@ public class BrowserViewController: UIViewController {
 
     tabManager.addTabAndSelect(request, isPrivate: isPrivate)
 
-    // Has to go after since switching tabs will cause the URL bar to update to the selected Tab's url (which
-    // is going to be nil still until the web view first commits
-    updateToolbarCurrentURL(url)
+    updateScreenTimeUrl(url)
   }
 
   public func openBlankNewTab(
@@ -2260,6 +2232,7 @@ public class BrowserViewController: UIViewController {
 
   func updateStatusBarOverlayColor() {
     if #available(iOS 26.0, *) {
+      statusBarOverlay.backgroundColor = privateBrowsingManager.browserColors.chromeBackground
       return
     }
     defer { setNeedsStatusBarAppearanceUpdate() }
@@ -2279,9 +2252,6 @@ public class BrowserViewController: UIViewController {
     }
 
     if let url = tab.visibleURL {
-      // Whether to show search icon or + icon
-      toolbar?.setSearchButtonState(url: url)
-
       if !url.isNewTabURL, !InternalURL.isValid(url: url) || url.isInternalURL(for: .readermode),
         !url.isFileURL
       {
@@ -2517,7 +2487,7 @@ extension BrowserViewController: TabsBarViewControllerDelegate {
   }
 
   func tabsBarDidChangeReaderModeVisibility(_ isHidden: Bool = true) {
-    switch topToolbar.locationView.readerModeState {
+    switch tabManager.selectedTab?.readerMode?.state ?? .unavailable {
     case .active:
       if isHidden {
         hideReaderModeBar(animated: false)
@@ -2606,12 +2576,11 @@ extension BrowserViewController: WalletTabHelperDelegate {
     if shouldShowWalletButton {
       Task { @MainActor in
         let isPendingRequestAvailable = await isPendingRequestAvailable()
-        topToolbar.updateWalletButtonState(
+        toolbarState.walletButtonState =
           isPendingRequestAvailable ? .activeWithPendingRequest : .active
-        )
       }
     } else {
-      topToolbar.updateWalletButtonState(.inactive)
+      toolbarState.walletButtonState = .inactive
     }
   }
 
@@ -2851,30 +2820,30 @@ extension BrowserViewController: NewTabPageDelegate {
     )
   }
 
-  func handleFavoriteAction(favorite: Favorite, action: BookmarksAction) {
-    guard let url = favorite.url else { return }
+  func handleTopSiteAction(action: TopSiteAction) {
     switch action {
-    case .opened(let inNewTab, let switchingToPrivateMode):
+    case .opened(let url, let isFavorite, let inNewTab, let switchingToPrivateMode):
+      guard let url else { return }
       if switchingToPrivateMode, Preferences.Privacy.privateBrowsingLock.value {
         self.askForLocalAuthentication { [weak self] success, error in
           if success {
             self?.handleURLInput(
-              url,
+              url.absoluteString,
               inNewTab: inNewTab,
               switchingToPrivateMode: switchingToPrivateMode,
-              isFavourite: true
+              isFavourite: isFavorite
             )
           }
         }
       } else {
         handleURLInput(
-          url,
+          url.absoluteString,
           inNewTab: inNewTab,
           switchingToPrivateMode: switchingToPrivateMode,
-          isFavourite: true
+          isFavourite: isFavorite
         )
       }
-    case .edited:
+    case .edited(let favorite):
       guard let title = favorite.displayTitle, let urlString = favorite.url else { return }
       let editPopup =
         UIAlertController
@@ -2893,6 +2862,20 @@ extension BrowserViewController: NewTabPageDelegate {
           }
         }
       self.present(editPopup, animated: true)
+    case .excluded(let tile):
+      let alert = UIAlertController(
+        title: Strings.excludeMostVisitedSiteAlertTitle,
+        message: Strings.excludeMostVisitedSiteAlertMessage,
+        preferredStyle: .alert
+      )
+      alert.addAction(
+        UIAlertAction(title: Strings.excludeMostVisitedSite, style: .destructive) {
+          [weak self] _ in
+          self?.mostVisitedSites.setBlocked(true, for: tile.url)
+        }
+      )
+      alert.addAction(UIAlertAction(title: Strings.CancelString, style: .default))
+      self.present(alert, animated: true)
     }
   }
 

@@ -45,6 +45,9 @@ struct APIErrorDetails {
   string error_type;
   // Only applies to Oblivious HTTP requests.
   int32 inner_status_code;
+  // When the rate limit expires, if provided by the server. Only set for
+  // ModelRateLimitReached errors.
+  mojo_base.mojom.Time? rate_limit_expires_at;
 };
 
 enum SuggestionGenerationStatus {
@@ -79,7 +82,10 @@ enum ConversationCapability {
 
   // Client can render MathML. A hint to the server, not a model capability -
   // see kServerHintCapabilities in browser/constants.h.
-  MATH_ML
+  MATH_ML,
+
+  // A conversation has a workspace folder attached for local file operations.
+  WORKSPACES
 };
 
 // Which action the user was taking for the entry. This can be used
@@ -133,6 +139,7 @@ enum ModelAccess {
 enum ContentType {
   PageContent,
   VideoTranscript,
+  Workspace,
 };
 
 enum UploadedFileType {

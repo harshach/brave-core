@@ -302,6 +302,12 @@ void BraveTab::RemovedFromWidget() {
   Tab::RemovedFromWidget();
 }
 
+bool BraveTab::IsHovering() const {
+  // Upstream gives true when the tab is in split tab and another tab is
+  // hovered. But, we only want to show hover effect for currently hovered tab.
+  return mouse_hovered_;
+}
+
 #if BUILDFLAG(ENABLE_CONTAINERS)
 void BraveTab::MaybeStartObservingFullscreenChanges() {
   if (!small_accent_icon_view_ || fullscreen_subscription_) {
@@ -364,7 +370,7 @@ int BraveTab::GetTreeHeight() const {
 }
 
 views::BubbleBorder::Arrow BraveTab::GetAnchorPosition() const {
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs()) {
     return views::BubbleBorder::Arrow::LEFT_TOP;
@@ -431,7 +437,7 @@ void BraveTab::ActiveStateChanged() {
 
 std::optional<SkColor> BraveTab::GetGroupColor() const {
   // Hide tab border with group color as it doesn't go well with vertical tabs.
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs()) {
     return {};
@@ -447,8 +453,8 @@ std::optional<SkColor> BraveTab::GetGroupColor() const {
 
 void BraveTab::UpdateIconVisibility() {
   Tab::UpdateIconVisibility();
-  auto* vtc = VerticalTabController::FromBrowser(
-      controller()->GetBrowserWindowInterface());
+  auto* vtc =
+      VerticalTabController::From(controller()->GetBrowserWindowInterface());
   if (!vtc || !vtc->ShouldShowBraveVerticalTabs()) {
     return;
   }
@@ -784,7 +790,7 @@ void BraveTab::Layout(PassKey) {
   }
 
   if (origin_drag_handle_) {
-    auto* vtc = VerticalTabController::FromBrowser(
+    auto* vtc = VerticalTabController::From(
         controller()->GetBrowserWindowInterface());
     const bool show_drag_handle = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                                   !IsAtMinWidthForVerticalTabStrip() &&
@@ -813,7 +819,7 @@ void BraveTab::Layout(PassKey) {
   }
 
   if (origin_pin_button_) {
-    auto* vtc = VerticalTabController::FromBrowser(
+    auto* vtc = VerticalTabController::From(
         controller()->GetBrowserWindowInterface());
     const bool show_pin = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                           !IsAtMinWidthForVerticalTabStrip() &&
@@ -848,7 +854,7 @@ void BraveTab::Layout(PassKey) {
 
 void BraveTab::MaybeAdjustLeftForPinnedTab(gfx::Rect* bounds,
                                            int visual_width) const {
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       !vtc || !vtc->ShouldShowBraveVerticalTabs()) {
     Tab::MaybeAdjustLeftForPinnedTab(bounds, visual_width);
@@ -876,7 +882,7 @@ bool BraveTab::ShouldShowLargeAccentIcon() const {
     return false;
   }
 
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs()) {
     return width() >= tabs::kVerticalTabMinWidth + kTabAccentIconAreaWidth;
@@ -891,7 +897,7 @@ bool BraveTab::ShouldRenderAsNormalTab() const {
     return false;
   }
 
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs() && data().pinned &&
       !controller_->IsVerticalTabsFloating()) {
@@ -908,8 +914,8 @@ bool BraveTab::ShouldRenderAsNormalTab() const {
 }
 
 bool BraveTab::IsAtMinWidthForVerticalTabStrip() const {
-  auto* vtc = VerticalTabController::FromBrowser(
-      controller()->GetBrowserWindowInterface());
+  auto* vtc =
+      VerticalTabController::From(controller()->GetBrowserWindowInterface());
   return vtc && vtc->ShouldShowBraveVerticalTabs() &&
          width() <= tabs::kVerticalTabMinWidth;
 }
@@ -925,8 +931,8 @@ void BraveTab::OnTabDataChanged(TabChangeType tab_change_type,
   // And it causes runtime crash as using this tab from pinned TabContainerImpl
   // has assumption that it's not included in any group.
   // So, clear in-advance when tab enters to pinned TabContainerImpl.
-  auto* vtc = VerticalTabController::FromBrowser(
-      controller()->GetBrowserWindowInterface());
+  auto* vtc =
+      VerticalTabController::From(controller()->GetBrowserWindowInterface());
   if (data_changed && vtc && vtc->ShouldShowBraveVerticalTabs() &&
       data_.pinned) {
     SetGroup(std::nullopt);
@@ -952,7 +958,7 @@ bool BraveTab::IsActive() const {
 }
 
 TabSizeInfo BraveTab::GetTabSizeInfo() const {
-  if (auto* vtc = VerticalTabController::FromBrowser(
+  if (auto* vtc = VerticalTabController::From(
           controller()->GetBrowserWindowInterface());
       vtc && vtc->ShouldShowBraveVerticalTabs()) {
     return Tab::GetTabSizeInfo();
