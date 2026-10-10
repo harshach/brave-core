@@ -48,6 +48,7 @@ class WebContents;
 }
 
 class BraveNewTabButton;
+class OriginSidebarStrips;
 class BrowserView;
 class BrowserWindowInterface;
 class FullscreenController;
@@ -124,6 +125,12 @@ class BraveVerticalTabStripRegionView : public views::View,
   // Opens the card for the Space the window is showing.
   void ShowOriginSpaceCardForActiveSpace();
 
+  // A short notice above the Spaces row, e.g. "Snoozed until Tomorrow 9 AM".
+  void ShowOriginSidebarNotice(std::u16string text);
+  OriginSidebarStrips* origin_sidebar_strips_for_testing() {
+    return origin_sidebar_strips_;
+  }
+
   void ListenFullscreenChanges();
   void StopListeningFullscreenChanges();
 
@@ -196,6 +203,8 @@ class BraveVerticalTabStripRegionView : public views::View,
                            OriginPageListEndsAtTheSpaceRow);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginHoveringASpacePreviewsItsPages);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginSidebarStripsSitBetweenPagesAndSpaces);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -224,6 +233,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   void ShowOriginWorkspaceIconPicker();
   int GetOriginWorkspaceHeaderHeight() const;
   int GetOriginPageListTop() const;
+  // The rows stacked above the Spaces row; zero while none has anything.
+  int GetOriginSidebarStripsHeight() const;
   void SetOriginWorkspaceIcon(std::string icon);
   void ShowOriginQuickOpen();
   void UpdateOriginWorkspaceMeta();
@@ -349,6 +360,7 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::ScrollView> origin_workspace_scroll_ = nullptr;
   raw_ptr<views::View> origin_workspace_strip_ = nullptr;
   raw_ptr<views::LabelButton> origin_workspace_add_button_ = nullptr;
+  raw_ptr<OriginSidebarStrips> origin_sidebar_strips_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
   raw_ptr<views::LabelButton> origin_workspace_drop_target_button_ = nullptr;
   std::string origin_drag_destination_space_id_;

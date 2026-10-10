@@ -31,9 +31,9 @@
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/sessions/content/session_tab_helper.h"
-#include "content/public/browser/web_contents.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/web_contents.h"
 #include "content/public/browser/web_contents_user_data.h"
 #include "content/public/common/referrer.h"
 #include "ui/base/page_transition_types.h"
@@ -269,8 +269,8 @@ size_t OriginSpaceController::GetPageCountForSpace(
     // to the Space's Pages count. This keeps the header count identical to the
     // Pages section count shown in the sidebar.
     if (GetSpaceIdForTab(contents) == space_id &&
-        !tab_strip_model_->IsTabPinned(index) &&
-        !IsTabPlaceholder(contents) && !IsSidePage(contents)) {
+        !tab_strip_model_->IsTabPinned(index) && !IsTabPlaceholder(contents) &&
+        !IsSidePage(contents)) {
       ++page_count;
     }
   }
@@ -409,8 +409,8 @@ void OriginSpaceController::SetPinnedHomeUrl(content::WebContents* contents,
 bool OriginSpaceController::IsPinnedPageAway(
     content::WebContents* contents) const {
   const GURL home = GetPinnedHomeUrl(contents);
-  return home.is_valid() &&
-         contents->GetLastCommittedURL().GetWithoutRef() != home.GetWithoutRef();
+  return home.is_valid() && contents->GetLastCommittedURL().GetWithoutRef() !=
+                                home.GetWithoutRef();
 }
 
 bool OriginSpaceController::ReturnPinnedPageHome(
@@ -418,10 +418,9 @@ bool OriginSpaceController::ReturnPinnedPageHome(
   if (!contents || !IsPinnedPageAway(contents)) {
     return false;
   }
-  contents->GetController().LoadURL(GetPinnedHomeUrl(contents),
-                                    content::Referrer(),
-                                    ui::PAGE_TRANSITION_AUTO_BOOKMARK,
-                                    std::string());
+  contents->GetController().LoadURL(
+      GetPinnedHomeUrl(contents), content::Referrer(),
+      ui::PAGE_TRANSITION_AUTO_BOOKMARK, std::string());
   return true;
 }
 
@@ -431,7 +430,7 @@ const std::u16string* OriginSpaceController::GetCustomTitle(
   const auto* data =
       contents ? OriginSpaceTabData::FromWebContents(contents) : nullptr;
   return data && !data->custom_title().empty() ? &data->custom_title()
-                                                : nullptr;
+                                               : nullptr;
 }
 
 void OriginSpaceController::SetCustomTitle(content::WebContents* contents,
@@ -802,8 +801,8 @@ void OriginSpaceController::OnTabPinnedStateChanged(tabs::TabInterface* tab,
                                                     int index) {
   // Pinning records where the page is now; unpinning forgets it.
   content::WebContents* contents = tab->GetContents();
-  SetPinnedHomeUrl(contents, tab->IsPinned() ? contents->GetLastCommittedURL()
-                                              : GURL());
+  SetPinnedHomeUrl(contents,
+                   tab->IsPinned() ? contents->GetLastCommittedURL() : GURL());
   NotifyChanged();
 }
 

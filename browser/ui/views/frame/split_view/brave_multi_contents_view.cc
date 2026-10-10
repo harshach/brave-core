@@ -156,9 +156,10 @@ views::ProposedLayout BraveMultiContentsView::CalculateOriginSideViewLayout(
           contents_container_view_for_web_panel_->contents_view()
               ->web_contents();
       const bool side_page_fullscreen =
-          side_page && exclusive_access_manager->fullscreen_controller()
-                               ->GetFullscreenState(side_page)
-                               .target_mode == content::FullscreenMode::kContent;
+          side_page &&
+          exclusive_access_manager->fullscreen_controller()
+                  ->GetFullscreenState(side_page)
+                  .target_mode == content::FullscreenMode::kContent;
       layouts.child_layouts.emplace_back(
           contents_container_view_for_web_panel_.get(),
           side_page_fullscreen &&
@@ -170,9 +171,9 @@ views::ProposedLayout BraveMultiContentsView::CalculateOriginSideViewLayout(
   }
 
   // Narrow windows keep a usable page; the side view gives way first.
-  const int column_width = std::clamp(
-      origin_side_view_width_, 0,
-      std::max(0, host_width - kOriginMinimumMainWidth));
+  const int column_width =
+      std::clamp(origin_side_view_width_, 0,
+                 std::max(0, host_width - kOriginMinimumMainWidth));
 
   views::SizeBounds main_size_bounds = size_bounds;
   main_size_bounds.Enlarge(-column_width, 0);

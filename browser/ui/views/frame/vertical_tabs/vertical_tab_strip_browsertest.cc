@@ -27,6 +27,7 @@
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_sidebar_strips.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/origin_space_card.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
@@ -642,6 +643,37 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   EXPECT_EQ(pages.bottom(), rail.y());
   EXPECT_FALSE(HasViewWithTooltip(region, u"Keyboard shortcuts"));
   EXPECT_FALSE(HasViewWithTooltip(region, u"Settings"));
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginSidebarStripsSitBetweenPagesAndSpaces) {
+  ToggleVerticalTabStrip();
+  auto* region = browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+  InvalidateAndRunLayoutForVerticalTabStrip();
+  const auto rect_in_region = [&](views::View* view) {
+    return views::View::ConvertRectToTarget(view->parent(), region,
+                                            view->bounds());
+  };
+
+  // Nothing to say: the strips take no room.
+  ASSERT_TRUE(region->origin_sidebar_strips_for_testing());
+  EXPECT_EQ(0, region->origin_sidebar_strips_for_testing()->height());
+
+  // A notice slides in between the last page and the Spaces row, which stays
+  // at the bottom.
+  region->ShowOriginSidebarNotice(u"Snoozed until Tomorrow 9:00 AM");
+  InvalidateAndRunLayoutForVerticalTabStrip();
+  const gfx::Rect pages = rect_in_region(region->region_view_container_);
+  const gfx::Rect strips =
+      rect_in_region(region->origin_sidebar_strips_for_testing());
+  const gfx::Rect rail = rect_in_region(region->origin_workspace_rail_);
+  EXPECT_GT(strips.height(), 0);
+  EXPECT_EQ(pages.bottom(), strips.y());
+  EXPECT_EQ(strips.bottom(), rail.y());
+  EXPECT_EQ(rail.bottom(), region->GetContentsBounds().bottom());
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,

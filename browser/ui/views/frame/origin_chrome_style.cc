@@ -30,15 +30,18 @@ bool IsDark(const views::View* view) {
 }
 
 SkColor PrimaryText(bool dark) {
-  return dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6) : SkColorSetRGB(0x18, 0x1D, 0x27);
+  return dark ? SkColorSetRGB(0xF5, 0xF5, 0xF6)
+              : SkColorSetRGB(0x18, 0x1D, 0x27);
 }
 
 SkColor SecondaryText(bool dark) {
-  return dark ? SkColorSetRGB(0x94, 0x96, 0x9C) : SkColorSetRGB(0x53, 0x58, 0x62);
+  return dark ? SkColorSetRGB(0x94, 0x96, 0x9C)
+              : SkColorSetRGB(0x53, 0x58, 0x62);
 }
 
 SkColor MutedText(bool dark) {
-  return dark ? SkColorSetRGB(0x6B, 0x6E, 0x75) : SkColorSetRGB(0x71, 0x76, 0x80);
+  return dark ? SkColorSetRGB(0x6B, 0x6E, 0x75)
+              : SkColorSetRGB(0x71, 0x76, 0x80);
 }
 
 SkColor HoverFill(bool dark) {

@@ -23,6 +23,7 @@
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/ui/tabs/origin_tags.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
@@ -31,6 +32,7 @@
 #include "cc/paint/paint_flags.h"
 #include "cc/paint/skia_paint_canvas.h"
 #include "chrome/browser/autocomplete/chrome_autocomplete_provider_client.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/favicon/favicon_service_factory.h"
 #include "chrome/browser/favicon/favicon_utils.h"
 #include "chrome/browser/history/history_service_factory.h"
@@ -1395,6 +1397,11 @@ void OriginQuickOpenView::StartAutocomplete(const std::u16string& input) {
     LoadZeroStateData();
     return;
   }
+  if (IsTagQuery()) {
+    autocomplete_controller_->Stop(AutocompleteStopReason::kClobbered);
+    BuildTagResults();
+    return;
+  }
 
   AutocompleteInput autocomplete_input(
       input, input.size(), metrics::OmniboxEventProto::OTHER,
@@ -1409,8 +1416,67 @@ void OriginQuickOpenView::StartAutocomplete(const std::u16string& input) {
   RebuildResults();
 }
 
+bool OriginQuickOpenView::IsTagQuery() const {
+  std::u16string trimmed;
+  base::TrimWhitespace(user_input_, base::TrimPositions::TRIM_ALL, &trimmed);
+  return trimmed.starts_with(u'#');
+}
+
+void OriginQuickOpenView::BuildTagResults() {
+  query_results_ = {};
+  std::u16string trimmed;
+  base::TrimWhitespace(user_input_, base::TrimPositions::TRIM_ALL, &trimmed);
+  // "#recipes pasta": the tag's first letters, then words in the page.
+  const std::u16string_view rest = std::u16string_view(trimmed).substr(1);
+  const size_t space = rest.find(u' ');
+  const std::u16string_view tag_prefix = rest.substr(0, space);
+  const std::u16string_view text =
+      space == std::u16string_view::npos
+          ? std::u16string_view()
+          : base::TrimWhitespace(rest.substr(space + 1),
+                                 base::TrimPositions::TRIM_ALL);
+
+  constexpr size_t kCapacity = kPrimarySectionCapacity +
+                               kSecondarySectionCapacity +
+                               kTertiarySectionCapacity;
+  const bookmarks::BookmarkModel* model =
+      BookmarkModelFactory::GetForBrowserContext(profile_);
+  const std::vector<origin_tags::Match> matches =
+      model ? origin_tags::Search(model, tag_prefix, text, kCapacity)
+            : std::vector<origin_tags::Match>();
+  for (size_t i = 0; i < matches.size(); ++i) {
+    const origin_tags::Match& match = matches[i];
+    Result result;
+    result.title = match.page.title.empty()
+                       ? base::UTF8ToUTF16(match.page.url.host())
+                       : match.page.title;
+    result.subtitle = base::UTF8ToUTF16(match.page.url.host());
+    result.badge = u"#" + match.tag;
+    result.destination_url = match.page.url;
+    // An open copy is switched to rather than opened twice.
+    const auto open_tab = std::ranges::find_if(
+        open_tab_results_, [&match](const TimedResult& candidate) {
+          return candidate.result.destination_url == match.page.url;
+        });
+    if (open_tab != open_tab_results_.end()) {
+      result.switch_to_tab = true;
+      result.space_id = open_tab->result.space_id;
+    }
+    result.icon_model = GetFaviconModelForURL(match.page.url);
+    RequestFavicon(match.page.url);
+    const size_t section =
+        i < kPrimarySectionCapacity                               ? 0
+        : i < kPrimarySectionCapacity + kSecondarySectionCapacity ? 1
+                                                                  : 2;
+    query_results_[section].push_back(std::move(result));
+  }
+  UpdateResultRows();
+}
+
 void OriginQuickOpenView::RebuildResults() {
-  if (!HasQuery()) {
+  // Tag queries have their own results; late provider or history replies for
+  // them are ignored.
+  if (!HasQuery() || IsTagQuery()) {
     return;
   }
 
@@ -2317,14 +2383,24 @@ void OriginQuickOpenView::UpdateResultRows() {
                       u"Top Hits", u"Recent Workspaces", u"Recent Pages"};
 
   visible_results_.clear();
+  const bool tag_query = has_query && IsTagQuery();
   for (size_t section = 0; section < kSectionCount; ++section) {
+    const bool nothing_found = displayed_results_[0].empty() &&
+                               displayed_results_[1].empty() &&
+                               displayed_results_[2].empty();
     const bool searching =
-        has_query && section == 0 && displayed_results_[0].empty() &&
-        displayed_results_[1].empty() && displayed_results_[2].empty();
-    section_labels_[section]->SetText(searching ? u"Searching"
-                                                : labels[section]);
-    section_labels_[section]->SetVisible(!displayed_results_[section].empty() ||
-                                         searching || !has_query);
+        has_query && !tag_query && section == 0 && nothing_found;
+    if (tag_query) {
+      // One list under one heading, however many rows it fills.
+      section_labels_[section]->SetText(nothing_found ? u"No tagged pages match"
+                                                      : u"Tagged pages");
+      section_labels_[section]->SetVisible(section == 0);
+    } else {
+      section_labels_[section]->SetText(searching ? u"Searching"
+                                                  : labels[section]);
+      section_labels_[section]->SetVisible(
+          !displayed_results_[section].empty() || searching || !has_query);
+    }
     for (size_t index = 0; index < section_rows_[section].size(); ++index) {
       OriginQuickOpenResultButton* row = section_rows_[section][index];
       const bool visible = index < displayed_results_[section].size();

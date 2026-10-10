@@ -12,8 +12,8 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
-#include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/task/sequenced_task_runner.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/containers/container_model.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
@@ -331,8 +331,8 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
       [](BraveTab* tab) {
         // The row goes away with the page; finish this click first.
         base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
-            FROM_HERE, base::BindOnce(&BraveTab::MarkOriginPageDone,
-                                      tab->GetWeakPtr()));
+            FROM_HERE,
+            base::BindOnce(&BraveTab::MarkOriginPageDone, tab->GetWeakPtr()));
       },
       base::Unretained(this)));
   done_button->SetPreferredSize(gfx::Size(20, 20));
@@ -904,8 +904,8 @@ void BraveTab::Layout(PassKey) {
   }
 
   if (origin_done_button_) {
-    auto* vtc = VerticalTabController::From(
-        controller()->GetBrowserWindowInterface());
+    auto* vtc =
+        VerticalTabController::From(controller()->GetBrowserWindowInterface());
     const bool show_done = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                            !IsAtMinWidthForVerticalTabStrip() &&
                            !data().pinned && ShouldRenderAsNormalTab() &&
@@ -1213,9 +1213,9 @@ void BraveTab::MarkOriginPageDone() {
   }
   std::vector<int> indices = model->GetTreeTabDescendantIndices(index);
   indices.push_back(index);
-  if (auto* space_controller =
-          browser->GetFeatures().origin_space_controller();
-      space_controller && std::ranges::contains(indices, model->active_index())) {
+  if (auto* space_controller = browser->GetFeatures().origin_space_controller();
+      space_controller &&
+      std::ranges::contains(indices, model->active_index())) {
     space_controller->SelectReplacementTabForClose(indices);
   }
   model->CloseTabs(indices);

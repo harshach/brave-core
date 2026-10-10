@@ -345,8 +345,7 @@ class OriginSideViewDownloads::Row : public views::Button {
     fill.setAntiAlias(true);
     fill.setColor(
         origin_chrome_style::HoverFill(origin_chrome_style::IsDark(this)));
-    canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), kRowCornerRadius,
-                          fill);
+    canvas->DrawRoundRect(gfx::RectF(GetLocalBounds()), kRowCornerRadius, fill);
   }
 
  private:

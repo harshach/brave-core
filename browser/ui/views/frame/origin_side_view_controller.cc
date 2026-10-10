@@ -19,9 +19,15 @@
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/views/frame/origin_side_view_downloads.h"
+#include "brave/browser/ui/views/frame/origin_side_view_reminders.h"
 #include "brave/browser/ui/views/frame/origin_side_view_shortcuts.h"
+#include "brave/browser/ui/views/frame/origin_side_view_snoozed.h"
+#include "brave/browser/ui/views/frame/origin_side_view_tags.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/workspaces/pref_names.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
@@ -70,7 +76,43 @@ OriginSideViewController::OriginSideViewController(
               },
               weak_factory_.GetWeakPtr())));
 
+  const auto open_page = base::BindRepeating(
+      [](base::WeakPtr<OriginSideViewController> controller, const GURL& url) {
+        if (controller) {
+          controller->OpenPage(url);
+        }
+      },
+      weak_factory_.GetWeakPtr());
+  // Reminders and snoozed pages belong to the regular profile; private
+  // windows have neither.
+  later_service_ =
+      OriginLaterServiceFactory::GetForProfile(browser_->GetProfile());
+  if (later_service_) {
+    side_view_->SetToolView(
+        OriginSideViewMode::kReminders,
+        std::make_unique<OriginSideViewReminders>(later_service_, open_page));
+    side_view_->SetToolView(
+        OriginSideViewMode::kSnoozed,
+        std::make_unique<OriginSideViewSnoozed>(
+            later_service_,
+            base::BindRepeating(
+                [](base::WeakPtr<OriginSideViewController> controller,
+                   const std::string& space_id) {
+                  return controller ? controller->GetSpaceName(space_id)
+                                    : std::u16string();
+                },
+                weak_factory_.GetWeakPtr())));
+    later_observation_.Observe(later_service_);
+  }
+  if (auto* bookmark_model =
+          BookmarkModelFactory::GetForBrowserContext(browser_->GetProfile())) {
+    side_view_->SetToolView(
+        OriginSideViewMode::kTags,
+        std::make_unique<OriginSideViewTags>(bookmark_model, open_page));
+  }
+
   space_observation_.Observe(space_controller_);
+  OnOriginLaterChanged();
   Sync();
 }
 
@@ -104,6 +146,8 @@ void OriginSideViewController::ToggleMode(OriginSideViewMode mode) {
 
 void OriginSideViewController::Hide() {
   open_ = false;
+  // Hidden on purpose: a side page coming back no longer reopens the panel.
+  showed_restored_side_page_ = true;
   Sync();
 }
 
@@ -205,7 +249,7 @@ void OriginSideViewController::ResizeSideView(int width, bool done) {
   multi_contents_view_->SetOriginSideViewWidth(width_);
   if (done) {
     browser_->GetProfile()->GetPrefs()->SetInteger(kOriginSideViewWidthPref,
-                                                width_);
+                                                   width_);
   }
 }
 
@@ -219,6 +263,38 @@ void OriginSideViewController::OnOriginSpaceControllerChanged() {
     mode_ = OriginSideViewMode::kPage;
   }
   Sync();
+}
+
+void OriginSideViewController::OnOriginLaterChanged() {
+  // Due reminders show as a count on the panel's Reminders button.
+  side_view_->SetModeBadge(
+      OriginSideViewMode::kReminders,
+      later_service_ ? later_service_->GetDueReminderCount() : 0);
+}
+
+void OriginSideViewController::OpenPage(const GURL& url) {
+  if (!url.is_valid()) {
+    return;
+  }
+  auto* model = browser_->tab_strip_model();
+  for (int index = 0; index < model->count(); ++index) {
+    content::WebContents* contents = model->GetWebContentsAt(index);
+    if (contents->GetLastCommittedURL() == url &&
+        !space_controller_->IsSidePage(contents)) {
+      model->ActivateTabAt(index);
+      return;
+    }
+  }
+  chrome::AddTabAt(browser_, url, -1, /*foreground=*/true);
+}
+
+std::u16string OriginSideViewController::GetSpaceName(
+    const std::string& space_id) const {
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser_->GetProfile());
+  const auto* space =
+      workspace_service ? workspace_service->GetOriginSpace(space_id) : nullptr;
+  return space ? base::UTF8ToUTF16(space->name) : std::u16string();
 }
 
 void OriginSideViewController::Sync() {
@@ -252,6 +328,9 @@ void OriginSideViewController::Sync() {
     const content::WebContents* shown = web_panel->panel_contents();
     if (shown != wanted) {
       FocusMainPageIfActive(const_cast<content::WebContents*>(shown));
+      // A restored side page can come back as the active tab. It can't be on
+      // screen in the main area and the panel at once.
+      FocusMainPageIfActive(wanted);
       web_panel->SetPanelContents(wanted);
     }
   }

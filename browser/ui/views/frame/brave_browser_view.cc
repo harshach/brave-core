@@ -37,6 +37,7 @@
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
@@ -44,11 +45,12 @@
 #include "brave/browser/ui/views/brave_help_bubble/brave_help_bubble_host_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_title_bar_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
+#include "brave/browser/ui/views/frame/origin_later_picker_view.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view_controller.h"
-#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/origin_space_window_theme.h"
+#include "brave/browser/ui/views/frame/origin_tag_picker_view.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
@@ -59,6 +61,7 @@
 #include "brave/browser/ui/views/omnibox/brave_omnibox_view_views.h"
 #include "brave/browser/ui/views/side_panel/brave_side_panel_resize_area.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
@@ -77,6 +80,7 @@
 #include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/app_mode/app_mode_utils.h"
 #include "chrome/browser/autocomplete/autocomplete_classifier_factory.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/devtools/devtools_ui_controller.h"
 #include "chrome/browser/devtools/devtools_window.h"
@@ -631,6 +635,22 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
         browser_->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
       origin_side_view_controller_ = std::make_unique<OriginSideViewController>(
           static_cast<Browser*>(browser_.get()), GetBraveMultiContentsView());
+      // Snoozing and reminders keep pages for later in the regular profile
+      // only; private windows have nowhere to put them.
+      if (OriginLaterServiceFactory::GetForProfile(GetProfile())) {
+        origin_later_picker_view_ =
+            AddChildView(std::make_unique<OriginLaterPickerView>(
+                base::BindRepeating(&BraveBrowserView::HideOriginLaterPicker,
+                                    base::Unretained(this))));
+      }
+      if (auto* bookmark_model =
+              BookmarkModelFactory::GetForBrowserContext(GetProfile())) {
+        origin_tag_picker_view_ =
+            AddChildView(std::make_unique<OriginTagPickerView>(
+                bookmark_model,
+                base::BindRepeating(&BraveBrowserView::HideOriginLaterPicker,
+                                    base::Unretained(this))));
+      }
     }
   }
 #endif
@@ -738,6 +758,12 @@ void BraveBrowserView::Layout(PassKey) {
     origin_empty_space_view_->SetBoundsRect(empty_space_bounds);
     if (origin_quick_open_view_) {
       origin_quick_open_view_->SetBoundsRect(empty_space_bounds);
+    }
+    if (origin_later_picker_view_) {
+      origin_later_picker_view_->SetBoundsRect(empty_space_bounds);
+    }
+    if (origin_tag_picker_view_) {
+      origin_tag_picker_view_->SetBoundsRect(empty_space_bounds);
     }
   }
 #endif
@@ -913,6 +939,101 @@ void BraveBrowserView::BeginOriginRenameOfActivePage() {
   }
   if (auto* tab = views::AsViewClass<BraveTab>(tab_strip->tab_at(index))) {
     tab->BeginOriginRename();
+  }
+}
+
+void BraveBrowserView::ShowOriginLaterPicker(bool snooze) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = GetActiveWebContents();
+  if (!origin_later_picker_view_ || !controller || !page ||
+      controller->IsTabPlaceholder(page) ||
+      (snooze && controller->IsSidePage(page))) {
+    return;
+  }
+  HideOriginQuickOpen();
+  origin_insert_mode_ = false;
+  ReorderChildView(origin_later_picker_view_, -1);
+  EnsureFindBarHostViewIsLastChild();
+  origin_later_picker_view_->Show(
+      snooze ? OriginLaterPickerView::Kind::kSnooze
+             : OriginLaterPickerView::Kind::kReminder,
+      page->GetTitle(), snooze ? ui::VKEY_L : ui::VKEY_A,
+      base::BindOnce(
+          [](base::WeakPtr<BraveBrowserView> view, bool snooze,
+             base::WeakPtr<content::WebContents> page, std::u16string text,
+             origin_time_parser::ParsedTime when) {
+            if (view) {
+              view->OnOriginLaterPicked(snooze, page, std::move(text),
+                                        when.time, std::move(when.description));
+            }
+          },
+          weak_ptr_.GetWeakPtr(), snooze, page->GetWeakPtr()));
+  InvalidateLayout();
+}
+
+void BraveBrowserView::OnOriginLaterPicked(
+    bool snooze,
+    base::WeakPtr<content::WebContents> page,
+    std::u16string text,
+    base::Time when,
+    std::u16string when_description) {
+  auto* later = OriginLaterServiceFactory::GetForProfile(GetProfile());
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index =
+      page ? model->GetIndexOfWebContents(page.get()) : TabStripModel::kNoTab;
+  if (!later || !controller || index == TabStripModel::kNoTab) {
+    return;
+  }
+  const std::string space_id = controller->GetSpaceIdForTab(page.get());
+  if (!snooze) {
+    later->AddReminder(text.empty() ? page->GetTitle() : std::move(text),
+                       page->GetLastCommittedURL(), space_id, when);
+    ShowOriginSidebarNotice(u"Reminder set for " + when_description);
+    return;
+  }
+  later->SnoozePage(page->GetLastCommittedURL(), page->GetTitle(), space_id,
+                    when);
+  // The page leaves now and comes back on its own; z would only bring back a
+  // second copy, so it isn't recorded as closed.
+  if (model->active_index() == index) {
+    const int closing[] = {index};
+    controller->SelectReplacementTabForClose(closing);
+  }
+  model->CloseWebContentsAt(model->GetIndexOfWebContents(page.get()),
+                            TabCloseTypes::CLOSE_NONE);
+  ShowOriginSidebarNotice(u"Snoozed until " + when_description);
+}
+
+void BraveBrowserView::ShowOriginTagPicker() {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = GetActiveWebContents();
+  if (!origin_tag_picker_view_ || !controller || !page ||
+      controller->IsTabPlaceholder(page)) {
+    return;
+  }
+  HideOriginQuickOpen();
+  origin_insert_mode_ = false;
+  ReorderChildView(origin_tag_picker_view_, -1);
+  EnsureFindBarHostViewIsLastChild();
+  origin_tag_picker_view_->Show(page->GetLastCommittedURL(), page->GetTitle(),
+                                ui::VKEY_T);
+  InvalidateLayout();
+}
+
+void BraveBrowserView::HideOriginLaterPicker() {
+  if (auto* contents = GetActiveWebContents()) {
+    contents->Focus();
+  }
+}
+
+void BraveBrowserView::ShowOriginSidebarNotice(std::u16string text) {
+  if (!vertical_tab_strip_container_view_) {
+    return;
+  }
+  if (auto* region = vertical_tab_strip_container_view_
+                         ->vertical_tab_strip_region_view()) {
+    region->ShowOriginSidebarNotice(std::move(text));
   }
 }
 
@@ -2306,6 +2427,16 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         case ui::VKEY_C:
           BeginOriginRenameOfActivePage();
           return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_L:
+          // Later: the page leaves until the time chosen.
+          ShowOriginLaterPicker(/*snooze=*/true);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_A:
+          ShowOriginLaterPicker(/*snooze=*/false);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_T:
+          ShowOriginTagPicker();
+          return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_E: {
           // Edits the Space on screen: its theme, name, icon, or deletion.
           if (vertical_tab_strip_container_view_) {
@@ -2386,6 +2517,18 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
       accelerator.key_code() == ui::VKEY_ESCAPE && origin_quick_open_view_ &&
       origin_quick_open_view_->GetVisible()) {
     HideOriginQuickOpen();
+    return true;
+  }
+  if (accelerator.modifiers() == ui::EF_NONE &&
+      accelerator.key_code() == ui::VKEY_ESCAPE && origin_later_picker_view_ &&
+      origin_later_picker_view_->GetVisible()) {
+    origin_later_picker_view_->Dismiss();
+    return true;
+  }
+  if (accelerator.modifiers() == ui::EF_NONE &&
+      accelerator.key_code() == ui::VKEY_ESCAPE && origin_tag_picker_view_ &&
+      origin_tag_picker_view_->GetVisible()) {
+    origin_tag_picker_view_->Dismiss();
     return true;
   }
 

@@ -82,6 +82,8 @@ class BrowserWindowInterface;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
+class OriginLaterPickerView;
+class OriginTagPickerView;
 class OriginSideViewController;
 class OriginSpaceWindowTheme;
 class OriginTemporaryLinkView;
@@ -394,6 +396,17 @@ class BraveBrowserView : public BrowserView,
   void CloseActiveOriginTabTree();
   // c: renames the active page in place.
   void BeginOriginRenameOfActivePage();
+  // l snoozes the active page; a sets a reminder about it.
+  void ShowOriginLaterPicker(bool snooze);
+  void OnOriginLaterPicked(bool snooze,
+                           base::WeakPtr<content::WebContents> page,
+                           std::u16string text,
+                           base::Time when,
+                           std::u16string when_description);
+  void HideOriginLaterPicker();
+  // t: tags the active page.
+  void ShowOriginTagPicker();
+  void ShowOriginSidebarNotice(std::u16string text);
 
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
@@ -427,6 +440,8 @@ class BraveBrowserView : public BrowserView,
   raw_ptr<SidebarContainerView> sidebar_container_view_ = nullptr;
   raw_ptr<views::View> origin_empty_space_view_ = nullptr;
   raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
+  raw_ptr<OriginLaterPickerView> origin_later_picker_view_ = nullptr;
+  raw_ptr<OriginTagPickerView> origin_tag_picker_view_ = nullptr;
   raw_ptr<OriginTemporaryLinkView> origin_temporary_link_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>

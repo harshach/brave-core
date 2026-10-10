@@ -21,31 +21,34 @@
 #include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
-#include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/brave_browser_web_contents_delegate.h"
+#include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/origin_later_picker_view.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view_controller.h"
-#include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
+#include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_sidebar_strips.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
-#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
-#include "brave/browser/workspaces/workspace_service.h"
-#include "brave/browser/workspaces/workspace_service_factory.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
+#include "brave/browser/workspaces/workspace_service.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -270,6 +273,23 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
     return brave_browser_view()->PreHandleKeyboardEvent(event);
   }
 
+  OriginLaterPickerView* origin_later_picker_view() {
+    return brave_browser_view()->origin_later_picker_view_;
+  }
+
+  OriginSidebarStrips* origin_sidebar_strips() {
+    return brave_browser_view()
+        ->vertical_tab_strip_container_view()
+        ->vertical_tab_strip_region_view()
+        ->origin_sidebar_strips_for_testing();
+  }
+
+  void TypeOriginLaterTime(const std::u16string& text) {
+    OriginLaterPickerView* picker = origin_later_picker_view();
+    picker->when_field_for_testing()->SetText(text);
+    picker->ContentsChanged(picker->when_field_for_testing(), text);
+  }
+
   BraveTab* GetOriginPageRow(int index) {
     auto* region = brave_browser_view()
                        ->vertical_tab_strip_container_view()
@@ -286,8 +306,8 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
         pages.back(), embedded_test_server()->GetURL("/title1.html")));
     for (int i = 0; i < count; ++i) {
       chrome::AddTabAt(browser(),
-                       embedded_test_server()->GetURL(
-                           i % 2 ? "/title3.html" : "/title2.html"),
+                       embedded_test_server()->GetURL(i % 2 ? "/title3.html"
+                                                            : "/title2.html"),
                        -1, /*foreground=*/false);
       pages.push_back(model->GetWebContentsAt(model->count() - 1));
       EXPECT_TRUE(content::WaitForLoadStop(pages.back()));
@@ -1114,8 +1134,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_NE(pages[1], model->GetActiveWebContents());
   EXPECT_TRUE(controller->IsOpen());
   EXPECT_EQ(OriginSideViewMode::kPage, controller->mode());
-  EXPECT_FALSE(controller->side_view()->page_empty_state_for_testing()
-                   ->GetVisible());
+  EXPECT_FALSE(
+      controller->side_view()->page_empty_state_for_testing()->GetVisible());
 
   // j/k walk the list and never land on the side page.
   for (int i = 0; i < 4; ++i) {
@@ -1182,8 +1202,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             PressOriginKey(ui::VKEY_D));
-  ASSERT_TRUE(
-      base::test::RunUntil([&] { return model->count() == initial_count - 1; }));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->count() == initial_count - 1; }));
   EXPECT_EQ(main_page, model->GetActiveWebContents());
   EXPECT_EQ(nullptr, origin_side_view_panel_contents());
   EXPECT_TRUE(
@@ -1270,11 +1290,94 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                            ui::EF_NONE);
   views::test::ButtonTestApi(row->origin_done_button_for_testing())
       .NotifyClick(click);
-  ASSERT_TRUE(
-      base::test::RunUntil([&] { return model->count() == initial_count - 1; }));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->count() == initial_count - 1; }));
   EXPECT_EQ(model->GetIndexOfWebContents(pages[1]), TabStripModel::kNoTab);
   // The next page in the Space takes over, as it does for d.
   EXPECT_EQ(pages[2], model->GetActiveWebContents());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginSnoozeClosesThePageUntilItsTime) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* later =
+      OriginLaterServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(later);
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  const GURL snoozed_url = pages[1]->GetLastCommittedURL();
+  const int initial_count = model->count();
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_L));
+  OriginLaterPickerView* picker = origin_later_picker_view();
+  ASSERT_TRUE(picker);
+  ASSERT_TRUE(picker->GetVisible());
+  const base::Time before = base::Time::Now();
+  TypeOriginLaterTime(u"in 2 hours");
+  picker->SubmitForTesting();
+
+  EXPECT_FALSE(picker->GetVisible());
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->count() == initial_count - 1; }));
+  EXPECT_EQ(TabStripModel::kNoTab, model->GetIndexOfWebContents(pages[1]));
+  ASSERT_EQ(1u, later->snoozed_pages().size());
+  const OriginLaterService::SnoozedPage snoozed = later->snoozed_pages()[0];
+  EXPECT_EQ(snoozed_url, snoozed.url);
+  EXPECT_GE(snoozed.wake_time, before + base::Hours(2) - base::Minutes(1));
+  EXPECT_LE(snoozed.wake_time,
+            base::Time::Now() + base::Hours(2) + base::Minutes(1));
+  EXPECT_TRUE(origin_sidebar_strips()->notice_row_for_testing()->GetVisible());
+
+  // Waking it early brings it back.
+  later->WakeNow(snoozed.id);
+  ASSERT_TRUE(
+      base::test::RunUntil([&] { return model->count() == initial_count; }));
+  EXPECT_TRUE(later->snoozed_pages().empty());
+  EXPECT_EQ(snoozed_url,
+            model->GetWebContentsAt(model->count() - 1)->GetVisibleURL());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginReminderShowsInTheSidebarWhenDue) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* later =
+      OriginLaterServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(later);
+  content::WebContents* page = model->GetActiveWebContents();
+  const GURL url = embedded_test_server()->GetURL("/title1.html");
+  ASSERT_TRUE(content::NavigateToURL(page, url));
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_A));
+  OriginLaterPickerView* picker = origin_later_picker_view();
+  ASSERT_TRUE(picker->GetVisible());
+  // The reminder starts out as the page's title.
+  EXPECT_EQ(page->GetTitle(), picker->what_field_for_testing()->GetText());
+  picker->what_field_for_testing()->SetText(u"Reply to this");
+  TypeOriginLaterTime(u"tomorrow 9am");
+  picker->SubmitForTesting();
+
+  ASSERT_EQ(1u, later->reminders().size());
+  EXPECT_EQ(u"Reply to this", later->reminders()[0].title);
+  EXPECT_EQ(url, later->reminders()[0].url);
+  // The page stays; a reminder only remembers it.
+  EXPECT_EQ(page, model->GetActiveWebContents());
+  EXPECT_FALSE(
+      origin_sidebar_strips()->reminder_row_for_testing()->GetVisible());
+
+  // Once due, a reminder waits in the sidebar until it is done.
+  const std::string due_id =
+      later->AddReminder(u"Due already", GURL(), std::string(),
+                         base::Time::Now() - base::Minutes(1));
+  EXPECT_TRUE(
+      origin_sidebar_strips()->reminder_row_for_testing()->GetVisible());
+  EXPECT_EQ(1, later->GetDueReminderCount());
+  later->SetReminderDone(due_id, true);
+  EXPECT_FALSE(
+      origin_sidebar_strips()->reminder_row_for_testing()->GetVisible());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuestionMarkShowsShortcuts) {

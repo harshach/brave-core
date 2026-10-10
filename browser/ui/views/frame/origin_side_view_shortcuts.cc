@@ -124,7 +124,8 @@ OriginSideViewShortcuts::OriginSideViewShortcuts() {
   search_ = search_field_->AddChildView(std::make_unique<views::Textfield>());
   search_->SetPlaceholderText(u"Search shortcuts");
   search_->SetAccessibleName(u"Search shortcuts");
-  search_->SetFontList(origin_chrome_style::Font(13, gfx::Font::Weight::NORMAL));
+  search_->SetFontList(
+      origin_chrome_style::Font(13, gfx::Font::Weight::NORMAL));
   search_->SetBackgroundEnabled(false);
   search_->SetBorder(views::CreateEmptyBorder(gfx::Insets()));
   search_->set_controller(this);
@@ -138,8 +139,8 @@ OriginSideViewShortcuts::OriginSideViewShortcuts() {
   for (size_t section_index = 0; section_index < sections.size();
        ++section_index) {
     const Section& section = sections[section_index];
-    auto* title = list->AddChildView(std::make_unique<views::Label>(
-        base::i18n::ToUpper(section.title)));
+    auto* title = list->AddChildView(
+        std::make_unique<views::Label>(base::i18n::ToUpper(section.title)));
     title->SetFontList(origin_chrome_style::Font(10, gfx::Font::Weight::BOLD));
     title->SetHorizontalAlignment(gfx::ALIGN_LEFT);
     title->SetBorder(views::CreateEmptyBorder(gfx::Insets::TLBR(14, 0, 4, 0)));
@@ -151,8 +152,8 @@ OriginSideViewShortcuts::OriginSideViewShortcuts() {
       row->SetCrossAxisAlignment(views::BoxLayout::CrossAxisAlignment::kCenter);
       row->SetBetweenChildSpacing(4);
       row->SetMinimumCrossAxisSize(kRowHeight);
-      auto* description =
-          row->AddChildView(std::make_unique<views::Label>(shortcut.description));
+      auto* description = row->AddChildView(
+          std::make_unique<views::Label>(shortcut.description));
       description->SetFontList(
           origin_chrome_style::Font(13, gfx::Font::Weight::NORMAL));
       description->SetHorizontalAlignment(gfx::ALIGN_LEFT);
@@ -164,14 +165,14 @@ OriginSideViewShortcuts::OriginSideViewShortcuts() {
         row->AddChildView(MakeKeyCap(key));
         haystack += u" " + key;
       }
-      rows_.push_back(
-          {row, base::i18n::ToLower(haystack), section_index});
+      rows_.push_back({row, base::i18n::ToLower(haystack), section_index});
     }
   }
 
   no_match_ = list->AddChildView(
       std::make_unique<views::Label>(u"No shortcut matches that."));
-  no_match_->SetFontList(origin_chrome_style::Font(12, gfx::Font::Weight::NORMAL));
+  no_match_->SetFontList(
+      origin_chrome_style::Font(12, gfx::Font::Weight::NORMAL));
   no_match_->SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(16, 0)));
   no_match_->SetVisible(false);
 
@@ -194,8 +195,8 @@ void OriginSideViewShortcuts::FocusSearch() {
 }
 
 size_t OriginSideViewShortcuts::GetVisibleRowCountForTesting() const {
-  return std::ranges::count_if(rows_,
-                               [](const Row& row) { return row.view->GetVisible(); });
+  return std::ranges::count_if(
+      rows_, [](const Row& row) { return row.view->GetVisible(); });
 }
 
 void OriginSideViewShortcuts::OnThemeChanged() {
@@ -222,8 +223,8 @@ bool OriginSideViewShortcuts::HandleKeyEvent(views::Textfield* sender,
 }
 
 void OriginSideViewShortcuts::ApplyFilter(const std::u16string& query) {
-  const std::u16string needle = base::i18n::ToLower(
-      base::TrimWhitespace(query, base::TRIM_ALL));
+  const std::u16string needle =
+      base::i18n::ToLower(base::TrimWhitespace(query, base::TRIM_ALL));
   std::vector<bool> section_has_rows(section_titles_.size(), false);
   bool any = false;
   for (Row& row : rows_) {

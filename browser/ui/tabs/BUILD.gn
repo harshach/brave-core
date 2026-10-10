@@ -284,6 +284,57 @@ if (!is_android) {
     ]
   }
 
+  source_set("origin_later_service") {
+    sources = [
+      "origin_later_service.cc",
+      "origin_later_service.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//chrome/browser/profiles:profile",
+      "//components/keyed_service/core",
+      "//url",
+    ]
+
+    deps = [
+      ":origin_space_controller",
+      "//chrome/browser/ui/browser_window",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/pref_registry",
+      "//components/prefs",
+      "//content/public/browser",
+    ]
+  }
+
+  source_set("origin_tags") {
+    sources = [
+      "origin_tags.cc",
+      "origin_tags.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//url",
+    ]
+
+    deps = [
+      "//base:i18n",
+      "//components/bookmarks/browser",
+    ]
+  }
+
+  source_set("origin_time_parser") {
+    sources = [
+      "origin_time_parser.cc",
+      "origin_time_parser.h",
+    ]
+
+    public_deps = [ "//base" ]
+
+    deps = [ "//base:i18n" ]
+  }
+
   source_set("origin_download_summary") {
     sources = [
       "origin_download_summary.cc",

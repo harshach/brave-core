@@ -205,8 +205,9 @@ class OriginSideView::ModeButton : public views::ImageButton {
     const SkColor color = selected_ ? origin_chrome_style::PrimaryText(dark)
                           : hovered ? origin_chrome_style::SecondaryText(dark)
                                     : origin_chrome_style::MutedText(dark);
-    SetImageModel(STATE_NORMAL, ui::ImageModel::FromVectorIcon(
-                                    GetModeIcon(mode_), color, kHeaderIconSize));
+    SetImageModel(STATE_NORMAL,
+                  ui::ImageModel::FromVectorIcon(GetModeIcon(mode_), color,
+                                                 kHeaderIconSize));
   }
 
   const OriginSideViewMode mode_;
@@ -250,42 +251,44 @@ OriginSideView::OriginSideView(Delegate* delegate) : delegate_(delegate) {
   title_ = header_->AddChildView(std::make_unique<views::Label>());
   title_->SetHorizontalAlignment(gfx::ALIGN_LEFT);
   title_->SetElideBehavior(gfx::ELIDE_TAIL);
-  title_->SetFontList(origin_chrome_style::Font(13, gfx::Font::Weight::SEMIBOLD));
+  title_->SetFontList(
+      origin_chrome_style::Font(13, gfx::Font::Weight::SEMIBOLD));
   title_->SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(0, 8)));
   header_layout->SetFlexForView(title_, 1);
 
-  return_button_ = header_->AddChildView(MakeHeaderButton(
-      base::BindRepeating(
-          [](OriginSideView* view) {
-            if (view->delegate_) {
-              view->delegate_->ReturnSidePageToMain();
-            }
-          },
-          base::Unretained(this)),
-      u"Move to the page list (.)"));
-  close_page_button_ = header_->AddChildView(MakeHeaderButton(
-      base::BindRepeating(
-          [](OriginSideView* view) {
-            if (view->delegate_) {
-              view->delegate_->CloseSidePage();
-            }
-          },
-          base::Unretained(this)),
-      u"Close side page"));
-  close_button_ = header_->AddChildView(MakeHeaderButton(
-      base::BindRepeating(
-          [](OriginSideView* view) {
-            if (view->delegate_) {
-              view->delegate_->CloseSideView();
-            }
-          },
-          base::Unretained(this)),
-      u"Hide panel (\\)"));
+  return_button_ = header_->AddChildView(
+      MakeHeaderButton(base::BindRepeating(
+                           [](OriginSideView* view) {
+                             if (view->delegate_) {
+                               view->delegate_->ReturnSidePageToMain();
+                             }
+                           },
+                           base::Unretained(this)),
+                       u"Move to the page list (.)"));
+  close_page_button_ = header_->AddChildView(
+      MakeHeaderButton(base::BindRepeating(
+                           [](OriginSideView* view) {
+                             if (view->delegate_) {
+                               view->delegate_->CloseSidePage();
+                             }
+                           },
+                           base::Unretained(this)),
+                       u"Close side page"));
+  close_button_ = header_->AddChildView(
+      MakeHeaderButton(base::BindRepeating(
+                           [](OriginSideView* view) {
+                             if (view->delegate_) {
+                               view->delegate_->CloseSideView();
+                             }
+                           },
+                           base::Unretained(this)),
+                       u"Hide panel (\\)"));
 
   // Shown in Page mode while the Space has no side page.
   auto empty_state = std::make_unique<views::BoxLayoutView>();
   empty_state->SetOrientation(views::BoxLayout::Orientation::kVertical);
-  empty_state->SetMainAxisAlignment(views::BoxLayout::MainAxisAlignment::kCenter);
+  empty_state->SetMainAxisAlignment(
+      views::BoxLayout::MainAxisAlignment::kCenter);
   empty_state->SetCrossAxisAlignment(
       views::BoxLayout::CrossAxisAlignment::kCenter);
   empty_state->SetBetweenChildSpacing(8);
@@ -411,9 +414,8 @@ void OriginSideView::OnResize(int resize_amount, bool done_resizing) {
   if (!resize_start_width_) {
     resize_start_width_ = width();
   }
-  const int new_width =
-      std::clamp(*resize_start_width_ - resize_amount, kMinimumWidth,
-                 kMaximumWidth);
+  const int new_width = std::clamp(*resize_start_width_ - resize_amount,
+                                   kMinimumWidth, kMaximumWidth);
   if (delegate_) {
     delegate_->ResizeSideView(new_width, done_resizing);
   }
@@ -439,9 +441,9 @@ void OriginSideView::UpdateHeader() {
   StyleActionButton(close_page_button_, kLeoCloseIcon, dark);
   StyleActionButton(close_button_, kLeoBrowserSidebarRightIcon, dark);
 
-  empty_icon_->SetImage(ui::ImageModel::FromVectorIcon(
-      kLeoBrowserSplitViewVerticalIcon, origin_chrome_style::MutedText(dark),
-      28));
+  empty_icon_->SetImage(
+      ui::ImageModel::FromVectorIcon(kLeoBrowserSplitViewVerticalIcon,
+                                     origin_chrome_style::MutedText(dark), 28));
   empty_title_->SetEnabledColor(origin_chrome_style::PrimaryText(dark));
   empty_body_->SetEnabledColor(origin_chrome_style::SecondaryText(dark));
 }

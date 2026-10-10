@@ -34,14 +34,17 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
 #include "brave/browser/ui/tabs/origin_audio_bars.h"
+#include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_theme.h"
 #include "brave/browser/ui/tabs/public/switches.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_non_client_hit_test_helper.h"
+#include "brave/browser/ui/views/frame/origin_side_view_controller.h"
 #include "brave/browser/ui/views/frame/tab_strip_placement_coordinator.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/origin_owned_bubble.h"
+#include "brave/browser/ui/views/frame/vertical_tabs/origin_sidebar_strips.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/origin_space_card.h"
 #include "brave/browser/ui/views/tabs/brave_new_tab_button.h"
 #include "brave/browser/ui/views/tabs/brave_tab_container.h"
@@ -1155,6 +1158,28 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
               base::Unretained(this)),
           "add", u"New Space", false));
 
+  // Now playing, downloads, a due reminder and short notices sit just above
+  // the Spaces row and take no room while there is nothing to show.
+  const auto show_side_view_tool = [](BraveVerticalTabStripRegionView* region,
+                                      OriginSideViewMode mode) {
+    if (auto* controller = BraveBrowserView::From(region->browser_view_)
+                               ->origin_side_view_controller()) {
+      controller->Show(mode);
+    }
+  };
+  origin_sidebar_strips_ =
+      origin_page_column_->AddChildView(std::make_unique<OriginSidebarStrips>(
+          browser_, origin_media_monitor_,
+          OriginLaterServiceFactory::GetForProfile(browser_->GetProfile()),
+          OriginSidebarStrips::Callbacks{
+              .show_downloads = base::BindRepeating(
+                  show_side_view_tool, base::Unretained(this),
+                  OriginSideViewMode::kDownloads),
+              .show_reminders = base::BindRepeating(
+                  show_side_view_tool, base::Unretained(this),
+                  OriginSideViewMode::kReminders),
+          }));
+
   origin_workspace_header_ =
       origin_page_column_->AddChildView(std::make_unique<views::View>());
   origin_workspace_header_->SetBackground(
@@ -1747,6 +1772,32 @@ int BraveVerticalTabStripRegionView::GetOriginWorkspaceHeaderHeight() const {
   return origin_workspace_renaming_ ? kOriginWorkspaceHeaderHeight : 0;
 #else
   return 0;
+#endif
+}
+
+int BraveVerticalTabStripRegionView::GetOriginSidebarStripsHeight() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_sidebar_strips_) {
+    return 0;
+  }
+  const int height = origin_sidebar_strips_->GetPreferredSize().height();
+  // Only the rows' own margins: nothing showing takes no room.
+  return origin_sidebar_strips_->children().empty() ||
+                 std::ranges::none_of(origin_sidebar_strips_->children(),
+                                      &views::View::GetVisible)
+             ? 0
+             : height;
+#else
+  return 0;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ShowOriginSidebarNotice(
+    std::u16string text) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_sidebar_strips_) {
+    origin_sidebar_strips_->ShowNotice(std::move(text));
+  }
 #endif
 }
 
@@ -2350,6 +2401,9 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
       std::max(0, contents_bounds.height() - kOriginWorkspaceBarHeight);
   origin_workspace_rail_->SetBounds(0, workspace_bar_y, workspace_width,
                                     kOriginWorkspaceBarHeight);
+  const int strips_height = GetOriginSidebarStripsHeight();
+  origin_sidebar_strips_->SetBounds(0, workspace_bar_y - strips_height,
+                                    workspace_width, strips_height);
 
   origin_pages_header_->SetBoundsRect(gfx::Rect());
 #else
@@ -2359,9 +2413,9 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
 #endif
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  const int contents_view_max_height =
-      std::max(0, contents_bounds.height() - GetOriginPageListTop() -
-                      kOriginWorkspaceBarHeight);
+  const int contents_view_max_height = std::max(
+      0, contents_bounds.height() - GetOriginPageListTop() -
+             kOriginWorkspaceBarHeight - GetOriginSidebarStripsHeight());
 #else
   constexpr int kNewTabButtonHeight = tabs::kVerticalTabHeight;
   const int contents_view_max_height =
@@ -2690,7 +2744,8 @@ int BraveVerticalTabStripRegionView::GetTabStripViewportMaxHeight() const {
   // the actual viewport height.
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   return std::max(0, GetContentsBounds().height() - GetOriginPageListTop() -
-                         kOriginWorkspaceBarHeight);
+                         kOriginWorkspaceBarHeight -
+                         GetOriginSidebarStripsHeight());
 #else
   return GetContentsBounds().height() -
          (separator_->height() + tabs::kMarginForVerticalTabContainers) -

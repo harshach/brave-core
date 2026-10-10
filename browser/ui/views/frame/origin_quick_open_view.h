@@ -162,6 +162,10 @@ private:
   void OnResultPressed(size_t section, size_t index);
   void StartAutocomplete(const std::u16string &input);
   void RebuildResults();
+  // "#tag words" lists tagged pages instead of searching, as SigmaOS's
+  // Lazy Search does.
+  bool IsTagQuery() const;
+  void BuildTagResults();
   void ApplyInlineAutocomplete();
   void LoadZeroStateData();
   void QueryRecentHistory();

@@ -29,6 +29,7 @@
 #include "brave/components/brave_account/features.h"
 #include "brave/components/brave_ads/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_perf_predictor/browser/named_third_party_registry_factory.h"
 #include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
@@ -68,6 +69,9 @@
 #include "brave/browser/ui/commands/accelerator_service_factory.h"
 #include "brave/browser/ui/tabs/shared_pinned_tab_service_factory.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "brave/browser/ui/tabs/origin_later_service.h"
+#endif
 #include "brave/components/commands/common/features.h"
 #include "chrome/browser/ui/tabs/features.h"
 #else
@@ -264,6 +268,9 @@ void EnsureBrowserContextKeyedServiceFactoriesBuilt() {
 
 #if !BUILDFLAG(IS_ANDROID)
   WorkspaceServiceFactory::GetInstance();
+#endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED) && !BUILDFLAG(IS_ANDROID)
+  OriginLaterServiceFactory::GetInstance();
 #endif
 }
 

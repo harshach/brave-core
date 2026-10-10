@@ -9,8 +9,10 @@
 #include "base/memory/raw_ptr.h"
 #include "base/memory/weak_ptr.h"
 #include "base/scoped_observation.h"
+#include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/views/frame/origin_side_view.h"
+#include "url/gurl.h"
 
 class Browser;
 class BraveMultiContentsView;
@@ -27,13 +29,13 @@ class SidebarWebPanelController;
 // mode it shows that Space's side page, a real tab kept out of the page list
 // and drawn by Brave's web panel; in the other modes it shows a native tool.
 class OriginSideViewController : public OriginSideView::Delegate,
-                                 public OriginSpaceController::Observer {
+                                 public OriginSpaceController::Observer,
+                                 public OriginLaterService::Observer {
  public:
   OriginSideViewController(Browser* browser,
                            BraveMultiContentsView* multi_contents_view);
   OriginSideViewController(const OriginSideViewController&) = delete;
-  OriginSideViewController& operator=(const OriginSideViewController&) =
-      delete;
+  OriginSideViewController& operator=(const OriginSideViewController&) = delete;
   ~OriginSideViewController() override;
 
   bool IsOpen() const { return open_; }
@@ -67,6 +69,14 @@ class OriginSideViewController : public OriginSideView::Delegate,
   // OriginSpaceController::Observer:
   void OnOriginSpaceControllerChanged() override;
 
+  // OriginLaterService::Observer:
+  void OnOriginLaterChanged() override;
+
+  // Opens a page from a tool: the open copy if there is one, otherwise a new
+  // page in the active Space.
+  void OpenPage(const GURL& url);
+  std::u16string GetSpaceName(const std::string& space_id) const;
+
   // Brings the panel, the web panel's contents and the header in line with
   // `open_`, `mode_` and the active Space.
   void Sync();
@@ -88,9 +98,13 @@ class OriginSideViewController : public OriginSideView::Delegate,
   bool showed_restored_side_page_ = false;
   bool syncing_ = false;
 
+  raw_ptr<OriginLaterService> later_service_ = nullptr;
+
   base::ScopedObservation<OriginSpaceController,
                           OriginSpaceController::Observer>
       space_observation_{this};
+  base::ScopedObservation<OriginLaterService, OriginLaterService::Observer>
+      later_observation_{this};
   base::WeakPtrFactory<OriginSideViewController> weak_factory_{this};
 };
 
