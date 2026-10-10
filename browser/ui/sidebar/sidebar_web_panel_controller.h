@@ -30,6 +30,11 @@ class SidebarWebPanelController : public TabStripModelObserver {
 
   void ToggleWebPanel(const SidebarItem& item);
 
+  // Shows `contents`, an existing tab of this window, in the panel without
+  // reloading or moving it. Null empties the panel and leaves the tab open.
+  // Origin's side view uses this for a Space's side page.
+  void SetPanelContents(content::WebContents* contents);
+
   const content::WebContents* panel_contents() const {
     return panel_contents_.get();
   }

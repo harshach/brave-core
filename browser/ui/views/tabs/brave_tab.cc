@@ -11,9 +11,13 @@
 
 #include "base/check.h"
 #include "base/feature_list.h"
+#include "base/functional/bind.h"
+#include "base/task/sequenced_task_runner.h"
 #include "base/strings/utf_string_conversions.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/containers/container_model.h"
+#include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
@@ -52,6 +56,8 @@
 #include "ui/views/controls/button/image_button.h"
 #include "ui/views/controls/image_view.h"
 #include "ui/views/controls/label.h"
+#include "ui/views/controls/textfield/textfield.h"
+#include "ui/views/controls/textfield/textfield_controller.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
 
@@ -238,6 +244,51 @@ gfx::Size BraveTab::SmallAccentIconView::CalculatePreferredSize(
 BEGIN_METADATA(BraveTab, SmallAccentIconView)
 END_METADATA
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+// Sits over the title while the page is being renamed. Leaving the field keeps
+// what was typed, as a rename in Finder does.
+class BraveTab::OriginRenameField : public views::Textfield,
+                                    public views::TextfieldController {
+  METADATA_HEADER(OriginRenameField, views::Textfield)
+
+ public:
+  explicit OriginRenameField(BraveTab* tab) : tab_(tab) {
+    set_controller(this);
+    SetAccessibleName(u"Page name");
+    SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(0, 4)));
+  }
+
+  // views::TextfieldController:
+  bool HandleKeyEvent(views::Textfield* sender,
+                      const ui::KeyEvent& key_event) override {
+    if (key_event.type() != ui::EventType::kKeyPressed) {
+      return false;
+    }
+    if (key_event.key_code() == ui::VKEY_RETURN) {
+      tab_->EndOriginRename(/*keep=*/true);
+      return true;
+    }
+    if (key_event.key_code() == ui::VKEY_ESCAPE) {
+      tab_->EndOriginRename(/*keep=*/false);
+      return true;
+    }
+    return false;
+  }
+
+  // views::Textfield:
+  void OnBlur() override {
+    views::Textfield::OnBlur();
+    tab_->EndOriginRename(/*keep=*/true);
+  }
+
+ private:
+  raw_ptr<BraveTab> tab_ = nullptr;
+};
+
+BEGIN_METADATA(BraveTab, OriginRenameField)
+END_METADATA
+#endif
+
 BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
     : Tab(handle, controller) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
@@ -273,6 +324,38 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
 
   origin_drag_handle_ = AddChildView(std::make_unique<OriginTabDragHandle>());
   origin_drag_handle_->SetVisible(false);
+
+  // Hovering a row turns its favicon into a check, after SigmaOS's done
+  // pages. It closes the page and its subpages, like d; z brings them back.
+  auto done_button = std::make_unique<views::ImageButton>(base::BindRepeating(
+      [](BraveTab* tab) {
+        // The row goes away with the page; finish this click first.
+        base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+            FROM_HERE, base::BindOnce(&BraveTab::MarkOriginPageDone,
+                                      tab->GetWeakPtr()));
+      },
+      base::Unretained(this)));
+  done_button->SetPreferredSize(gfx::Size(20, 20));
+  done_button->SetImageHorizontalAlignment(views::ImageButton::ALIGN_CENTER);
+  done_button->SetImageVerticalAlignment(views::ImageButton::ALIGN_MIDDLE);
+  done_button->SetImageModel(
+      views::Button::STATE_NORMAL,
+      ui::ImageModel::FromVectorIcon(kLeoCheckCircleOutlineIcon,
+                                     kColorBraveVerticalTabNTBTextColor, 16));
+  done_button->SetImageModel(
+      views::Button::STATE_HOVERED,
+      ui::ImageModel::FromVectorIcon(kLeoCheckCircleFilledIcon,
+                                     kColorBraveVerticalTabNTBTextColor, 16));
+  done_button->SetImageModel(
+      views::Button::STATE_PRESSED,
+      ui::ImageModel::FromVectorIcon(kLeoCheckCircleFilledIcon,
+                                     kColorBraveVerticalTabNTBTextColor, 16));
+  done_button->SetAccessibleName(u"Done with this page");
+  done_button->SetTooltipText(u"Done (d)");
+  views::InkDrop::Get(done_button.get())
+      ->SetMode(views::InkDropHost::InkDropMode::OFF);
+  origin_done_button_ = AddChildView(std::move(done_button));
+  origin_done_button_->SetVisible(false);
 #endif
   if (base::FeatureList::IsEnabled(tabs::kBraveTreeTab)) {
     InitTreeToggleButton();
@@ -792,10 +875,12 @@ void BraveTab::Layout(PassKey) {
   if (origin_drag_handle_) {
     auto* vtc = VerticalTabController::From(
         controller()->GetBrowserWindowInterface());
+    // The grip shows what is being carried; at rest the favicon spot is the
+    // done check's.
     const bool show_drag_handle = vtc && vtc->ShouldShowBraveVerticalTabs() &&
                                   !IsAtMinWidthForVerticalTabStrip() &&
                                   !data().pinned && ShouldRenderAsNormalTab() &&
-                                  (mouse_hovered_ || dragging());
+                                  dragging();
     origin_drag_handle_->SetVisible(show_drag_handle);
     if (show_drag_handle) {
       const gfx::Size handle_size = origin_drag_handle_->GetPreferredSize();
@@ -815,6 +900,26 @@ void BraveTab::Layout(PassKey) {
         title_bounds.set_x(title_x);
         title_->SetBoundsRect(title_bounds);
       }
+    }
+  }
+
+  if (origin_done_button_) {
+    auto* vtc = VerticalTabController::From(
+        controller()->GetBrowserWindowInterface());
+    const bool show_done = vtc && vtc->ShouldShowBraveVerticalTabs() &&
+                           !IsAtMinWidthForVerticalTabStrip() &&
+                           !data().pinned && ShouldRenderAsNormalTab() &&
+                           mouse_hovered_ && !dragging() &&
+                           !origin_rename_field_;
+    origin_done_button_->SetVisible(show_done);
+    if (show_done) {
+      constexpr int kDoneButtonSize = 20;
+      const int center_x =
+          icon_->x() + icon_->GetInsets().left() + gfx::kFaviconSize / 2;
+      origin_done_button_->SetBounds(center_x - kDoneButtonSize / 2,
+                                     (height() - kDoneButtonSize) / 2,
+                                     kDoneButtonSize, kDoneButtonSize);
+      icon_->SetVisible(false);
     }
   }
 
@@ -846,6 +951,14 @@ void BraveTab::Layout(PassKey) {
     // fixed at 16dp and would draw a second, smaller copy underneath it.
     title_->SetVisible(false);
     icon_->SetVisible(false);
+  }
+  if (origin_rename_field_) {
+    gfx::Rect field_bounds = title_->bounds();
+    constexpr int kFieldHeight = 22;
+    field_bounds.set_y((height() - kFieldHeight) / 2);
+    field_bounds.set_height(kFieldHeight);
+    origin_rename_field_->SetBoundsRect(field_bounds);
+    title_->SetVisible(false);
   }
 #endif
 
@@ -1014,6 +1127,98 @@ void BraveTab::OnMouseExited(const ui::MouseEvent& event) {
   Tab::OnMouseExited(event);
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   InvalidateLayout();
+#endif
+}
+
+bool BraveTab::OnMousePressed(const ui::MouseEvent& event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Double-clicking a page's name renames it.
+  if (event.IsOnlyLeftMouseButton() && event.GetClickCount() == 2 &&
+      !data().pinned && title_->GetVisible() &&
+      title_->bounds().Contains(event.location())) {
+    BeginOriginRename();
+    return true;
+  }
+#endif
+  return Tab::OnMousePressed(event);
+}
+
+void BraveTab::BeginOriginRename() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_rename_field_ || data().pinned || !tab_handle().Get()) {
+    return;
+  }
+  auto field = std::make_unique<OriginRenameField>(this);
+  field->SetFontList(title_->font_list());
+  field->SetText(data().title);
+  origin_rename_field_ = AddChildView(std::move(field));
+  InvalidateLayout();
+  origin_rename_field_->RequestFocus();
+  origin_rename_field_->SelectAll(/*reversed=*/false);
+#endif
+}
+
+void BraveTab::EndOriginRename(bool keep) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_rename_field_) {
+    return;
+  }
+  const std::u16string name(origin_rename_field_->GetText());
+  // Cleared before removal: losing focus on the way out calls back in here.
+  std::unique_ptr<OriginRenameField> field =
+      RemoveChildViewT(origin_rename_field_.ExtractAsDangling());
+  base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(FROM_HERE,
+                                                             std::move(field));
+  title_->SetVisible(true);
+  InvalidateLayout();
+
+  auto* browser = controller_->GetBrowserWindowInterface();
+  auto* tab = tab_handle().Get();
+  if (!keep || !browser || !tab) {
+    return;
+  }
+  if (auto* space_controller =
+          browser->GetFeatures().origin_space_controller()) {
+    space_controller->SetCustomTitle(tab->GetContents(), name);
+  }
+#endif
+}
+
+bool BraveTab::IsOriginPinnedPageAway() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* browser = controller_->GetBrowserWindowInterface();
+  auto* tab = tab_handle().Get();
+  if (!browser || !tab || !data().pinned) {
+    return false;
+  }
+  auto* space_controller = browser->GetFeatures().origin_space_controller();
+  return space_controller &&
+         space_controller->IsPinnedPageAway(tab->GetContents());
+#else
+  return false;
+#endif
+}
+
+void BraveTab::MarkOriginPageDone() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* browser = controller_->GetBrowserWindowInterface();
+  auto* tab = tab_handle().Get();
+  if (!browser || !tab) {
+    return;
+  }
+  auto* model = static_cast<BraveTabStripModel*>(browser->GetTabStripModel());
+  const int index = model->GetIndexOfTab(tab);
+  if (!model->ContainsIndex(index)) {
+    return;
+  }
+  std::vector<int> indices = model->GetTreeTabDescendantIndices(index);
+  indices.push_back(index);
+  if (auto* space_controller =
+          browser->GetFeatures().origin_space_controller();
+      space_controller && std::ranges::contains(indices, model->active_index())) {
+    space_controller->SelectReplacementTabForClose(indices);
+  }
+  model->CloseTabs(indices);
 #endif
 }
 

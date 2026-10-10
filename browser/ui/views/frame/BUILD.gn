@@ -37,6 +37,26 @@ source_set("frame") {
   ]
 }
 
+# Type and colour shared by Origin's native chrome.
+source_set("origin_chrome_style") {
+  sources = [
+    "origin_chrome_style.cc",
+    "origin_chrome_style.h",
+  ]
+
+  public_deps = [
+    "//skia",
+    "//ui/gfx",
+  ]
+
+  deps = [
+    "//base",
+    "//chrome/browser/ui/color:color_headers",
+    "//ui/color",
+    "//ui/views",
+  ]
+}
+
 source_set("frame_impl") {
   sources = [
     "brave_contents_view_util.cc",

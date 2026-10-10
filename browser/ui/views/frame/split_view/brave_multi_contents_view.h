@@ -11,8 +11,10 @@
 
 #include "base/gtest_prod_util.h"
 #include "base/memory/raw_ptr.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/frame/multi_contents_view.h"
 #include "ui/base/metadata/metadata_header_macros.h"
+#include "ui/gfx/geometry/insets.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
 
 namespace sidebar {
@@ -60,6 +62,18 @@ class BraveMultiContentsView : public MultiContentsView {
   // selected space has no pages without covering either browser sidebar.
   gfx::Rect GetMainContentsBounds() const;
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's right-hand side view. While visible it takes a column of
+  // `width` at the trailing edge, and the web panel, which holds a Space's
+  // side page, fills that column inside `web_panel_insets`.
+  void SetOriginSideView(std::unique_ptr<views::View> side_view,
+                         const gfx::Insets& web_panel_insets);
+  void SetOriginSideViewWidth(int width);
+  views::View* origin_side_view() const { return origin_side_view_; }
+  // The narrowest the pages beside the side view may become.
+  static constexpr int kOriginMinimumMainWidth = 360;
+#endif
+
   // MultiContentsView:
   // Give web panel's ContentsContainerView/ContentsWebView if
   // |is_web_panel_active_| is true.
@@ -86,6 +100,12 @@ class BraveMultiContentsView : public MultiContentsView {
 
   int GetWebPanelWidth() const;
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  bool IsOriginSideViewVisible() const;
+  views::ProposedLayout CalculateOriginSideViewLayout(
+      const views::SizeBounds& size_bounds) const;
+#endif
+
   std::vector<ContentsContainerView*> contents_container_views_for_testing()
       const {
     return std::vector<ContentsContainerView*>(
@@ -99,6 +119,12 @@ class BraveMultiContentsView : public MultiContentsView {
   bool is_web_panel_active_ = false;
   raw_ptr<BraveContentsContainerView> contents_container_view_for_web_panel_ =
       nullptr;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  raw_ptr<views::View> origin_side_view_ = nullptr;
+  gfx::Insets origin_web_panel_insets_;
+  int origin_side_view_width_ = 0;
+#endif
 };
 
 #endif  // BRAVE_BROWSER_UI_VIEWS_FRAME_SPLIT_VIEW_BRAVE_MULTI_CONTENTS_VIEW_H_

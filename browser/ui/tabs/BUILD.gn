@@ -229,6 +229,8 @@ if (!is_android) {
       "origin_space_controller.h",
     ]
 
+    public_deps = [ "//url" ]
+
     deps = [
       "//base",
       "//brave/browser/sessions",
@@ -239,7 +241,10 @@ if (!is_android) {
       "//components/prefs",
       "//components/sessions",
       "//components/sessions:session_id",
+      "//components/tabs:public",
       "//content/public/browser",
+      "//content/public/common",
+      "//ui/base",
     ]
   }
 
@@ -276,6 +281,24 @@ if (!is_android) {
     deps = [
       "//base",
       "//chrome/browser/ui/color:color_headers",
+    ]
+  }
+
+  source_set("origin_download_summary") {
+    sources = [
+      "origin_download_summary.cc",
+      "origin_download_summary.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//components/download/content/public",
+    ]
+
+    deps = [
+      "//chrome/browser/profiles:profile",
+      "//components/download/public/common:public",
+      "//content/public/browser",
     ]
   }
 

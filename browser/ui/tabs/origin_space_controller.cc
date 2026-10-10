@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <optional>
+#include <set>
 #include <utility>
 #include <vector>
 
@@ -15,6 +16,8 @@
 #include "base/functional/bind.h"
 #include "base/memory/weak_ptr.h"
 #include "base/strings/string_number_conversions.h"
+#include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/sessions/brave_session_keys.h"
 #include "brave/browser/workspaces/pref_names.h"
@@ -22,13 +25,18 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/sessions/session_service.h"
 #include "chrome/browser/sessions/session_service_factory.h"
+#include "chrome/browser/ui/tabs/tab_change_type.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "components/sessions/content/session_tab_helper.h"
 #include "content/public/browser/web_contents.h"
+#include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/navigation_controller.h"
 #include "content/public/browser/web_contents_user_data.h"
+#include "content/public/common/referrer.h"
+#include "ui/base/page_transition_types.h"
 #include "url/url_constants.h"
 
 namespace {
@@ -120,6 +128,17 @@ class OriginSpaceTabData
   const std::string& space_id() const { return space_id_; }
   void set_space_id(std::string space_id) { space_id_ = std::move(space_id); }
 
+  bool side_page() const { return side_page_; }
+  void set_side_page(bool side_page) { side_page_ = side_page; }
+
+  const GURL& pinned_home_url() const { return pinned_home_url_; }
+  void set_pinned_home_url(GURL url) { pinned_home_url_ = std::move(url); }
+
+  const std::u16string& custom_title() const { return custom_title_; }
+  void set_custom_title(std::u16string title) {
+    custom_title_ = std::move(title);
+  }
+
  private:
   friend class content::WebContentsUserData<OriginSpaceTabData>;
 
@@ -128,6 +147,9 @@ class OriginSpaceTabData
         space_id_(std::move(space_id)) {}
 
   std::string space_id_;
+  bool side_page_ = false;
+  GURL pinned_home_url_;
+  std::u16string custom_title_;
   WEB_CONTENTS_USER_DATA_KEY_DECL();
 };
 
@@ -169,11 +191,16 @@ bool OriginSpaceController::SelectSpace(const std::string& space_id) {
   }
   if (active_space_id_ == space_id) {
     restoring_active_space_id_.reset();
+    if (preview_space_id_) {
+      preview_space_id_.reset();
+      NotifyChanged();
+    }
     return true;
   }
 
   restoring_active_space_id_.reset();
   active_space_id_ = space_id;
+  preview_space_id_.reset();
   WriteWindowSessionData();
   const int target_index = FindPreferredTabIndex(space_id);
   if (target_index != TabStripModel::kNoTab) {
@@ -201,6 +228,19 @@ bool OriginSpaceController::IsTabInActiveSpace(
   return GetSpaceIdForTab(contents) == active_space_id_;
 }
 
+void OriginSpaceController::SetPreviewSpace(
+    std::optional<std::string> space_id) {
+  if (space_id && (*space_id == active_space_id_ ||
+                   !workspace_service_->GetOriginSpace(*space_id))) {
+    space_id.reset();
+  }
+  if (preview_space_id_ == space_id) {
+    return;
+  }
+  preview_space_id_ = std::move(space_id);
+  NotifyChanged();
+}
+
 bool OriginSpaceController::IsTabPlaceholder(
     content::WebContents* contents) const {
   if (!contents) {
@@ -214,7 +254,10 @@ bool OriginSpaceController::IsTabPlaceholder(
 
 bool OriginSpaceController::ShouldShowTabInPageList(
     content::WebContents* contents) const {
-  return IsTabInActiveSpace(contents) && !IsTabPlaceholder(contents);
+  const std::string& listed_space_id =
+      preview_space_id_ ? *preview_space_id_ : active_space_id_;
+  return GetSpaceIdForTab(contents) == listed_space_id &&
+         !IsTabPlaceholder(contents) && !IsSidePage(contents);
 }
 
 size_t OriginSpaceController::GetPageCountForSpace(
@@ -227,7 +270,7 @@ size_t OriginSpaceController::GetPageCountForSpace(
     // Pages section count shown in the sidebar.
     if (GetSpaceIdForTab(contents) == space_id &&
         !tab_strip_model_->IsTabPinned(index) &&
-        !IsTabPlaceholder(contents)) {
+        !IsTabPlaceholder(contents) && !IsSidePage(contents)) {
       ++page_count;
     }
   }
@@ -289,10 +332,144 @@ void OriginSpaceController::MoveTabsToSpace(
   }
 }
 
+bool OriginSpaceController::IsSidePage(content::WebContents* contents) const {
+  const auto* data =
+      contents ? OriginSpaceTabData::FromWebContents(contents) : nullptr;
+  return data && data->side_page();
+}
+
+content::WebContents* OriginSpaceController::GetSidePage(
+    const std::string& space_id) const {
+  for (int index = 0; index < tab_strip_model_->count(); ++index) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(index);
+    if (IsSidePage(contents) && GetSpaceIdForTab(contents) == space_id) {
+      return contents;
+    }
+  }
+  return nullptr;
+}
+
+void OriginSpaceController::SetSidePage(content::WebContents* contents,
+                                        bool side_page) {
+  if (!contents || tab_strip_model_->GetIndexOfWebContents(contents) ==
+                       TabStripModel::kNoTab) {
+    return;
+  }
+  const std::string space_id = EnsureSpaceForTab(contents, active_space_id_);
+  if (side_page) {
+    // One side page per Space: the one it replaces goes back to the list.
+    for (int index = 0; index < tab_strip_model_->count(); ++index) {
+      auto* other = tab_strip_model_->GetWebContentsAt(index);
+      if (other != contents && IsSidePage(other) &&
+          GetSpaceIdForTab(other) == space_id) {
+        OriginSpaceTabData::FromWebContents(other)->set_side_page(false);
+        WriteTabSessionData(other);
+      }
+    }
+  }
+  auto* data = OriginSpaceTabData::FromWebContents(contents);
+  CHECK(data);
+  if (data->side_page() == side_page) {
+    return;
+  }
+  data->set_side_page(side_page);
+  WriteTabSessionData(contents);
+  NotifyChanged();
+}
+
+GURL OriginSpaceController::GetPinnedHomeUrl(
+    content::WebContents* contents) const {
+  const auto* data =
+      contents ? OriginSpaceTabData::FromWebContents(contents) : nullptr;
+  return data ? data->pinned_home_url() : GURL();
+}
+
+void OriginSpaceController::SetPinnedHomeUrl(content::WebContents* contents,
+                                             const GURL& url) {
+  const int index = tab_strip_model_->GetIndexOfWebContents(contents);
+  if (index == TabStripModel::kNoTab) {
+    return;
+  }
+  EnsureSpaceForTab(contents, active_space_id_);
+  auto* data = OriginSpaceTabData::FromWebContents(contents);
+  // Only pinned pages keep an address, and only a real one.
+  GURL home = tab_strip_model_->IsTabPinned(index) && url.is_valid() &&
+                      !IsTabPlaceholder(contents)
+                  ? url
+                  : GURL();
+  if (data->pinned_home_url() == home) {
+    return;
+  }
+  data->set_pinned_home_url(std::move(home));
+  WriteTabSessionData(contents);
+  tab_strip_model_->NotifyTabChanged(tab_strip_model_->GetTabAtIndex(index),
+                                     TabChangeType::kAll);
+}
+
+bool OriginSpaceController::IsPinnedPageAway(
+    content::WebContents* contents) const {
+  const GURL home = GetPinnedHomeUrl(contents);
+  return home.is_valid() &&
+         contents->GetLastCommittedURL().GetWithoutRef() != home.GetWithoutRef();
+}
+
+bool OriginSpaceController::ReturnPinnedPageHome(
+    content::WebContents* contents) {
+  if (!contents || !IsPinnedPageAway(contents)) {
+    return false;
+  }
+  contents->GetController().LoadURL(GetPinnedHomeUrl(contents),
+                                    content::Referrer(),
+                                    ui::PAGE_TRANSITION_AUTO_BOOKMARK,
+                                    std::string());
+  return true;
+}
+
+// static
+const std::u16string* OriginSpaceController::GetCustomTitle(
+    const content::WebContents* contents) {
+  const auto* data =
+      contents ? OriginSpaceTabData::FromWebContents(contents) : nullptr;
+  return data && !data->custom_title().empty() ? &data->custom_title()
+                                                : nullptr;
+}
+
+void OriginSpaceController::SetCustomTitle(content::WebContents* contents,
+                                           std::u16string title) {
+  const int index = tab_strip_model_->GetIndexOfWebContents(contents);
+  if (index == TabStripModel::kNoTab) {
+    return;
+  }
+  EnsureSpaceForTab(contents, active_space_id_);
+  auto* data = OriginSpaceTabData::FromWebContents(contents);
+  title = std::u16string(base::TrimWhitespace(title, base::TRIM_ALL));
+  // Typing the page's own title back is the same as clearing the name.
+  if (title == contents->GetTitle()) {
+    title.clear();
+  }
+  if (data->custom_title() == title) {
+    return;
+  }
+  data->set_custom_title(std::move(title));
+  WriteTabSessionData(contents);
+  tab_strip_model_->NotifyTabChanged(tab_strip_model_->GetTabAtIndex(index),
+                                     TabChangeType::kAll);
+}
+
+int OriginSpaceController::GetMainTabIndex() const {
+  const int active = tab_strip_model_->active_index();
+  if (active != TabStripModel::kNoTab &&
+      !IsSidePage(tab_strip_model_->GetWebContentsAt(active))) {
+    return active;
+  }
+  return FindPreferredTabIndex(active_space_id_);
+}
+
 bool OriginSpaceController::SelectAdjacentTab(bool next) {
   std::vector<int> indices;
   for (int index = 0; index < tab_strip_model_->count(); ++index) {
-    if (IsTabInActiveSpace(tab_strip_model_->GetWebContentsAt(index))) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(index);
+    if (IsTabInActiveSpace(contents) && !IsSidePage(contents)) {
       indices.push_back(index);
     }
   }
@@ -300,7 +477,8 @@ bool OriginSpaceController::SelectAdjacentTab(bool next) {
     return false;
   }
 
-  const int active = tab_strip_model_->active_index();
+  // From the side page, j/k continue from the page beside it.
+  const int active = GetMainTabIndex();
   auto current = std::ranges::find(indices, active);
   size_t target = 0;
   if (current != indices.end()) {
@@ -324,12 +502,24 @@ bool OriginSpaceController::SelectReplacementTabForClose(
   const auto is_closing = [&closing_indices](int index) {
     return std::ranges::find(closing_indices, index) != closing_indices.end();
   };
+
+  // Closing the side page leaves the main area on the page it already shows.
+  if (IsSidePage(tab_strip_model_->GetWebContentsAt(active_index))) {
+    const int main_index = FindPreferredTabIndex(active_space_id_);
+    if (main_index != TabStripModel::kNoTab && !is_closing(main_index)) {
+      tab_strip_model_->ActivateTabAt(main_index);
+      return true;
+    }
+  }
   const auto find_replacement = [&](bool visible_page_only) {
     const auto is_candidate = [&](int index) {
       if (is_closing(index)) {
         return false;
       }
       auto* contents = tab_strip_model_->GetWebContentsAt(index);
+      if (IsSidePage(contents)) {
+        return false;
+      }
       return visible_page_only ? ShouldShowTabInPageList(contents)
                                : IsTabInActiveSpace(contents);
     };
@@ -393,8 +583,17 @@ void OriginSpaceController::MaybePopulateTabExtraData(
       !tab_strip_model_->ContainsIndex(index)) {
     return;
   }
-  (*extra_data)[kBraveOriginSpaceIdKey] =
-      GetSpaceIdForTab(tab_strip_model_->GetWebContentsAt(index));
+  content::WebContents* contents = tab_strip_model_->GetWebContentsAt(index);
+  (*extra_data)[kBraveOriginSpaceIdKey] = GetSpaceIdForTab(contents);
+  if (IsSidePage(contents)) {
+    (*extra_data)[kBraveOriginSidePageKey] = "1";
+  }
+  if (const GURL home = GetPinnedHomeUrl(contents); home.is_valid()) {
+    (*extra_data)[kBraveOriginPinnedHomeUrlKey] = home.spec();
+  }
+  if (const std::u16string* title = GetCustomTitle(contents)) {
+    (*extra_data)[kBraveOriginCustomTitleKey] = base::UTF16ToUTF8(*title);
+  }
 }
 
 void OriginSpaceController::MaybeRestoreTabSpace(
@@ -441,6 +640,22 @@ void OriginSpaceController::MaybeRestoreTabSpace(
     WriteTabSessionData(restored_contents);
   } else {
     MoveTabToSpace(restored_contents, space_id);
+  }
+  if (const std::string* side_page =
+          base::FindOrNull(extra_data, kBraveOriginSidePageKey);
+      side_page && *side_page == "1") {
+    SetSidePage(restored_contents, true);
+  }
+  if (const std::string* home =
+          base::FindOrNull(extra_data, kBraveOriginPinnedHomeUrlKey);
+      home && !home->empty()) {
+    // The tab is pinned by the time its extra data is applied.
+    SetPinnedHomeUrl(restored_contents, GURL(*home));
+  }
+  if (const std::string* title =
+          base::FindOrNull(extra_data, kBraveOriginCustomTitleKey);
+      title && !title->empty()) {
+    SetCustomTitle(restored_contents, base::UTF8ToUTF16(*title));
   }
   if (tab_strip_model_->GetActiveWebContents() == restored_contents) {
     if (!restoring_active_space_id_) {
@@ -560,6 +775,8 @@ void OriginSpaceController::OnTabStripModelChanged(
         const bool active_space_changed = active_space_id_ != selected_space_id;
         active_space_id_ = selected_space_id;
         if (active_space_changed) {
+          // Picking a page from a previewed Space makes that Space active.
+          preview_space_id_.reset();
           WriteWindowSessionData();
         }
       }
@@ -581,6 +798,15 @@ void OriginSpaceController::OnTabChangedAt(tabs::TabInterface* tab,
   NotifyChanged();
 }
 
+void OriginSpaceController::OnTabPinnedStateChanged(tabs::TabInterface* tab,
+                                                    int index) {
+  // Pinning records where the page is now; unpinning forgets it.
+  content::WebContents* contents = tab->GetContents();
+  SetPinnedHomeUrl(contents, tab->IsPinned() ? contents->GetLastCommittedURL()
+                                              : GURL());
+  NotifyChanged();
+}
+
 void OriginSpaceController::OnOriginSpacesChanged() {
   if (restoring_active_space_id_ &&
       !workspace_service_->GetOriginSpace(*restoring_active_space_id_)) {
@@ -594,6 +820,17 @@ void OriginSpaceController::OnOriginSpacesChanged() {
     auto* contents = tab_strip_model_->GetWebContentsAt(index);
     if (!workspace_service_->GetOriginSpace(GetSpaceIdForTab(contents))) {
       MoveTabToSpace(contents, DefaultSpaceId());
+    }
+  }
+  // A deleted Space's side page joins the default Space, which may already
+  // have one. Keep the first and return the rest to the list.
+  std::set<std::string> spaces_with_side_page;
+  for (int index = 0; index < tab_strip_model_->count(); ++index) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(index);
+    if (IsSidePage(contents) &&
+        !spaces_with_side_page.insert(GetSpaceIdForTab(contents)).second) {
+      OriginSpaceTabData::FromWebContents(contents)->set_side_page(false);
+      WriteTabSessionData(contents);
     }
   }
   NotifyChanged();
@@ -630,7 +867,8 @@ int OriginSpaceController::FindPreferredTabIndex(
   int first_index = TabStripModel::kNoTab;
   for (int index = 0; index < tab_strip_model_->count(); ++index) {
     auto* contents = tab_strip_model_->GetWebContentsAt(index);
-    if (GetSpaceIdForTab(contents) != space_id) {
+    // The side page is never the main area's page.
+    if (GetSpaceIdForTab(contents) != space_id || IsSidePage(contents)) {
       continue;
     }
     if (first_index == TabStripModel::kNoTab) {
@@ -648,7 +886,7 @@ int OriginSpaceController::FindPreferredTabIndex(
 }
 
 void OriginSpaceController::RememberActiveTab(content::WebContents* contents) {
-  if (!contents) {
+  if (!contents || IsSidePage(contents)) {
     return;
   }
   const auto* helper = sessions::SessionTabHelper::FromWebContents(contents);
@@ -661,7 +899,10 @@ void OriginSpaceController::RememberActiveTab(content::WebContents* contents) {
 
 void OriginSpaceController::EnsureActiveTabInActiveSpace() {
   auto* active_contents = tab_strip_model_->GetActiveWebContents();
-  if (active_contents && IsTabInActiveSpace(active_contents)) {
+  // After a close, Chromium may select a neighbouring side page. That page
+  // stays in the side view, which would leave the main area empty.
+  if (active_contents && IsTabInActiveSpace(active_contents) &&
+      !IsSidePage(active_contents)) {
     RememberActiveTab(active_contents);
     NotifyChanged();
     return;
@@ -689,6 +930,16 @@ void OriginSpaceController::WriteTabSessionData(
   }
   session_service->AddTabExtraData(window_id_, session_helper->session_id(),
                                    kBraveOriginSpaceIdKey, space_id);
+  session_service->AddTabExtraData(window_id_, session_helper->session_id(),
+                                   kBraveOriginSidePageKey,
+                                   IsSidePage(contents) ? "1" : "0");
+  session_service->AddTabExtraData(window_id_, session_helper->session_id(),
+                                   kBraveOriginPinnedHomeUrlKey,
+                                   GetPinnedHomeUrl(contents).spec());
+  const std::u16string* title = GetCustomTitle(contents);
+  session_service->AddTabExtraData(
+      window_id_, session_helper->session_id(), kBraveOriginCustomTitleKey,
+      title ? base::UTF16ToUTF8(*title) : std::string());
 }
 
 void OriginSpaceController::WriteWindowSessionData() {

@@ -20,6 +20,7 @@
 #include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "components/sessions/core/session_id.h"
+#include "url/gurl.h"
 
 class Profile;
 class TabStripModel;
@@ -52,6 +53,16 @@ class OriginSpaceController : public TabStripModelObserver,
 
   std::string GetSpaceIdForTab(content::WebContents* contents) const;
   bool IsTabInActiveSpace(content::WebContents* contents) const;
+
+  // Shows another Space's pages in the page list while the pointer rests on
+  // its icon, as SigmaOS's "fast page switching" does. Only the list follows
+  // it: the active Space, its pages, j/k and counts stay where they are, and
+  // the preview ends when that Space becomes active or the preview is
+  // cleared.
+  void SetPreviewSpace(std::optional<std::string> space_id);
+  const std::optional<std::string>& preview_space_id() const {
+    return preview_space_id_;
+  }
   // The renderer backing a newly-created Space starts on Brave's New Tab
   // page. Keep that renderer available as the Space canvas, but do not expose
   // it as a page row or include it in the user-facing page count until it has
@@ -67,6 +78,33 @@ class OriginSpaceController : public TabStripModelObserver,
   // Spaces.
   void MoveTabsToSpace(base::span<content::WebContents* const> contents,
                        const std::string& space_id);
+
+  // A Space can keep one page in the window's right-hand side view instead of
+  // its page list. That page is left out of the list, the page count, j/k and
+  // replacement selection, and comes back with the tab after a restart.
+  bool IsSidePage(content::WebContents* contents) const;
+  content::WebContents* GetSidePage(const std::string& space_id) const;
+  // Makes `contents` its Space's side page and returns the Space's previous
+  // side page to the list. `side_page` false returns `contents` to the list.
+  void SetSidePage(content::WebContents* contents, bool side_page);
+  // The page the main area shows for the active Space: the active tab, or the
+  // Space's last main page while focus is in its side page.
+  int GetMainTabIndex() const;
+
+  // A pinned page remembers the address it was pinned at, after SigmaOS's
+  // locked pages. `h` takes it back there and its tile shows when it has
+  // wandered off.
+  GURL GetPinnedHomeUrl(content::WebContents* contents) const;
+  void SetPinnedHomeUrl(content::WebContents* contents, const GURL& url);
+  bool IsPinnedPageAway(content::WebContents* contents) const;
+  bool ReturnPinnedPageHome(content::WebContents* contents);
+
+  // A name the user gave the page, shown in the page list in place of its
+  // title. Null when the page shows its own title.
+  static const std::u16string* GetCustomTitle(
+      const content::WebContents* contents);
+  // An empty title gives the page its own title back.
+  void SetCustomTitle(content::WebContents* contents, std::u16string title);
 
   // Selects the previous/next page in the active space, skipping all tabs
   // belonging to other spaces. Navigation wraps at the ends.
@@ -108,6 +146,7 @@ class OriginSpaceController : public TabStripModelObserver,
       const TabStripSelectionChange& selection) override;
   void OnTabChangedAt(tabs::TabInterface* tab,
                       TabChangeType change_type) override;
+  void OnTabPinnedStateChanged(tabs::TabInterface* tab, int index) override;
 
   // WorkspaceService::Observer:
   void OnOriginSpacesChanged() override;
@@ -127,6 +166,7 @@ class OriginSpaceController : public TabStripModelObserver,
   raw_ptr<WorkspaceService> workspace_service_ = nullptr;
   const SessionID window_id_;
   std::string active_space_id_;
+  std::optional<std::string> preview_space_id_;
   std::optional<std::string> restoring_active_space_id_;
   std::map<std::string, SessionID> last_active_tab_by_space_;
   base::ObserverList<Observer> observers_;

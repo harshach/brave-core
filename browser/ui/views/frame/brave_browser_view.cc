@@ -45,6 +45,8 @@
 #include "brave/browser/ui/views/frame/focus_mode_title_bar_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
+#include "brave/browser/ui/views/frame/origin_side_view_controller.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/origin_space_window_theme.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
@@ -625,6 +627,11 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
           base::BindRepeating(&BraveBrowserView::OnOriginSpaceThemeChanged,
                               base::Unretained(this)));
     }
+    if (space_controller &&
+        browser_->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
+      origin_side_view_controller_ = std::make_unique<OriginSideViewController>(
+          static_cast<Browser*>(browser_.get()), GetBraveMultiContentsView());
+    }
   }
 #endif
 
@@ -886,6 +893,26 @@ void BraveBrowserView::SubmitOriginQuickOpen(
       Navigate(&params);
       break;
     }
+  }
+}
+
+void BraveBrowserView::BeginOriginRenameOfActivePage() {
+  auto* model = browser()->tab_strip_model();
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  const int index = model->active_index();
+  if (!controller || index == TabStripModel::kNoTab ||
+      controller->IsSidePage(model->GetWebContentsAt(index)) ||
+      !vertical_tab_strip_container_view_) {
+    return;
+  }
+  auto* region =
+      vertical_tab_strip_container_view_->vertical_tab_strip_region_view();
+  TabStrip* tab_strip = region ? region->tab_strip() : nullptr;
+  if (!tab_strip) {
+    return;
+  }
+  if (auto* tab = views::AsViewClass<BraveTab>(tab_strip->tab_at(index))) {
+    tab->BeginOriginRename();
   }
 }
 
@@ -2184,6 +2211,30 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
       return content::KeyboardEventProcessingResult::HANDLED;
     }
 
+    if (!origin_insert_mode_ && contents &&
+        !contents->IsFocusedElementEditable() &&
+        accelerator.modifiers() == ui::EF_SHIFT_DOWN) {
+      // ? opens the shortcut sheet in the side view.
+      if (accelerator.key_code() == ui::VKEY_OEM_2 &&
+          origin_side_view_controller_) {
+        origin_side_view_controller_->ToggleMode(
+            OriginSideViewMode::kShortcuts);
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
+      // Shift+H makes where a pinned page is now its address to return to.
+      if (accelerator.key_code() == ui::VKEY_H) {
+        auto* controller = browser()->GetFeatures().origin_space_controller();
+        auto* model = browser()->tab_strip_model();
+        const int index = model->GetIndexOfWebContents(contents);
+        if (controller && index != TabStripModel::kNoTab &&
+            model->IsTabPinned(index)) {
+          controller->SetPinnedHomeUrl(contents,
+                                       contents->GetLastCommittedURL());
+        }
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
+    }
+
     if (!origin_insert_mode_ && !has_modifiers && contents &&
         !contents->IsFocusedElementEditable()) {
       // Number keys address the Space row at the bottom of the sidebar, in the
@@ -2245,6 +2296,16 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           }
           return content::KeyboardEventProcessingResult::HANDLED;
         }
+        case ui::VKEY_H:
+          // Takes a pinned page back to the address it was pinned at.
+          if (auto* controller =
+                  browser()->GetFeatures().origin_space_controller()) {
+            controller->ReturnPinnedPageHome(contents);
+          }
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_C:
+          BeginOriginRenameOfActivePage();
+          return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_E: {
           // Edits the Space on screen: its theme, name, icon, or deletion.
           if (vertical_tab_strip_container_view_) {
@@ -2281,6 +2342,21 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         case ui::VKEY_F:
           chrome::ExecuteCommand(browser(), IDC_TOGGLE_FOCUS_MODE);
           return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_OEM_5:
+          // Backslash shows or hides the side view; Command/Ctrl+Backslash is
+          // the sidebar on the other edge.
+          if (origin_side_view_controller_) {
+            origin_side_view_controller_->Toggle();
+            return content::KeyboardEventProcessingResult::HANDLED;
+          }
+          break;
+        case ui::VKEY_OEM_PERIOD:
+          // Moves the page into the side view, or back out of it.
+          if (origin_side_view_controller_) {
+            origin_side_view_controller_->ToggleActivePageSide();
+            return content::KeyboardEventProcessingResult::HANDLED;
+          }
+          break;
         default:
           break;
       }
@@ -2326,6 +2402,12 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
   }
   if (has_command && command_id == IDC_NEW_TAB && origin_quick_open_view_) {
     ShowOriginQuickOpen();
+    return true;
+  }
+  // The downloads shortcut opens the side view's list rather than a tab.
+  if (has_command && command_id == IDC_SHOW_DOWNLOADS &&
+      origin_side_view_controller_) {
+    origin_side_view_controller_->Show(OriginSideViewMode::kDownloads);
     return true;
   }
 #endif

@@ -5,6 +5,7 @@
 
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 
+#include <algorithm>
 #include <utility>
 
 #include "base/check.h"
@@ -12,6 +13,8 @@
 #include "brave/browser/ui/views/frame/split_view/brave_contents_container_view.h"
 #include "chrome/browser/devtools/devtools_ui_controller.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
+#include "chrome/browser/ui/exclusive_access/fullscreen_controller.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/contents_web_view.h"
@@ -19,6 +22,7 @@
 #include "chrome/browser/ui/views/frame/multi_contents_resize_area.h"
 #include "chrome/browser/ui/views/frame/multi_contents_view_delegate.h"
 #include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/fullscreen_types.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/views/layout/layout_provider.h"
 #include "ui/views/widget/widget.h"
@@ -100,6 +104,101 @@ void BraveMultiContentsView::UseContentsContainerViewForWebPanel() {
   }
 }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+void BraveMultiContentsView::SetOriginSideView(
+    std::unique_ptr<views::View> side_view,
+    const gfx::Insets& web_panel_insets) {
+  CHECK(!origin_side_view_);
+  origin_side_view_ = AddChildView(std::move(side_view));
+  origin_web_panel_insets_ = web_panel_insets;
+  // The side page draws over the side view's body. Keep the web panel above it
+  // so clicks in the page reach the page rather than the view behind it.
+  if (contents_container_view_for_web_panel_) {
+    ReorderChildView(contents_container_view_for_web_panel_, children().size());
+  }
+  InvalidateLayout();
+}
+
+void BraveMultiContentsView::SetOriginSideViewWidth(int width) {
+  if (origin_side_view_width_ == width) {
+    return;
+  }
+  origin_side_view_width_ = width;
+  InvalidateLayout();
+}
+
+bool BraveMultiContentsView::IsOriginSideViewVisible() const {
+  return origin_side_view_ && origin_side_view_->GetVisible();
+}
+
+views::ProposedLayout BraveMultiContentsView::CalculateOriginSideViewLayout(
+    const views::SizeBounds& size_bounds) const {
+  const int host_width = size_bounds.width().value();
+  const int host_height = size_bounds.height().value();
+  const gfx::Rect host_rect(host_width, host_height);
+
+  // Fullscreen video takes the whole window. The side view steps aside, unless
+  // the video is playing in the side page, which then takes the whole area.
+  auto* exclusive_access_manager =
+      ExclusiveAccessManager::From(browser_view_->browser());
+  if (exclusive_access_manager &&
+      exclusive_access_manager->fullscreen_controller()->IsTabFullscreen()) {
+    views::ProposedLayout layouts =
+        MultiContentsView::CalculateProposedLayout(size_bounds);
+    if (auto* background_view_layout =
+            layouts.GetLayoutFor(background_view_.get())) {
+      background_view_layout->visible = false;
+    }
+    layouts.child_layouts.emplace_back(origin_side_view_.get(), false,
+                                       gfx::Rect());
+    if (contents_container_view_for_web_panel_) {
+      const content::WebContents* side_page =
+          contents_container_view_for_web_panel_->contents_view()
+              ->web_contents();
+      const bool side_page_fullscreen =
+          side_page && exclusive_access_manager->fullscreen_controller()
+                               ->GetFullscreenState(side_page)
+                               .target_mode == content::FullscreenMode::kContent;
+      layouts.child_layouts.emplace_back(
+          contents_container_view_for_web_panel_.get(),
+          side_page_fullscreen &&
+              contents_container_view_for_web_panel_->GetVisible(),
+          side_page_fullscreen ? host_rect : gfx::Rect());
+    }
+    layouts.host_size = host_rect.size();
+    return layouts;
+  }
+
+  // Narrow windows keep a usable page; the side view gives way first.
+  const int column_width = std::clamp(
+      origin_side_view_width_, 0,
+      std::max(0, host_width - kOriginMinimumMainWidth));
+
+  views::SizeBounds main_size_bounds = size_bounds;
+  main_size_bounds.Enlarge(-column_width, 0);
+  views::ProposedLayout layouts =
+      MultiContentsView::CalculateProposedLayout(main_size_bounds);
+  // See CalculateProposedLayout() for why the background stays hidden.
+  if (auto* background_view_layout =
+          layouts.GetLayoutFor(background_view_.get())) {
+    background_view_layout->visible = false;
+  }
+
+  const gfx::Rect column(host_width - column_width, 0, column_width,
+                         host_height);
+  layouts.child_layouts.emplace_back(origin_side_view_.get(), true, column);
+  if (contents_container_view_for_web_panel_) {
+    gfx::Rect web_panel_rect = column;
+    web_panel_rect.Inset(origin_web_panel_insets_);
+    layouts.child_layouts.emplace_back(
+        contents_container_view_for_web_panel_.get(),
+        contents_container_view_for_web_panel_->GetVisible(), web_panel_rect);
+  }
+  layouts.host_size = gfx::Size(host_width, host_height);
+  return layouts;
+}
+#endif
+
 void BraveMultiContentsView::SetWebPanelContents(
     content::WebContents* web_contents) {
   CHECK(contents_container_view_for_web_panel_);
@@ -177,6 +276,12 @@ views::ProposedLayout BraveMultiContentsView::CalculateProposedLayout(
     return MultiContentsView::CalculateProposedLayout(size_bounds);
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (IsOriginSideViewVisible()) {
+    return CalculateOriginSideViewLayout(size_bounds);
+  }
+#endif
+
   views::SizeBounds new_size_bounds = size_bounds;
 
   // Negative to shrink to make room for web panel.
@@ -197,6 +302,12 @@ views::ProposedLayout BraveMultiContentsView::CalculateProposedLayout(
   background_view_layout->visible = false;
 
   if (!contents_container_view_for_web_panel_) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    if (origin_side_view_) {
+      layouts.child_layouts.emplace_back(origin_side_view_.get(), false,
+                                         gfx::Rect());
+    }
+#endif
     return layouts;
   }
 
@@ -214,6 +325,12 @@ views::ProposedLayout BraveMultiContentsView::CalculateProposedLayout(
   layouts.child_layouts.emplace_back(
       contents_container_view_for_web_panel_.get(),
       contents_container_view_for_web_panel_->GetVisible(), web_panel_rect);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_side_view_) {
+    layouts.child_layouts.emplace_back(origin_side_view_.get(), false,
+                                       gfx::Rect());
+  }
+#endif
 
   layouts.host_size = gfx::Size(host_width, host_height);
   return layouts;

@@ -73,6 +73,7 @@ void WorkspaceServiceFactory::RegisterProfilePrefs(
   registry->RegisterIntegerPref(
       kOriginSpaceThemeIntensityPref,
       static_cast<int>(OriginSpaceThemeIntensity::kRich));
+  registry->RegisterIntegerPref(kOriginSideViewWidthPref, 400);
 }
 
 bool WorkspaceServiceFactory::ServiceIsCreatedWithBrowserContext() const {

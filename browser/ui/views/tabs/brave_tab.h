@@ -94,6 +94,7 @@ class BraveTab : public Tab
   bool IsInCollapsedTreeTabNode() const override;
   void MaybeUpdateHoverStatus(const ui::MouseEvent& event) override;
   void OnMouseExited(const ui::MouseEvent& event) override;
+  bool OnMousePressed(const ui::MouseEvent& event) override;
   void OnPaint(gfx::Canvas* canvas) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
@@ -101,6 +102,17 @@ class BraveTab : public Tab
 
   // Marks this row as the page hierarchy target during an Origin tab drag.
   void SetOriginHierarchyDropTarget(bool targeted);
+
+  // Origin: puts an editor over the title so the page can be renamed. Enter
+  // keeps the name, Escape drops it, and an empty name restores the title.
+  void BeginOriginRename();
+  bool IsOriginRenaming() const { return !!origin_rename_field_; }
+  // Origin: whether a pinned page has left the address it was pinned at.
+  bool IsOriginPinnedPageAway() const;
+
+  views::ImageButton* origin_done_button_for_testing() {
+    return origin_done_button_;
+  }
 
   // Returns whether this tab should have an accent painted.
   bool ShouldPaintTabAccent() const;
@@ -191,8 +203,13 @@ class BraveTab : public Tab
   // of the tree toggle button.
   void LayoutTreeToggleButton();
 
+  class OriginRenameField;
+
   void ToggleOriginPinned();
   void UpdateOriginPinButton();
+  // Closes the page and its subpages, as d does: SigmaOS's "mark as done".
+  void MarkOriginPageDone();
+  void EndOriginRename(bool keep);
 
   // Returns whether the tree tab node is collapsed.
   bool IsTreeNodeCollapsed() const;
@@ -205,6 +222,8 @@ class BraveTab : public Tab
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
   raw_ptr<views::ImageButton> origin_pin_button_ = nullptr;
+  raw_ptr<views::ImageButton> origin_done_button_ = nullptr;
+  raw_ptr<OriginRenameField> origin_rename_field_ = nullptr;
   raw_ptr<views::View> origin_drag_handle_ = nullptr;
   bool origin_hierarchy_drop_target_ = false;
 

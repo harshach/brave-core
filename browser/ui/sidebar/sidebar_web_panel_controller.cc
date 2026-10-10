@@ -62,6 +62,22 @@ void SidebarWebPanelController::OpenWebPanel(const SidebarItem& item) {
   GetMultiContentsView()->SetWebPanelContents(panel_contents_);
 }
 
+void SidebarWebPanelController::SetPanelContents(
+    content::WebContents* contents) {
+  if (panel_contents_ == contents) {
+    return;
+  }
+  // Detach first: a WebContents can only be in one contents view at a time.
+  GetMultiContentsView()->SetWebPanelContents(nullptr);
+  panel_item_ = sidebar::SidebarItem();
+  panel_contents_ = contents;
+  if (contents) {
+    GetMultiContentsView()->SetWebPanelContents(contents);
+  }
+  BraveBrowserView::From(base::to_address(browser_view_))
+      ->UpdateRoundedCornersUI();
+}
+
 void SidebarWebPanelController::CloseWebPanel() {
   GetMultiContentsView()->SetWebPanelContents(nullptr);
   panel_contents_ = nullptr;

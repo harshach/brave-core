@@ -37,4 +37,8 @@ inline constexpr char kOriginWindowSessionSpacesPref[] =
 inline constexpr char kOriginSpaceThemeIntensityPref[] =
     "brave.origin.space_theme_intensity";
 
+// Width in DIPs of the right-hand side view, shared by the profile's windows.
+inline constexpr char kOriginSideViewWidthPref[] =
+    "brave.origin.side_view_width";
+
 #endif  // BRAVE_BROWSER_WORKSPACES_PREF_NAMES_H_

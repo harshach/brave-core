@@ -82,6 +82,7 @@ class BrowserWindowInterface;
 class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
+class OriginSideViewController;
 class OriginSpaceWindowTheme;
 class OriginTemporaryLinkView;
 struct OriginQuickOpenSelection;
@@ -122,6 +123,10 @@ class BraveBrowserView : public BrowserView,
   void ShowUpdateChromeDialog() override;
   void ShowOriginQuickOpen(
       std::optional<ui::KeyboardCode> activation_key = std::nullopt);
+  // The right-hand side view; null outside Origin's normal windows.
+  OriginSideViewController* origin_side_view_controller() {
+    return origin_side_view_controller_.get();
+  }
   bool IsPointInOriginTemporaryLinkHeader(
       const gfx::Point& point_in_widget) const;
   // True where the page has taken over the strip of a hidden top bar.
@@ -387,6 +392,8 @@ class BraveBrowserView : public BrowserView,
   void SubmitOriginQuickOpen(OriginQuickOpenSelection selection,
                              OriginQuickOpenDisposition disposition);
   void CloseActiveOriginTabTree();
+  // c: renames the active page in place.
+  void BeginOriginRenameOfActivePage();
 
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
@@ -464,6 +471,7 @@ class BraveBrowserView : public BrowserView,
 
   bool origin_insert_mode_ = false;
   std::unique_ptr<OriginSpaceWindowTheme> origin_space_window_theme_;
+  std::unique_ptr<OriginSideViewController> origin_side_view_controller_;
 
   base::WeakPtrFactory<BraveBrowserView> weak_ptr_{this};
 };

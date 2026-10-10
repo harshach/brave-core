@@ -21,6 +21,7 @@ source_set("split_view") {
     "//brave/browser/ui/sidebar",
     "//brave/browser/ui/tabs:tab_model",
     "//brave/browser/ui/views/frame",
+    "//brave/components/brave_origin/buildflags",
     "//brave/components/vector_icons",
     "//chrome/browser/devtools",
     "//chrome/browser/profiles:profile",

@@ -440,6 +440,37 @@ class OriginWorkspaceButton : public views::LabelButton {
     SchedulePaint();
   }
 
+  // Called with true when the pointer comes to rest over the button, and with
+  // false when it leaves.
+  void SetHoverCallback(base::RepeatingCallback<void(bool)> callback) {
+    hover_callback_ = std::move(callback);
+  }
+
+  // The page list is previewing this Space. Keeps the hover look after the
+  // pointer moves on into the list.
+  void SetWorkspacePreviewed(bool previewed) {
+    if (previewed_ == previewed) {
+      return;
+    }
+    previewed_ = previewed;
+    UpdateWorkspaceIcon();
+    SchedulePaint();
+  }
+
+  void OnMouseEntered(const ui::MouseEvent& event) override {
+    LabelButton::OnMouseEntered(event);
+    if (hover_callback_) {
+      hover_callback_.Run(true);
+    }
+  }
+
+  void OnMouseExited(const ui::MouseEvent& event) override {
+    LabelButton::OnMouseExited(event);
+    if (hover_callback_) {
+      hover_callback_.Run(false);
+    }
+  }
+
   void StateChanged(ButtonState old_state) override {
     LabelButton::StateChanged(old_state);
     UpdateWorkspaceIcon();
@@ -466,7 +497,7 @@ class OriginWorkspaceButton : public views::LabelButton {
         !GetColorProvider() ||
         color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
     const std::optional<origin_space_theme::Colors> themed = GetThemeColors();
-    const bool highlighted = selected_ || drop_targeted_ ||
+    const bool highlighted = selected_ || drop_targeted_ || previewed_ ||
                              GetState() == STATE_HOVERED ||
                              GetState() == STATE_PRESSED;
     if (highlighted) {
@@ -510,7 +541,7 @@ class OriginWorkspaceButton : public views::LabelButton {
     const bool dark =
         !GetColorProvider() ||
         color_utils::IsDark(GetColorProvider()->GetColor(kColorToolbar));
-    const bool highlighted = selected_ || drop_targeted_ ||
+    const bool highlighted = selected_ || drop_targeted_ || previewed_ ||
                              GetState() == STATE_HOVERED ||
                              GetState() == STATE_PRESSED;
     SkColor icon_color = highlighted
@@ -543,6 +574,8 @@ class OriginWorkspaceButton : public views::LabelButton {
   OriginSpaceThemeIntensity intensity_ = OriginSpaceThemeIntensity::kRich;
   bool selected_;
   bool drop_targeted_ = false;
+  bool previewed_ = false;
+  base::RepeatingCallback<void(bool)> hover_callback_;
   raw_ptr<OriginSpaceAudioBadge> audio_badge_ = nullptr;
 };
 
@@ -1380,6 +1413,8 @@ void BraveVerticalTabStripRegionView::OnOriginWorkspaceSelected(
     return;
   }
 
+  origin_preview_timer_.Stop();
+  origin_space_controller_->SetPreviewSpace(std::nullopt);
   origin_space_controller_->SelectSpace(id);
   origin_active_workspace_id_ = origin_space_controller_->active_space_id();
   RebuildOriginWorkspaceUI();
@@ -1600,6 +1635,9 @@ void BraveVerticalTabStripRegionView::RebuildOriginWorkspaceUI() {
                   base::Unretained(this), space.id)));
       button->set_space_id(space.id);
       button->SetOriginTheme(space.theme, intensity);
+      button->SetHoverCallback(base::BindRepeating(
+          &BraveVerticalTabStripRegionView::OnOriginWorkspaceHovered,
+          base::Unretained(this), space.id));
       // Right-click targets the Space itself rather than the window.
       button->set_context_menu_controller(this);
       origin_workspace_buttons_.push_back(button);
@@ -1804,6 +1842,45 @@ void BraveVerticalTabStripRegionView::OnOriginMediaChanged() {
 #endif
 }
 
+void BraveVerticalTabStripRegionView::OnOriginWorkspaceHovered(
+    std::string space_id,
+    bool hovered) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!hovered) {
+    // Leaving an icon keeps any preview: the pointer is usually on its way up
+    // into the list it shows.
+    origin_preview_timer_.Stop();
+    return;
+  }
+  if (space_id == origin_active_workspace_id_) {
+    ClearOriginSpacePreview();
+    return;
+  }
+  // A short rest, so sweeping across the row doesn't flash every Space's
+  // pages.
+  origin_preview_timer_.Start(
+      FROM_HERE, base::Milliseconds(250),
+      base::BindOnce(
+          [](base::WeakPtr<BraveVerticalTabStripRegionView> view,
+             std::string space_id) {
+            if (view) {
+              view->origin_space_controller_->SetPreviewSpace(
+                  std::move(space_id));
+            }
+          },
+          weak_factory_.GetWeakPtr(), std::move(space_id)));
+#endif
+}
+
+void BraveVerticalTabStripRegionView::ClearOriginSpacePreview() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_preview_timer_.Stop();
+  if (origin_space_controller_) {
+    origin_space_controller_->SetPreviewSpace(std::nullopt);
+  }
+#endif
+}
+
 void BraveVerticalTabStripRegionView::EnsureOriginSpaceHasPage() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   origin_new_page_pending_ = false;
@@ -1897,6 +1974,12 @@ void BraveVerticalTabStripRegionView::OnOriginSpaceControllerChanged() {
   if (origin_active_workspace_id_ != active_space_id) {
     origin_active_workspace_id_ = active_space_id;
     RebuildOriginWorkspaceUI();
+  }
+  const auto& preview_space_id = origin_space_controller_->preview_space_id();
+  for (auto& button : origin_workspace_buttons_) {
+    auto* workspace_button = views::AsViewClass<OriginWorkspaceButton>(button);
+    workspace_button->SetWorkspacePreviewed(
+        preview_space_id && workspace_button->space_id() == *preview_space_id);
   }
   ApplyOriginWorkspaceTabs();
   InvalidateLayout();
@@ -2393,6 +2476,8 @@ void BraveVerticalTabStripRegionView::OnMouseExited(
     return;
   }
 
+  ClearOriginSpacePreview();
+
   mouse_enter_timer_.Stop();
   if (state_ == State::kFloating) {
     ScheduleCollapseTimer();
@@ -2420,6 +2505,15 @@ void BraveVerticalTabStripRegionView::OnMouseEntered() {
 
 void BraveVerticalTabStripRegionView::HandleMouseEvent(
     const gfx::PointF& point_in_screen) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Exit events can be lost at the edge with the page; the preview must still
+  // end once the pointer is elsewhere.
+  if (origin_space_controller_ &&
+      origin_space_controller_->preview_space_id() &&
+      !gfx::RectF(GetBoundsInScreen()).Contains(point_in_screen)) {
+    ClearOriginSpacePreview();
+  }
+#endif
   if (ShowVerticalTabStripOnMouseOver(point_in_screen)) {
     return;
   }

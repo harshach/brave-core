@@ -23,7 +23,9 @@
 #include "brave/browser/ui/bookmark/bookmark_helper.h"
 #include "brave/browser/ui/browser_commands.h"
 #include "brave/browser/ui/brave_browser_web_contents_delegate.h"
+#include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_service_factory.h"
+#include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
@@ -31,10 +33,14 @@
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
+#include "brave/browser/ui/views/frame/origin_side_view.h"
+#include "brave/browser/ui/views/frame/origin_side_view_controller.h"
+#include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_container_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/vertical_tab_strip_region_view.h"
+#include "brave/browser/ui/views/tabs/brave_tab.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
@@ -242,6 +248,51 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
 
   Browser* OpenOriginTemporaryLink(const GURL& url) {
     return OpenOriginTemporaryLink(browser(), url);
+  }
+
+  OriginSideViewController* origin_side_view_controller() {
+    return brave_browser_view()->origin_side_view_controller();
+  }
+
+  const content::WebContents* origin_side_view_panel_contents() {
+    return sidebar::SidebarController::From(browser())
+        ->GetWebPanelController()
+        ->panel_contents();
+  }
+
+  content::KeyboardEventProcessingResult PressOriginKey(
+      ui::KeyboardCode key,
+      int modifiers = blink::WebInputEvent::kNoModifiers) {
+    input::NativeWebKeyboardEvent event(
+        blink::WebInputEvent::Type::kRawKeyDown, modifiers,
+        blink::WebInputEvent::GetStaticTimeStampForTests());
+    event.windows_key_code = key;
+    return brave_browser_view()->PreHandleKeyboardEvent(event);
+  }
+
+  BraveTab* GetOriginPageRow(int index) {
+    auto* region = brave_browser_view()
+                       ->vertical_tab_strip_container_view()
+                       ->vertical_tab_strip_region_view();
+    return views::AsViewClass<BraveTab>(region->tab_strip()->tab_at(index));
+  }
+
+  // Opens `count` loaded pages after the first and returns them in order.
+  std::vector<content::WebContents*> OpenOriginPages(int count) {
+    auto* model = browser()->tab_strip_model();
+    std::vector<content::WebContents*> pages;
+    pages.push_back(model->GetActiveWebContents());
+    EXPECT_TRUE(content::NavigateToURL(
+        pages.back(), embedded_test_server()->GetURL("/title1.html")));
+    for (int i = 0; i < count; ++i) {
+      chrome::AddTabAt(browser(),
+                       embedded_test_server()->GetURL(
+                           i % 2 ? "/title3.html" : "/title2.html"),
+                       -1, /*foreground=*/false);
+      pages.push_back(model->GetWebContentsAt(model->count() - 1));
+      EXPECT_TRUE(content::WaitForLoadStop(pages.back()));
+    }
+    return pages;
   }
 #endif
 
@@ -1010,6 +1061,236 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
             quick_open->query_results_[1][1].destination_url);
   EXPECT_TRUE(quick_open->query_results_[1][1].badge.starts_with(u"History"));
   quick_open->Dismiss();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginSideViewTogglesAndReservesItsColumn) {
+  auto* controller = origin_side_view_controller();
+  ASSERT_TRUE(controller);
+  auto* multi_contents = brave_browser_view()->GetBraveMultiContentsView();
+  OriginSideView* side_view = controller->side_view();
+  ASSERT_TRUE(side_view);
+  EXPECT_FALSE(side_view->GetVisible());
+  browser_view()->DeprecatedLayoutImmediately();
+  const int full_width = multi_contents->GetMainContentsBounds().width();
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_5));
+  EXPECT_TRUE(controller->IsOpen());
+  multi_contents->DeprecatedLayoutImmediately();
+  EXPECT_TRUE(side_view->GetVisible());
+  // The page gives up the panel's column instead of sitting under it.
+  EXPECT_EQ(multi_contents->GetMainContentsBounds().right(), side_view->x());
+  EXPECT_LT(multi_contents->GetMainContentsBounds().width(), full_width);
+  // Page mode with no side page explains how to get one.
+  EXPECT_EQ(OriginSideViewMode::kPage, controller->mode());
+  EXPECT_TRUE(side_view->page_empty_state_for_testing()->GetVisible());
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_5));
+  EXPECT_FALSE(controller->IsOpen());
+  multi_contents->DeprecatedLayoutImmediately();
+  EXPECT_FALSE(side_view->GetVisible());
+  EXPECT_EQ(full_width, multi_contents->GetMainContentsBounds().width());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginPeriodMovesPageToSideAndBack) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  auto* controller = origin_side_view_controller();
+  ASSERT_TRUE(space_controller);
+  ASSERT_TRUE(controller);
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_PERIOD));
+  // The page moves into the panel; the main area moves on to its neighbour.
+  EXPECT_TRUE(space_controller->IsSidePage(pages[1]));
+  EXPECT_FALSE(space_controller->ShouldShowTabInPageList(pages[1]));
+  EXPECT_EQ(pages[1], origin_side_view_panel_contents());
+  EXPECT_NE(pages[1], model->GetActiveWebContents());
+  EXPECT_TRUE(controller->IsOpen());
+  EXPECT_EQ(OriginSideViewMode::kPage, controller->mode());
+  EXPECT_FALSE(controller->side_view()->page_empty_state_for_testing()
+                   ->GetVisible());
+
+  // j/k walk the list and never land on the side page.
+  for (int i = 0; i < 4; ++i) {
+    PressOriginKey(ui::VKEY_J);
+    EXPECT_NE(pages[1], model->GetActiveWebContents());
+  }
+
+  // Focus in the side page makes it the active tab without moving it; from
+  // there . sends it back to the list and to the main area.
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  EXPECT_EQ(pages[1], origin_side_view_panel_contents());
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_PERIOD));
+  EXPECT_FALSE(space_controller->IsSidePage(pages[1]));
+  EXPECT_TRUE(space_controller->ShouldShowTabInPageList(pages[1]));
+  EXPECT_EQ(nullptr, origin_side_view_panel_contents());
+  EXPECT_EQ(pages[1], model->GetActiveWebContents());
+  EXPECT_FALSE(controller->IsOpen());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginSidePageFollowsItsSpace) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  auto* controller = origin_side_view_controller();
+  ASSERT_TRUE(controller);
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+  const std::vector<content::WebContents*> pages = OpenOriginPages(1);
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  ASSERT_TRUE(controller->MovePageToSide(pages[1]));
+  ASSERT_EQ(pages[1], origin_side_view_panel_contents());
+
+  // Another Space has no side page: the panel stays open and says so.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_2));
+  ASSERT_EQ(workspace_service->GetOriginSpaces()[1].id,
+            space_controller->active_space_id());
+  EXPECT_EQ(nullptr, origin_side_view_panel_contents());
+  EXPECT_TRUE(controller->IsOpen());
+  EXPECT_TRUE(
+      controller->side_view()->page_empty_state_for_testing()->GetVisible());
+
+  // Coming back brings the side page back with the Space.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_1));
+  EXPECT_EQ(pages[1], origin_side_view_panel_contents());
+  EXPECT_NE(pages[1], model->GetActiveWebContents());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginClosingTheSidePageLeavesTheMainPage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* controller = origin_side_view_controller();
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  ASSERT_TRUE(controller->MovePageToSide(pages[1]));
+  content::WebContents* main_page = model->GetActiveWebContents();
+  const int initial_count = model->count();
+
+  // d with focus in the side page closes the side page, not the main one.
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_D));
+  ASSERT_TRUE(
+      base::test::RunUntil([&] { return model->count() == initial_count - 1; }));
+  EXPECT_EQ(main_page, model->GetActiveWebContents());
+  EXPECT_EQ(nullptr, origin_side_view_panel_contents());
+  EXPECT_TRUE(
+      controller->side_view()->page_empty_state_for_testing()->GetVisible());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginPinnedPageRemembersItsAddress) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = model->GetActiveWebContents();
+  const GURL home = embedded_test_server()->GetURL("/title1.html");
+  const GURL elsewhere = embedded_test_server()->GetURL("/title2.html");
+  ASSERT_TRUE(content::NavigateToURL(page, home));
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P));
+  ASSERT_TRUE(model->IsTabPinned(model->GetIndexOfWebContents(page)));
+  EXPECT_EQ(home, space_controller->GetPinnedHomeUrl(page));
+  EXPECT_FALSE(space_controller->IsPinnedPageAway(page));
+
+  ASSERT_TRUE(content::NavigateToURL(page, elsewhere));
+  EXPECT_TRUE(space_controller->IsPinnedPageAway(page));
+  EXPECT_TRUE(GetOriginPageRow(model->GetIndexOfWebContents(page))
+                  ->IsOriginPinnedPageAway());
+
+  // h goes back to where the page was pinned.
+  content::TestNavigationObserver back_home(page);
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_H));
+  back_home.Wait();
+  EXPECT_EQ(home, page->GetLastCommittedURL());
+  EXPECT_FALSE(space_controller->IsPinnedPageAway(page));
+
+  // Shift+H makes the current address the one to return to.
+  ASSERT_TRUE(content::NavigateToURL(page, elsewhere));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_H, blink::WebInputEvent::kShiftKey));
+  EXPECT_EQ(elsewhere, space_controller->GetPinnedHomeUrl(page));
+  EXPECT_FALSE(space_controller->IsPinnedPageAway(page));
+
+  // Unpinning forgets the address.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P));
+  EXPECT_FALSE(space_controller->GetPinnedHomeUrl(page).is_valid());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginRenamedPageKeepsItsName) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      page, embedded_test_server()->GetURL("/title1.html")));
+  const int index = model->GetIndexOfWebContents(page);
+
+  // c opens the editor over the active page's title.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_C));
+  EXPECT_TRUE(GetOriginPageRow(index)->IsOriginRenaming());
+
+  space_controller->SetCustomTitle(page, u"Reading list");
+  EXPECT_EQ(u"Reading list", GetOriginPageRow(index)->data().title);
+  // The page keeps its real title; only the list shows the name.
+  EXPECT_NE(u"Reading list", page->GetTitle());
+
+  // An empty name gives the page its title back.
+  space_controller->SetCustomTitle(page, u"");
+  EXPECT_EQ(page->GetTitle(), GetOriginPageRow(index)->data().title);
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginDoneCheckClosesThePageLikeD) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
+  const int initial_count = model->count();
+
+  BraveTab* row = GetOriginPageRow(model->GetIndexOfWebContents(pages[1]));
+  ASSERT_TRUE(row->origin_done_button_for_testing());
+  const ui::KeyEvent click(ui::EventType::kKeyPressed, ui::VKEY_RETURN,
+                           ui::EF_NONE);
+  views::test::ButtonTestApi(row->origin_done_button_for_testing())
+      .NotifyClick(click);
+  ASSERT_TRUE(
+      base::test::RunUntil([&] { return model->count() == initial_count - 1; }));
+  EXPECT_EQ(model->GetIndexOfWebContents(pages[1]), TabStripModel::kNoTab);
+  // The next page in the Space takes over, as it does for d.
+  EXPECT_EQ(pages[2], model->GetActiveWebContents());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuestionMarkShowsShortcuts) {
+  auto* controller = origin_side_view_controller();
+  ASSERT_TRUE(controller);
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_2, blink::WebInputEvent::kShiftKey));
+  EXPECT_TRUE(controller->IsOpen());
+  EXPECT_EQ(OriginSideViewMode::kShortcuts, controller->mode());
+  EXPECT_TRUE(controller->side_view()
+                  ->GetToolView(OriginSideViewMode::kShortcuts)
+                  ->GetVisible());
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_OEM_2, blink::WebInputEvent::kShiftKey));
+  EXPECT_FALSE(controller->IsOpen());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,

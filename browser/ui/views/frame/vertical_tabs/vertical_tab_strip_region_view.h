@@ -194,6 +194,8 @@ class BraveVerticalTabStripRegionView : public views::View,
                            OriginSpaceCardThemesTheWholeWindow);
   FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
                            OriginPageListEndsAtTheSpaceRow);
+  FRIEND_TEST_ALL_PREFIXES(VerticalTabStripBrowserTest,
+                           OriginHoveringASpacePreviewsItsPages);
 
   FullscreenController* GetFullscreenController() const;
   bool IsTabFullscreen() const;
@@ -229,6 +231,9 @@ class BraveVerticalTabStripRegionView : public views::View,
   void UpdateOriginWorkspaceAudio();
   // Mutes the Space, or unmutes it if its sound is already muted.
   void ToggleOriginWorkspaceMute(std::string space_id);
+  // Resting on a Space's icon previews its pages in the list.
+  void OnOriginWorkspaceHovered(std::string space_id, bool hovered);
+  void ClearOriginSpacePreview();
   // Right-clicking a Space in the rail opens its card: theme, intensity,
   // rename, icon and delete. Deleting is refused for the last Space; pages in
   // a deleted Space move to the first one.
@@ -359,6 +364,7 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<OriginSpaceController> origin_space_controller_ = nullptr;
   raw_ptr<OriginMediaMonitor> origin_media_monitor_ = nullptr;
   std::string origin_active_workspace_id_;
+  base::OneShotTimer origin_preview_timer_;
   bool origin_new_page_pending_ = false;
   bool origin_workspace_renaming_ = false;
 

@@ -33,6 +33,20 @@ inline constexpr char kBraveOriginSpaceIdKey[] = "brave_origin_space_id";
 inline constexpr char kBraveOriginActiveSpaceIdKey[] =
     "brave_origin_active_space_id";
 
+// "1" while the tab is its Origin Space's side page, shown in the window's
+// right-hand side view instead of the page list.
+inline constexpr char kBraveOriginSidePageKey[] = "brave_origin_side_page";
+
+// The address an Origin page was pinned at, which `h` returns it to. Empty for
+// pages that are not pinned.
+inline constexpr char kBraveOriginPinnedHomeUrlKey[] =
+    "brave_origin_pinned_home_url";
+
+// A name the user gave an Origin page, shown in the page list instead of its
+// title. Empty when the page shows its own title.
+inline constexpr char kBraveOriginCustomTitleKey[] =
+    "brave_origin_custom_title";
+
 // Set in memory while a session is being restored and never written back: the
 // SessionIDs a tab and its window had in the session file. Restored tabs and
 // windows get new IDs, so these are the only link to the Space backups that

@@ -401,6 +401,62 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 }
 
 IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
+                       OriginHoveringASpacePreviewsItsPages) {
+  ASSERT_TRUE(
+      ui_test_utils::NavigateToURL(browser(), GURL("brave://version/")));
+
+  auto* model = browser()->tab_strip_model();
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_TRUE(controller);
+  ASSERT_TRUE(workspace_service);
+  auto* region = browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  ASSERT_TRUE(region);
+
+  const std::string home_id = controller->active_space_id();
+  const std::string work_id =
+      workspace_service->CreateOriginSpace("Work", kOriginSpaceIconWork);
+  chrome::AddTabAt(browser(), GURL("brave://settings/"), -1, true);
+  ASSERT_EQ(2, model->count());
+  controller->MoveTabToSpace(model->GetWebContentsAt(1), work_id);
+  ASSERT_TRUE(controller->SelectSpace(home_id));
+  auto* tab_strip = browser_view()->horizontal_tab_strip_for_testing();
+  const auto settle = [&] {
+    base::RunLoop().RunUntilIdle();
+    tab_strip->StopAnimating();
+    InvalidateAndRunLayoutForVerticalTabStrip();
+  };
+
+  // Resting on Work's icon lists Work's pages while Home stays active.
+  region->OnOriginWorkspaceHovered(work_id, /*hovered=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return controller->preview_space_id() == work_id; }));
+  settle();
+  EXPECT_EQ(home_id, controller->active_space_id());
+  EXPECT_FALSE(tab_strip->tab_at(0)->GetVisible());
+  EXPECT_TRUE(tab_strip->tab_at(1)->GetVisible());
+  EXPECT_EQ(0, model->active_index());
+
+  // Leaving the sidebar puts Home's pages back.
+  region->ClearOriginSpacePreview();
+  settle();
+  EXPECT_FALSE(controller->preview_space_id());
+  EXPECT_TRUE(tab_strip->tab_at(0)->GetVisible());
+  EXPECT_FALSE(tab_strip->tab_at(1)->GetVisible());
+
+  // Picking a page from the preview moves to its Space.
+  region->OnOriginWorkspaceHovered(work_id, /*hovered=*/true);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return controller->preview_space_id() == work_id; }));
+  model->ActivateTabAt(1);
+  EXPECT_EQ(work_id, controller->active_space_id());
+  EXPECT_FALSE(controller->preview_space_id());
+}
+
+IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
                        OriginResizeHandleIsInteractive) {
   ToggleVerticalTabStrip();
   auto* container = browser_view()->vertical_tab_strip_container_view();

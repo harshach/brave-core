@@ -485,6 +485,18 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
           kOriginPinnedFaviconSize, kOriginPinnedFaviconSize,
           /*filter=*/true);
     }
+
+    // A dot in the corner says the page has left the address it was pinned
+    // at; h takes it back.
+    if (brave_tab->IsOriginPinnedPageAway()) {
+      cc::PaintFlags dot;
+      dot.setAntiAlias(true);
+      dot.setColor(SkColorSetRGB(0xFB, 0x54, 0x2B));
+      dot.setStyle(cc::PaintFlags::kFill_Style);
+      constexpr float kDotRadius = 3.0f;
+      canvas->DrawCircle(gfx::PointF(tile.right() - 7.0f, tile.y() + 7.0f),
+                         kDotRadius, dot);
+    }
   }
 #endif
 
