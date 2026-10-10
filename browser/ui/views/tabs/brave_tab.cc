@@ -258,10 +258,13 @@ class BraveTab::OriginRenameField : public views::Textfield,
     SetBorder(views::CreateEmptyBorder(gfx::Insets::VH(0, 4)));
   }
 
+  // The tab is going away; leave it be from here on.
+  void Detach() { tab_ = nullptr; }
+
   // views::TextfieldController:
   bool HandleKeyEvent(views::Textfield* sender,
                       const ui::KeyEvent& key_event) override {
-    if (key_event.type() != ui::EventType::kKeyPressed) {
+    if (!tab_ || key_event.type() != ui::EventType::kKeyPressed) {
       return false;
     }
     if (key_event.key_code() == ui::VKEY_RETURN) {
@@ -278,7 +281,9 @@ class BraveTab::OriginRenameField : public views::Textfield,
   // views::Textfield:
   void OnBlur() override {
     views::Textfield::OnBlur();
-    tab_->EndOriginRename(/*keep=*/true);
+    if (tab_) {
+      tab_->EndOriginRename(/*keep=*/true);
+    }
   }
 
  private:
@@ -369,7 +374,15 @@ BraveTab::BraveTab(tabs::TabHandle handle, TabSlotController* controller)
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 }
 
-BraveTab::~BraveTab() = default;
+BraveTab::~BraveTab() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Children go after this body; a focused field losing focus on the way out
+  // must not call back into this tab.
+  if (origin_rename_field_) {
+    origin_rename_field_->Detach();
+  }
+#endif
+}
 
 void BraveTab::AddedToWidget() {
   Tab::AddedToWidget();

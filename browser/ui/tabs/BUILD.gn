@@ -237,6 +237,7 @@ if (!is_android) {
       "//brave/browser/workspaces",
       "//chrome/browser/profiles:profile",
       "//chrome/browser/sessions",
+      "//chrome/browser/ui:tab_ui_helper",
       "//chrome/browser/ui/tabs:tab_strip",
       "//components/prefs",
       "//components/sessions",

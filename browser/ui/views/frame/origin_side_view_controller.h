@@ -93,6 +93,9 @@ class OriginSideViewController : public OriginSideView::Delegate,
 
   bool open_ = false;
   OriginSideViewMode mode_ = OriginSideViewMode::kPage;
+  // The side page this controller put in the web panel. Anything else there
+  // belongs to a Brave sidebar item and is left alone.
+  base::WeakPtr<content::WebContents> attached_side_page_;
   int width_ = OriginSideView::kDefaultWidth;
   // Opens the panel once for a side page restored with the window.
   bool showed_restored_side_page_ = false;

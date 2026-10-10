@@ -25,7 +25,7 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/sessions/session_service.h"
 #include "chrome/browser/sessions/session_service_factory.h"
-#include "chrome/browser/ui/tabs/tab_change_type.h"
+#include "chrome/browser/ui/tab_ui_helper.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "components/prefs/pref_service.h"
@@ -402,8 +402,8 @@ void OriginSpaceController::SetPinnedHomeUrl(content::WebContents* contents,
   }
   data->set_pinned_home_url(std::move(home));
   WriteTabSessionData(contents);
-  tab_strip_model_->NotifyTabChanged(tab_strip_model_->GetTabAtIndex(index),
-                                     TabChangeType::kAll);
+  // The tile's dot is painted from this state, so the list repaints.
+  NotifyChanged();
 }
 
 bool OriginSpaceController::IsPinnedPageAway(
@@ -451,8 +451,12 @@ void OriginSpaceController::SetCustomTitle(content::WebContents* contents,
   }
   data->set_custom_title(std::move(title));
   WriteTabSessionData(contents);
-  tab_strip_model_->NotifyTabChanged(tab_strip_model_->GetTabAtIndex(index),
-                                     TabChangeType::kAll);
+  // Tab rows rebuild their data when the tab's UI says its title changed;
+  // the name is applied there (see chromium_src tab_data.cc).
+  if (auto* tab_ui_helper =
+          TabUIHelper::From(tab_strip_model_->GetTabAtIndex(index))) {
+    tab_ui_helper->TitleWasSet(nullptr);
+  }
 }
 
 int OriginSpaceController::GetMainTabIndex() const {

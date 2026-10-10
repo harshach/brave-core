@@ -309,6 +309,7 @@ OriginSideView::OriginSideView(Delegate* delegate) : delegate_(delegate) {
   page_empty_state_ = AddChildView(std::move(empty_state));
 
   UpdateHeader();
+  UpdateBodyVisibility();
 }
 
 OriginSideView::~OriginSideView() = default;
@@ -322,10 +323,9 @@ void OriginSideView::SetToolView(OriginSideViewMode mode,
                                  std::unique_ptr<views::View> view) {
   CHECK_NE(mode, OriginSideViewMode::kPage);
   CHECK(!tool_views_[ModeIndex(mode)]);
-  views::View* tool = AddChildView(std::move(view));
-  tool->SetVisible(mode_ == mode);
-  tool_views_[ModeIndex(mode)] = tool;
+  tool_views_[ModeIndex(mode)] = AddChildView(std::move(view));
   mode_buttons_[ModeIndex(mode)]->SetVisible(true);
+  UpdateBodyVisibility();
   InvalidateLayout();
 }
 
@@ -339,6 +339,7 @@ void OriginSideView::SetMode(OriginSideViewMode mode) {
   }
   mode_ = mode;
   UpdateHeader();
+  UpdateBodyVisibility();
   InvalidateLayout();
   SchedulePaint();
 }
@@ -356,6 +357,7 @@ void OriginSideView::SetSidePage(std::optional<std::u16string> title,
   mode_buttons_[ModeIndex(OriginSideViewMode::kPage)]->SetFavicon(
       has_side_page_ ? favicon : ui::ImageModel());
   UpdateHeader();
+  UpdateBodyVisibility();
   InvalidateLayout();
 }
 
@@ -380,13 +382,20 @@ void OriginSideView::Layout(PassKey) {
                      kHeaderHeight);
 
   const gfx::Rect body = GetBodyBounds();
-  const bool page_mode = mode_ == OriginSideViewMode::kPage;
-  page_empty_state_->SetVisible(page_mode && !has_side_page_);
   page_empty_state_->SetBoundsRect(body);
+  for (views::View* tool : tool_views_) {
+    if (tool) {
+      tool->SetBoundsRect(body);
+    }
+  }
+}
+
+void OriginSideView::UpdateBodyVisibility() {
+  page_empty_state_->SetVisible(mode_ == OriginSideViewMode::kPage &&
+                                !has_side_page_);
   for (OriginSideViewMode mode : kOriginSideViewModes) {
     if (views::View* tool = tool_views_[ModeIndex(mode)]) {
       tool->SetVisible(mode == mode_);
-      tool->SetBoundsRect(body);
     }
   }
 }

@@ -111,6 +111,8 @@ class OriginSideView : public views::View, public views::ResizeAreaDelegate {
   class ModeButton;
 
   void UpdateHeader();
+  // Shows the empty state or the selected tool, whichever the mode calls for.
+  void UpdateBodyVisibility();
   gfx::Rect GetBodyBounds() const;
 
   raw_ptr<Delegate> delegate_ = nullptr;

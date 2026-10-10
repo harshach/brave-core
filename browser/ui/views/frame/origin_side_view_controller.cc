@@ -212,8 +212,10 @@ void OriginSideViewController::ReturnSidePageToMain() {
     return;
   }
   FocusMainPageIfActive(side_page);
-  if (auto* web_panel = GetWebPanelController()) {
+  if (auto* web_panel = GetWebPanelController();
+      web_panel && web_panel->panel_contents() == side_page) {
     web_panel->SetPanelContents(nullptr);
+    attached_side_page_.reset();
   }
   // Putting the page back finishes with the panel, as SigmaOS's "Send side
   // page to main" does.
@@ -326,12 +328,15 @@ void OriginSideViewController::Sync() {
     content::WebContents* wanted =
         open_ && mode_ == OriginSideViewMode::kPage ? side_page : nullptr;
     const content::WebContents* shown = web_panel->panel_contents();
-    if (shown != wanted) {
+    const bool ours = !shown || shown == attached_side_page_.get();
+    if (ours && shown != wanted) {
       FocusMainPageIfActive(const_cast<content::WebContents*>(shown));
       // A restored side page can come back as the active tab. It can't be on
       // screen in the main area and the panel at once.
       FocusMainPageIfActive(wanted);
       web_panel->SetPanelContents(wanted);
+      attached_side_page_ =
+          wanted ? wanted->GetWeakPtr() : base::WeakPtr<content::WebContents>();
     }
   }
 
