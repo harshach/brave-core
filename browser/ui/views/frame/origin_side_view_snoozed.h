@@ -27,11 +27,6 @@ class Label;
 class ScrollView;
 }  // namespace views
 
-// `time` in local time, as the side view's later tools show it:
-// "Today 6:00 PM", "Tomorrow 9:00 AM", "Yesterday 9:00 AM", or
-// "Mon, Oct 13, 9:00 AM" with the year added when it isn't `now`'s.
-std::u16string FormatOriginLaterTime(base::Time time, base::Time now);
-
 // The side view's Snoozed tool: pages put away until later, soonest first.
 // Each can be woken early or let go.
 class OriginSideViewSnoozed : public views::View,
@@ -51,6 +46,7 @@ class OriginSideViewSnoozed : public views::View,
   ~OriginSideViewSnoozed() override;
 
   size_t GetRowCountForTesting() const { return rows_.size(); }
+  views::View* GetRowForTesting(size_t index);
   views::View* empty_state_for_testing() { return empty_state_; }
   // Takes effect from the next update.
   void SetNowForTesting(base::Time now) { now_for_testing_ = now; }

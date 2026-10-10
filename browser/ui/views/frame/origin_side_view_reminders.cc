@@ -17,8 +17,8 @@
 #include "base/strings/strcat.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
+#include "brave/browser/ui/tabs/origin_time_parser.h"
 #include "brave/browser/ui/views/frame/origin_chrome_style.h"
-#include "brave/browser/ui/views/frame/origin_side_view_snoozed.h"
 #include "brave/components/vector_icons/vector_icons.h"
 #include "cc/paint/paint_flags.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -206,7 +206,9 @@ class OriginSideViewReminders::Row : public views::View {
       : id_(reminder.id),
         section_(section),
         due_time_(reminder.due_time),
-        done_(reminder.done) {
+        done_(reminder.done),
+        open_page_(reminder.url.is_valid() ? open_page
+                                           : base::RepeatingClosure()) {
     SetPreferredSize(gfx::Size(0, kRowHeight));
     // Stay highlighted while the pointer is over a button.
     SetNotifyEnterExitOnChild(true);
@@ -265,7 +267,7 @@ class OriginSideViewReminders::Row : public views::View {
   }
 
   void Update(base::Time now) {
-    status_->SetText(FormatOriginLaterTime(due_time_, now));
+    status_->SetText(origin_time_parser::DescribeTime(due_time_, now));
   }
 
   // The row's buttons, in focus order.
@@ -281,6 +283,17 @@ class OriginSideViewReminders::Row : public views::View {
   }
 
   // views::View:
+  // A click anywhere off the buttons opens the reminder's page, if it has one.
+  bool OnMousePressed(const ui::MouseEvent& event) override {
+    return !open_page_.is_null() && event.IsOnlyLeftMouseButton();
+  }
+
+  void OnMouseReleased(const ui::MouseEvent& event) override {
+    if (event.IsOnlyLeftMouseButton() && HitTestPoint(event.location())) {
+      open_page_.Run();
+    }
+  }
+
   void OnMouseEntered(const ui::MouseEvent& event) override {
     SetHovered(true);
   }
@@ -352,6 +365,8 @@ class OriginSideViewReminders::Row : public views::View {
   const Section section_;
   const base::Time due_time_;
   const bool done_;
+  // Null when the reminder isn't about a page.
+  const base::RepeatingClosure open_page_;
   bool hovered_ = false;
 
   raw_ptr<RowActionButton> check_button_ = nullptr;

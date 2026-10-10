@@ -13,14 +13,12 @@
 
 #include "base/check.h"
 #include "base/functional/bind.h"
-#include "base/i18n/icubridge/date_time_formatter.h"
-#include "base/i18n/icubridge/icu_bridge.h"
-#include "base/i18n/time_formatting.h"
 #include "base/location.h"
 #include "base/strings/strcat.h"
 #include "base/strings/string_util.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
+#include "brave/browser/ui/tabs/origin_time_parser.h"
 #include "brave/browser/ui/views/frame/origin_chrome_style.h"
 #include "brave/components/vector_icons/vector_icons.h"
 #include "cc/paint/paint_flags.h"
@@ -67,11 +65,6 @@ std::unique_ptr<views::Label> MakeLabel(std::u16string text,
   // background a label otherwise assumes it sits on.
   label->SetAutoColorReadabilityEnabled(false);
   return label;
-}
-
-bool IsSameDay(const base::Time::Exploded& a, const base::Time::Exploded& b) {
-  return a.year == b.year && a.month == b.month &&
-         a.day_of_month == b.day_of_month;
 }
 
 std::u16string GetPageTitle(const OriginLaterService::SnoozedPage& page) {
@@ -239,42 +232,6 @@ END_METADATA
 
 }  // namespace
 
-std::u16string FormatOriginLaterTime(base::Time time, base::Time now) {
-  base::Time::Exploded local;
-  time.LocalExplode(&local);
-  base::Time::Exploded today;
-  now.LocalExplode(&today);
-  // A day is 23 to 25 hours long, so these land on the neighboring dates
-  // whatever the clocks do.
-  const base::Time midnight = now.LocalMidnight();
-  base::Time::Exploded tomorrow;
-  (midnight + base::Hours(36)).LocalExplode(&tomorrow);
-  base::Time::Exploded yesterday;
-  (midnight - base::Hours(12)).LocalExplode(&yesterday);
-
-  if (IsSameDay(local, today)) {
-    return u"Today " + base::TimeFormatTimeOfDay(time);
-  }
-  if (IsSameDay(local, tomorrow)) {
-    return u"Tomorrow " + base::TimeFormatTimeOfDay(time);
-  }
-  if (IsSameDay(local, yesterday)) {
-    return u"Yesterday " + base::TimeFormatTimeOfDay(time);
-  }
-  // Worded as origin_time_parser words the time when it is picked.
-  namespace options = base::i18n::datetime_options;
-  constexpr auto kMinutes =
-      base::i18n::DateTimeFormatterOptions::TimePrecision::kMinute;
-  const auto& formatter =
-      base::i18n::IcuBridge::GetInstance().date_time_formatter();
-  if (local.year == today.year) {
-    return formatter.Format(
-        time, options::MDET::Medium().with_time_precision(kMinutes));
-  }
-  return formatter.Format(
-      time, options::YMDET::Medium().with_time_precision(kMinutes));
-}
-
 // One snoozed page. Its buttons show while the pointer is over the row, and
 // while one of them has keyboard focus.
 class OriginSideViewSnoozed::Row : public views::View {
@@ -284,7 +241,10 @@ class OriginSideViewSnoozed::Row : public views::View {
   Row(const OriginLaterService::SnoozedPage& page,
       base::RepeatingClosure wake_now,
       base::RepeatingClosure remove)
-      : id_(page.id), space_id_(page.space_id), wake_time_(page.wake_time) {
+      : id_(page.id),
+        space_id_(page.space_id),
+        wake_time_(page.wake_time),
+        wake_now_(wake_now) {
     SetPreferredSize(gfx::Size(0, kRowHeight));
     // Stay highlighted while the pointer is over a button.
     SetNotifyEnterExitOnChild(true);
@@ -333,7 +293,8 @@ class OriginSideViewSnoozed::Row : public views::View {
   const std::string& space_id() const { return space_id_; }
 
   void Update(base::Time now, const std::u16string& space_name) {
-    std::u16string status = u"Wakes " + FormatOriginLaterTime(wake_time_, now);
+    std::u16string status =
+        u"Wakes " + origin_time_parser::DescribeTime(wake_time_, now);
     if (!space_name.empty()) {
       base::StrAppend(&status, {u" · ", space_name});
     }
@@ -351,6 +312,17 @@ class OriginSideViewSnoozed::Row : public views::View {
   }
 
   // views::View:
+  // A click anywhere off the buttons opens the page, as "Open now" does.
+  bool OnMousePressed(const ui::MouseEvent& event) override {
+    return event.IsOnlyLeftMouseButton();
+  }
+
+  void OnMouseReleased(const ui::MouseEvent& event) override {
+    if (event.IsOnlyLeftMouseButton() && HitTestPoint(event.location())) {
+      wake_now_.Run();
+    }
+  }
+
   void OnMouseEntered(const ui::MouseEvent& event) override {
     SetHovered(true);
   }
@@ -415,6 +387,7 @@ class OriginSideViewSnoozed::Row : public views::View {
   const std::string id_;
   const std::string space_id_;
   const base::Time wake_time_;
+  const base::RepeatingClosure wake_now_;
   bool hovered_ = false;
 
   raw_ptr<views::Label> title_ = nullptr;
@@ -473,6 +446,10 @@ OriginSideViewSnoozed::OriginSideViewSnoozed(OriginLaterService* service,
 }
 
 OriginSideViewSnoozed::~OriginSideViewSnoozed() = default;
+
+views::View* OriginSideViewSnoozed::GetRowForTesting(size_t index) {
+  return rows_.at(index);
+}
 
 void OriginSideViewSnoozed::OnThemeChanged() {
   views::View::OnThemeChanged();

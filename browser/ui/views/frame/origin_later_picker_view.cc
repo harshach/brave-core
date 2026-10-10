@@ -33,48 +33,6 @@ constexpr int kPanelWidth = 420;
 constexpr int kPanelCornerRadius = 14;
 constexpr int kRowHeight = 36;
 constexpr int kRowCornerRadius = 8;
-constexpr float kPanelBlurSigma = 32.0f;
-constexpr float kPanelBackdropQuality = 0.40f;
-
-// The same glass card Quick Open uses, so the two read as one family.
-struct PickerColors {
-  SkColor scrim;
-  SkColor panel;
-  SkColor panel_stroke;
-  SkColor field;
-  SkColor selected_row;
-  SkColor hovered_row;
-  SkColor primary_text;
-  SkColor secondary_text;
-  SkColor tertiary_text;
-};
-
-PickerColors GetPickerColors(bool dark) {
-  if (dark) {
-    return {
-        .scrim = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12),
-        .panel = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25),
-        .panel_stroke = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF),
-        .field = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
-        .selected_row = SkColorSetARGB(0x1F, 0xFF, 0xFF, 0xFF),
-        .hovered_row = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
-        .primary_text = SkColorSetRGB(0xF5, 0xF5, 0xF6),
-        .secondary_text = SkColorSetRGB(0x94, 0x96, 0x9C),
-        .tertiary_text = SkColorSetRGB(0x6B, 0x6E, 0x75),
-    };
-  }
-  return {
-      .scrim = SkColorSetARGB(0x5C, 0x18, 0x1D, 0x27),
-      .panel = SkColorSetARGB(0xF7, 0xFF, 0xFF, 0xFF),
-      .panel_stroke = SkColorSetARGB(0x1F, 0x18, 0x1D, 0x27),
-      .field = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
-      .selected_row = SkColorSetARGB(0x14, 0x18, 0x1D, 0x27),
-      .hovered_row = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
-      .primary_text = SkColorSetRGB(0x18, 0x1D, 0x27),
-      .secondary_text = SkColorSetRGB(0x53, 0x58, 0x62),
-      .tertiary_text = SkColorSetRGB(0x71, 0x76, 0x80),
-  };
-}
 
 std::unique_ptr<views::Textfield> MakeField(views::TextfieldController* owner,
                                             const std::u16string& placeholder) {
@@ -135,8 +93,8 @@ class OriginLaterPickerView::PresetRow : public views::Button {
 
  private:
   void RefreshStyle() {
-    const PickerColors colors =
-        GetPickerColors(origin_chrome_style::IsDark(this));
+    const origin_chrome_style::PickerColors colors =
+        origin_chrome_style::GetPickerColors(origin_chrome_style::IsDark(this));
     const bool hovered =
         GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
     SetBackground(views::CreateRoundedRectBackground(
@@ -166,8 +124,9 @@ OriginLaterPickerView::OriginLaterPickerView(base::RepeatingClosure on_close)
   panel_->layer()->SetFillsBoundsOpaquely(false);
   panel_->layer()->SetRoundedCornerRadius(
       gfx::RoundedCornersF(kPanelCornerRadius));
-  panel_->layer()->SetBackgroundBlur(kPanelBlurSigma);
-  panel_->layer()->SetBackdropFilterQuality(kPanelBackdropQuality);
+  panel_->layer()->SetBackgroundBlur(origin_chrome_style::kPickerBlurSigma);
+  panel_->layer()->SetBackdropFilterQuality(
+      origin_chrome_style::kPickerBackdropQuality);
   panel_->SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kVertical,
       gfx::Insets::TLBR(16, 18, 12, 18), 6));
@@ -368,8 +327,8 @@ void OriginLaterPickerView::SelectPreset(size_t index) {
 }
 
 void OriginLaterPickerView::UpdatePreview() {
-  const PickerColors colors =
-      GetPickerColors(origin_chrome_style::IsDark(this));
+  const origin_chrome_style::PickerColors colors =
+      origin_chrome_style::GetPickerColors(origin_chrome_style::IsDark(this));
   const std::u16string_view text = when_field_->GetText();
   if (base::TrimWhitespace(text, base::TRIM_ALL).empty()) {
     preview_->SetVisible(false);
@@ -414,8 +373,8 @@ void OriginLaterPickerView::Submit() {
 }
 
 void OriginLaterPickerView::RefreshTheme() {
-  const PickerColors colors =
-      GetPickerColors(origin_chrome_style::IsDark(this));
+  const origin_chrome_style::PickerColors colors =
+      origin_chrome_style::GetPickerColors(origin_chrome_style::IsDark(this));
   SetBackground(views::CreateSolidBackground(colors.scrim));
   panel_->SetBackground(
       views::CreateRoundedRectBackground(colors.panel, kPanelCornerRadius));

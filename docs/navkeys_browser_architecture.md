@@ -114,6 +114,7 @@ primitives so Chromium security updates remain mergeable.
   or picked from presets. A reminder (`a`) remembers the page and a time, and
   once due waits above the Spaces row until it is done. Both are kept in
   profile prefs by `OriginLaterService`; private windows have neither.
+  Clicking a row in the Snoozed or Reminders tool opens its page.
 - Tags (`t`) are bookmark folders under "Socket Tags", so a page can carry
   several and they sync like bookmarks. Typing `#tag words` in Quick Open
   lists the tagged pages that match.
@@ -126,8 +127,8 @@ The focused regression set covers Origin defaults, forced vertical-tree
 presentation, Space CRUD and persistence, per-space tab isolation, last-page
 selection, empty-space window restoration, fallback from invalid session data,
 the right web-panel feature default, the side view and side pages, Space
-preview, page rows (done, rename, pinned home), snoozing, reminders and the
-time parser. Chromium patch files are also checked
+preview, page rows (done, rename, pinned home), snoozing, reminders, tags and
+the time parser. Chromium patch files are also checked
 against the patched source before each handoff.
 
 ## Update policy

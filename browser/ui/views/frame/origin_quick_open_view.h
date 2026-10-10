@@ -132,6 +132,7 @@ private:
   friend class
       BraveBrowserViewTest_OriginQuickOpenNumberTypesUntilResultNavigation_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenFetchesMissingFavicon_Test;
+  friend class BraveBrowserViewTest_OriginTaggedPageShowsInQuickOpen_Test;
 
   static constexpr size_t kSectionCount = 3;
 

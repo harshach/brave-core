@@ -57,6 +57,11 @@ struct ParsedTime {
 // empty, unrecognized, or past times.
 std::optional<ParsedTime> Parse(std::u16string_view input, base::Time now);
 
+// `time` in local time as the later tools word it: "Today 6:00 PM",
+// "Tomorrow 9:00 AM", "Yesterday 9:00 AM", or "Mon, Oct 13, 9:00 AM" with the
+// year added when it isn't `now`'s.
+std::u16string DescribeTime(base::Time time, base::Time now);
+
 struct Preset {
   std::u16string label;
   ParsedTime when;

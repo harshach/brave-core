@@ -35,6 +35,23 @@ SkColor SelectedFill(bool dark);
 // Hairlines between groups.
 SkColor Separator(bool dark);
 
+// The frosted card the snooze and tag pickers float over the page, as Quick
+// Open does.
+struct PickerColors {
+  SkColor scrim;
+  SkColor panel;
+  SkColor panel_stroke;
+  SkColor field;
+  SkColor selected_row;
+  SkColor hovered_row;
+  SkColor primary_text;
+  SkColor secondary_text;
+  SkColor tertiary_text;
+};
+PickerColors GetPickerColors(bool dark);
+inline constexpr float kPickerBlurSigma = 32.0f;
+inline constexpr float kPickerBackdropQuality = 0.40f;
+
 }  // namespace origin_chrome_style
 
 #endif  // BRAVE_BROWSER_UI_VIEWS_FRAME_ORIGIN_CHROME_STYLE_H_

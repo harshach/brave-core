@@ -825,30 +825,33 @@ std::u16string DescribeDuration(base::TimeDelta duration) {
 }
 
 // "Today 6:00 PM", "Tomorrow 9:00 AM", "Mon, Oct 13, 9:00 AM".
-std::u16string DescribeTime(base::Time time, const Clock& clock) {
+}  // namespace
+
+std::u16string DescribeTime(base::Time time, base::Time now) {
   base::Time::Exploded local;
   time.LocalExplode(&local);
-  const int days_ahead = LocalDay(local) - clock.today;
-  if (days_ahead == 0) {
-    return u"Today " + base::TimeFormatTimeOfDay(time);
-  }
-  if (days_ahead == 1) {
-    return u"Tomorrow " + base::TimeFormatTimeOfDay(time);
+  base::Time::Exploded today;
+  now.LocalExplode(&today);
+  switch (LocalDay(local) - LocalDay(today)) {
+    case 0:
+      return u"Today " + base::TimeFormatTimeOfDay(time);
+    case 1:
+      return u"Tomorrow " + base::TimeFormatTimeOfDay(time);
+    case -1:
+      return u"Yesterday " + base::TimeFormatTimeOfDay(time);
   }
   namespace options = base::i18n::datetime_options;
   constexpr auto kMinutes =
       base::i18n::DateTimeFormatterOptions::TimePrecision::kMinute;
   const auto& formatter =
       base::i18n::IcuBridge::GetInstance().date_time_formatter();
-  if (local.year == clock.local.year) {
+  if (local.year == today.year) {
     return formatter.Format(
         time, options::MDET::Medium().with_time_precision(kMinutes));
   }
   return formatter.Format(
       time, options::YMDET::Medium().with_time_precision(kMinutes));
 }
-
-}  // namespace
 
 std::optional<ParsedTime> Parse(std::u16string_view input, base::Time now) {
   const std::optional<Clock> clock = MakeClock(now);
@@ -866,7 +869,7 @@ std::optional<ParsedTime> Parse(std::u16string_view input, base::Time now) {
       .time = resolved->time,
       .description = resolved->duration && *resolved->duration < base::Days(1)
                          ? DescribeDuration(*resolved->duration)
-                         : DescribeTime(resolved->time, *clock)};
+                         : DescribeTime(resolved->time, now)};
 }
 
 std::vector<Preset> GetPresets(base::Time now) {
@@ -877,9 +880,9 @@ std::vector<Preset> GetPresets(base::Time now) {
   }
   const auto add = [&](std::u16string label, std::optional<base::Time> when) {
     if (when && *when > now) {
-      presets.push_back({.label = std::move(label),
-                         .when = {.time = *when,
-                                  .description = DescribeTime(*when, *clock)}});
+      presets.push_back(
+          {.label = std::move(label),
+           .when = {.time = *when, .description = DescribeTime(*when, now)}});
     }
   };
   const int today = clock->today;

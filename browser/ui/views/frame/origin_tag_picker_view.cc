@@ -47,49 +47,6 @@ constexpr int kRowCornerRadius = 8;
 constexpr int kIconSize = 16;
 // Rows past this many scroll.
 constexpr int kMaxVisibleRows = 7;
-constexpr float kPanelBlurSigma = 32.0f;
-constexpr float kPanelBackdropQuality = 0.40f;
-
-// The glass card Quick Open and the snooze picker use, so all three read as
-// one family.
-struct PickerColors {
-  SkColor scrim;
-  SkColor panel;
-  SkColor panel_stroke;
-  SkColor field;
-  SkColor selected_row;
-  SkColor hovered_row;
-  SkColor primary_text;
-  SkColor secondary_text;
-  SkColor tertiary_text;
-};
-
-PickerColors GetPickerColors(bool dark) {
-  if (dark) {
-    return {
-        .scrim = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12),
-        .panel = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25),
-        .panel_stroke = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF),
-        .field = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
-        .selected_row = SkColorSetARGB(0x1F, 0xFF, 0xFF, 0xFF),
-        .hovered_row = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
-        .primary_text = origin_chrome_style::PrimaryText(dark),
-        .secondary_text = origin_chrome_style::SecondaryText(dark),
-        .tertiary_text = origin_chrome_style::MutedText(dark),
-    };
-  }
-  return {
-      .scrim = SkColorSetARGB(0x5C, 0x18, 0x1D, 0x27),
-      .panel = SkColorSetARGB(0xF7, 0xFF, 0xFF, 0xFF),
-      .panel_stroke = SkColorSetARGB(0x1F, 0x18, 0x1D, 0x27),
-      .field = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
-      .selected_row = SkColorSetARGB(0x14, 0x18, 0x1D, 0x27),
-      .hovered_row = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
-      .primary_text = origin_chrome_style::PrimaryText(dark),
-      .secondary_text = origin_chrome_style::SecondaryText(dark),
-      .tertiary_text = origin_chrome_style::MutedText(dark),
-  };
-}
 
 std::unique_ptr<views::Label> MakeLabel(std::u16string text,
                                         int size,
@@ -179,8 +136,8 @@ class OriginTagPickerView::Row : public views::Button {
 
  private:
   void RefreshStyle() {
-    const PickerColors colors =
-        GetPickerColors(origin_chrome_style::IsDark(this));
+    const origin_chrome_style::PickerColors colors =
+        origin_chrome_style::GetPickerColors(origin_chrome_style::IsDark(this));
     const bool hovered =
         GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
     SetBackground(views::CreateRoundedRectBackground(
@@ -220,8 +177,9 @@ OriginTagPickerView::OriginTagPickerView(bookmarks::BookmarkModel* model,
   panel_->layer()->SetFillsBoundsOpaquely(false);
   panel_->layer()->SetRoundedCornerRadius(
       gfx::RoundedCornersF(kPanelCornerRadius));
-  panel_->layer()->SetBackgroundBlur(kPanelBlurSigma);
-  panel_->layer()->SetBackdropFilterQuality(kPanelBackdropQuality);
+  panel_->layer()->SetBackgroundBlur(origin_chrome_style::kPickerBlurSigma);
+  panel_->layer()->SetBackdropFilterQuality(
+      origin_chrome_style::kPickerBackdropQuality);
   panel_->SetLayoutManager(std::make_unique<views::BoxLayout>(
       views::BoxLayout::Orientation::kVertical,
       gfx::Insets::TLBR(16, 18, 12, 18), 6));
@@ -485,8 +443,8 @@ void OriginTagPickerView::Highlight(size_t index) {
 }
 
 void OriginTagPickerView::RefreshTheme() {
-  const PickerColors colors =
-      GetPickerColors(origin_chrome_style::IsDark(this));
+  const origin_chrome_style::PickerColors colors =
+      origin_chrome_style::GetPickerColors(origin_chrome_style::IsDark(this));
   SetBackground(views::CreateSolidBackground(colors.scrim));
   panel_->SetBackground(
       views::CreateRoundedRectBackground(colors.panel, kPanelCornerRadius));

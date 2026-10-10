@@ -336,6 +336,22 @@ TEST(OriginTimeParserTest, Descriptions) {
   EXPECT_NE(Describe("jan 5", now).find(u"2026"), std::u16string::npos);
 }
 
+TEST(OriginTimeParserTest, DescribeTimeNamesNearbyDays) {
+  const base::test::ScopedRestoreICUDefaultLocale locale("en_US");
+  const base::Time now = Wednesday();
+  const base::Time yesterday = LocalTime(2025, 10, 14, 23, 30);
+  EXPECT_EQ(DescribeTime(yesterday, now),
+            u"Yesterday " + base::TimeFormatTimeOfDay(yesterday));
+  const base::Time today = LocalTime(2025, 10, 15, 0, 5);
+  EXPECT_EQ(DescribeTime(today, now),
+            u"Today " + base::TimeFormatTimeOfDay(today));
+  const base::Time tomorrow = LocalTime(2025, 10, 16, 23, 55);
+  EXPECT_EQ(DescribeTime(tomorrow, now),
+            u"Tomorrow " + base::TimeFormatTimeOfDay(tomorrow));
+  EXPECT_TRUE(base::StartsWith(DescribeTime(LocalTime(2025, 10, 13, 9, 0), now),
+                               u"Mon, Oct 13"));
+}
+
 TEST(OriginTimeParserTest, Presets) {
   EXPECT_EQ(PresetFields(Wednesday()), (std::vector<std::string>{
                                            "Later today: Wed 2025-10-15 13:15",

@@ -30,6 +30,7 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
+#include "brave/browser/ui/tabs/origin_tags.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
@@ -37,7 +38,10 @@
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view_controller.h"
+#include "brave/browser/ui/views/frame/origin_side_view_snoozed.h"
+#include "brave/browser/ui/views/frame/origin_side_view_tags.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
+#include "brave/browser/ui/views/frame/origin_tag_picker_view.h"
 #include "brave/browser/ui/views/frame/origin_temporary_link_view.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
 #include "brave/browser/ui/views/frame/vertical_tabs/origin_sidebar_strips.h"
@@ -69,6 +73,7 @@
 #include "extensions/test/test_extension_dir.h"
 #endif
 #include "build/build_config.h"
+#include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
 #include "chrome/browser/profiles/profile.h"
@@ -103,8 +108,10 @@
 #include "chrome/browser/ui/window_feature_controller/window_feature_controller.h"
 #include "chrome/common/pref_names.h"
 #include "chrome/test/base/in_process_browser_test.h"
+#include "components/bookmarks/browser/bookmark_model.h"
 #include "components/bookmarks/common/bookmark_bar_visibility_state.h"
 #include "components/bookmarks/common/bookmark_pref_names.h"
+#include "components/bookmarks/test/bookmark_test_helpers.h"
 #include "components/infobars/content/content_infobar_manager.h"
 #include "components/infobars/core/confirm_infobar_delegate.h"
 #include "components/infobars/core/infobar.h"
@@ -121,6 +128,7 @@
 #include "ui/base/base_window.h"
 #include "ui/base/hit_test.h"
 #include "ui/compositor/layer.h"
+#include "ui/events/base_event_utils.h"
 #include "ui/events/event.h"
 #include "ui/events/event_constants.h"
 #include "ui/events/keycodes/keyboard_codes.h"
@@ -275,6 +283,10 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
 
   OriginLaterPickerView* origin_later_picker_view() {
     return brave_browser_view()->origin_later_picker_view_;
+  }
+
+  OriginTagPickerView* origin_tag_picker_view() {
+    return brave_browser_view()->origin_tag_picker_view_;
   }
 
   OriginSidebarStrips* origin_sidebar_strips() {
@@ -1330,8 +1342,27 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
             base::Time::Now() + base::Hours(2) + base::Minutes(1));
   EXPECT_TRUE(origin_sidebar_strips()->notice_row_for_testing()->GetVisible());
 
-  // Waking it early brings it back.
-  later->WakeNow(snoozed.id);
+  // Clicking it in the Snoozed tool wakes it early.
+  auto* controller = origin_side_view_controller();
+  controller->Show(OriginSideViewMode::kSnoozed);
+  auto* snoozed_view = views::AsViewClass<OriginSideViewSnoozed>(
+      controller->side_view()->GetToolView(OriginSideViewMode::kSnoozed));
+  ASSERT_TRUE(snoozed_view);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return snoozed_view->GetRowCountForTesting() == 1u; }));
+  RunScheduledLayouts();
+  views::View* row = snoozed_view->GetRowForTesting(0);
+  ASSERT_FALSE(row->bounds().IsEmpty());
+  // On the title, clear of the row's buttons.
+  const gfx::Point point(row->width() / 3, row->height() / 2);
+  const ui::MouseEvent press(ui::EventType::kMousePressed, point, point,
+                             ui::EventTimeForNow(), ui::EF_LEFT_MOUSE_BUTTON,
+                             ui::EF_LEFT_MOUSE_BUTTON);
+  const ui::MouseEvent release(ui::EventType::kMouseReleased, point, point,
+                               ui::EventTimeForNow(), ui::EF_LEFT_MOUSE_BUTTON,
+                               ui::EF_LEFT_MOUSE_BUTTON);
+  EXPECT_TRUE(row->OnMousePressed(press));
+  row->OnMouseReleased(release);
   ASSERT_TRUE(
       base::test::RunUntil([&] { return model->count() == initial_count; }));
   EXPECT_TRUE(later->snoozed_pages().empty());
@@ -1378,6 +1409,46 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   later->SetReminderDone(due_id, true);
   EXPECT_FALSE(
       origin_sidebar_strips()->reminder_row_for_testing()->GetVisible());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTaggedPageShowsInQuickOpen) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* bookmark_model =
+      BookmarkModelFactory::GetForBrowserContext(browser()->GetProfile());
+  ASSERT_TRUE(bookmark_model);
+  bookmarks::test::WaitForBookmarkModelToLoad(bookmark_model);
+  content::WebContents* page =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  const GURL url = embedded_test_server()->GetURL("/title2.html");
+  ASSERT_TRUE(content::NavigateToURL(page, url));
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_T));
+  OriginTagPickerView* picker = origin_tag_picker_view();
+  ASSERT_TRUE(picker);
+  ASSERT_TRUE(picker->GetVisible());
+  picker->ToggleTagForTesting(u"Reading");
+  EXPECT_EQ(std::vector<std::u16string>({u"Reading"}),
+            origin_tags::GetTagsForUrl(bookmark_model, url));
+  picker->Dismiss();
+  EXPECT_FALSE(picker->GetVisible());
+
+  auto* controller = origin_side_view_controller();
+  controller->Show(OriginSideViewMode::kTags);
+  auto* tags_view = views::AsViewClass<OriginSideViewTags>(
+      controller->side_view()->GetToolView(OriginSideViewMode::kTags));
+  ASSERT_TRUE(tags_view);
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return tags_view->GetTagRowCountForTesting() == 1u; }));
+
+  // "#rea" finds the page by its tag.
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  quick_open->ShowAndFocus();
+  quick_open->search_field_->SetText(u"#rea");
+  quick_open->ContentsChanged(quick_open->search_field_, u"#rea");
+  ASSERT_EQ(1u, quick_open->query_results_[0].size());
+  EXPECT_EQ(url, quick_open->query_results_[0][0].destination_url);
+  EXPECT_EQ(u"#Reading", quick_open->query_results_[0][0].badge);
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginQuestionMarkShowsShortcuts) {

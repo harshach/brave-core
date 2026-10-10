@@ -95,16 +95,21 @@ bool PageMatches(const origin_tags::Page& page, std::u16string_view needle) {
          ContainsText(Fold(GetHost(page.url)), needle);
 }
 
-// A row's trailing icon button, shown while the row is hovered. The row is
-// already highlighted then, so this hover takes the stronger selected fill.
+// A row's trailing icon button, shown while the row is hovered or either has
+// keyboard focus. The row is already highlighted then, so this hover takes
+// the stronger selected fill.
 class TagsRowActionButton : public views::ImageButton {
   METADATA_HEADER(TagsRowActionButton, views::ImageButton)
 
  public:
+  // `focus_changed` runs whenever the button gains or loses focus.
   TagsRowActionButton(PressedCallback callback,
+                      base::RepeatingClosure focus_changed,
                       const gfx::VectorIcon& icon,
                       const std::u16string& name)
-      : views::ImageButton(std::move(callback)), icon_(icon) {
+      : views::ImageButton(std::move(callback)),
+        focus_changed_(std::move(focus_changed)),
+        icon_(icon) {
     SetPreferredSize(gfx::Size(kActionButtonSize, kActionButtonSize));
     SetImageHorizontalAlignment(ALIGN_CENTER);
     SetImageVerticalAlignment(ALIGN_MIDDLE);
@@ -125,6 +130,16 @@ class TagsRowActionButton : public views::ImageButton {
   void OnThemeChanged() override {
     views::ImageButton::OnThemeChanged();
     UpdateImage();
+  }
+
+  void OnFocus() override {
+    views::ImageButton::OnFocus();
+    focus_changed_.Run();
+  }
+
+  void OnBlur() override {
+    views::ImageButton::OnBlur();
+    focus_changed_.Run();
   }
 
   void OnPaintBackground(gfx::Canvas* canvas) override {
@@ -154,6 +169,7 @@ class TagsRowActionButton : public views::ImageButton {
                       kActionIconSize));
   }
 
+  const base::RepeatingClosure focus_changed_;
   const raw_ref<const gfx::VectorIcon> icon_;
 };
 
@@ -231,7 +247,9 @@ class OriginSideViewTags::TagRow : public views::Button {
     count_->SetCanProcessEventsWithinSubtree(false);
 
     delete_button_ = AddChildView(std::make_unique<TagsRowActionButton>(
-        std::move(on_delete), kLeoTrashIcon, u"Delete tag"));
+        std::move(on_delete),
+        base::BindRepeating(&TagRow::UpdateHover, base::Unretained(this)),
+        kLeoTrashIcon, u"Delete tag"));
 
     UpdateHover();
     UpdateColors();
@@ -248,13 +266,25 @@ class OriginSideViewTags::TagRow : public views::Button {
     UpdateColors();
   }
 
+  void OnFocus() override {
+    views::Button::OnFocus();
+    UpdateHover();
+  }
+
+  void OnBlur() override {
+    views::Button::OnBlur();
+    UpdateHover();
+  }
+
   void OnPaintBackground(gfx::Canvas* canvas) override {
     PaintRowHover(this, canvas);
   }
 
  private:
   void UpdateHover() {
-    const bool hot = GetState() == STATE_HOVERED || GetState() == STATE_PRESSED;
+    const bool hot = GetState() == STATE_HOVERED ||
+                     GetState() == STATE_PRESSED || HasFocus() ||
+                     delete_button_->HasFocus();
     count_->SetVisible(!hot);
     delete_button_->SetVisible(hot);
   }
@@ -321,7 +351,9 @@ class OriginSideViewTags::PageRow : public views::Button {
     host_->SetElideBehavior(gfx::ELIDE_HEAD);
 
     remove_button_ = AddChildView(std::make_unique<TagsRowActionButton>(
-        std::move(on_remove), kLeoCloseIcon, u"Remove from tag"));
+        std::move(on_remove),
+        base::BindRepeating(&PageRow::UpdateHover, base::Unretained(this)),
+        kLeoCloseIcon, u"Remove from tag"));
 
     UpdateHover();
     UpdateColors();
@@ -338,6 +370,16 @@ class OriginSideViewTags::PageRow : public views::Button {
     UpdateColors();
   }
 
+  void OnFocus() override {
+    views::Button::OnFocus();
+    UpdateHover();
+  }
+
+  void OnBlur() override {
+    views::Button::OnBlur();
+    UpdateHover();
+  }
+
   void OnPaintBackground(gfx::Canvas* canvas) override {
     PaintRowHover(this, canvas);
   }
@@ -345,7 +387,8 @@ class OriginSideViewTags::PageRow : public views::Button {
  private:
   void UpdateHover() {
     remove_button_->SetVisible(GetState() == STATE_HOVERED ||
-                               GetState() == STATE_PRESSED);
+                               GetState() == STATE_PRESSED || HasFocus() ||
+                               remove_button_->HasFocus());
   }
 
   void UpdateColors() {

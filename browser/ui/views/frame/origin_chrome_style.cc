@@ -59,4 +59,31 @@ SkColor Separator(bool dark) {
               : SkColorSetRGB(0xE9, 0xEA, 0xEB);
 }
 
+PickerColors GetPickerColors(bool dark) {
+  if (dark) {
+    return {
+        .scrim = SkColorSetARGB(0x80, 0x0A, 0x0D, 0x12),
+        .panel = SkColorSetARGB(0xEB, 0x1C, 0x1F, 0x25),
+        .panel_stroke = SkColorSetARGB(0x12, 0xFF, 0xFF, 0xFF),
+        .field = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
+        .selected_row = SkColorSetARGB(0x1F, 0xFF, 0xFF, 0xFF),
+        .hovered_row = SkColorSetARGB(0x0F, 0xFF, 0xFF, 0xFF),
+        .primary_text = PrimaryText(dark),
+        .secondary_text = SecondaryText(dark),
+        .tertiary_text = MutedText(dark),
+    };
+  }
+  return {
+      .scrim = SkColorSetARGB(0x5C, 0x18, 0x1D, 0x27),
+      .panel = SkColorSetARGB(0xF7, 0xFF, 0xFF, 0xFF),
+      .panel_stroke = SkColorSetARGB(0x1F, 0x18, 0x1D, 0x27),
+      .field = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
+      .selected_row = SkColorSetARGB(0x14, 0x18, 0x1D, 0x27),
+      .hovered_row = SkColorSetARGB(0x0A, 0x18, 0x1D, 0x27),
+      .primary_text = PrimaryText(dark),
+      .secondary_text = SecondaryText(dark),
+      .tertiary_text = MutedText(dark),
+  };
+}
+
 }  // namespace origin_chrome_style
