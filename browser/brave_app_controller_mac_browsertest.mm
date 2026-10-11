@@ -45,6 +45,8 @@
 #include "components/policy/core/common/policy_pref_names.h"
 #include "components/prefs/pref_service.h"
 #include "content/public/test/browser_test.h"
+#include "third_party/abseil-cpp/absl/cleanup/cleanup.h"
+#include "ui/base/test/scoped_fake_nswindow_focus.h"
 #include "ui/events/keycodes/keyboard_code_conversion_mac.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/views/widget/widget.h"
@@ -56,6 +58,25 @@
 
 using bookmarks::BookmarkModel;
 using bookmarks::BookmarkNode;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+namespace {
+// The window -[NSApplication keyWindow] reports while a test fakes focus.
+NSWindow* __strong g_fake_key_window = nil;
+}  // namespace
+
+// Stands in for -[NSApplication keyWindow]. With the screen locked no window
+// becomes key, so menu validation and key equivalents would find no browser.
+@interface BraveAppControllerTestKeyWindow : NSObject
+- (NSWindow*)keyWindow;
+@end
+
+@implementation BraveAppControllerTestKeyWindow
+- (NSWindow*)keyWindow {
+  return g_fake_key_window;
+}
+@end
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
 namespace {
 
@@ -110,6 +131,14 @@ IN_PROC_BROWSER_TEST_F(BraveAppControllerBrowserTest,
 
   NSWindow* window =
       browser_view->GetWidget()->GetNativeWindow().GetNativeNSWindow();
+  // Real key status needs an unlocked screen; the menu only needs AppKit to
+  // treat this window as key.
+  ui::test::ScopedFakeNSWindowFocus fake_focus;
+  g_fake_key_window = window;
+  base::apple::ScopedObjCClassSwizzler key_window_swizzler(
+      [NSApplication class], [BraveAppControllerTestKeyWindow class],
+      @selector(keyWindow));
+  absl::Cleanup clear_key_window = [] { g_fake_key_window = nil; };
   [window makeKeyAndOrderFront:nil];
   NSEvent* shortcut =
       [NSEvent keyEventWithType:NSEventTypeKeyDown

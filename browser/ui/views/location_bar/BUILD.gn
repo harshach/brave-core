@@ -66,6 +66,7 @@ source_set("browser_tests") {
   deps = [
     ":location_bar",
     "//base",
+    "//brave/components/brave_origin/buildflags",
     "//brave/components/brave_search_conversion",
     "//chrome/browser",
     "//chrome/browser/search_engines",

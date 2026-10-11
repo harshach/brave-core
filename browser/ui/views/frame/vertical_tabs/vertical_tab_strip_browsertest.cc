@@ -106,6 +106,7 @@
 #endif
 
 #if BUILDFLAG(IS_MAC)
+#include "ui/base/test/scoped_fake_nswindow_fullscreen.h"
 #include "ui/views/widget/native_widget_mac.h"
 #endif
 
@@ -760,6 +761,10 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
   auto scoped_animation_mode =
       gfx::AnimationTestApi::SetRichAnimationRenderMode(
           gfx::Animation::RichAnimationRenderMode::FORCE_DISABLED);
+#if BUILDFLAG(IS_MAC)
+  // A real macOS fullscreen transition never finishes with the screen locked.
+  ui::test::ScopedFakeNSWindowFullscreen fake_fullscreen;
+#endif
   ToggleVerticalTabStrip();
 
   auto* container = browser_view()->vertical_tab_strip_container_view();

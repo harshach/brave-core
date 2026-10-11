@@ -13,6 +13,7 @@
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_controller.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_search_conversion/features.h"
 #include "brave/components/brave_search_conversion/pref_names.h"
 #include "brave/components/search_engines/brave_prepopulated_engines.h"
@@ -243,7 +244,14 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
       &observer);
   observation.Observe(omnibox_view());
   auto toolbar_bounds = toolbar()->bounds();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin keeps the field at a fixed width over a wide toolbar, so narrow
+  // the toolbar until the field has to shrink with it.
+  toolbar_bounds.Inset(gfx::Insets::VH(
+      0, (toolbar_bounds.width() - location_bar()->width()) / 2 + 10));
+#else
   toolbar_bounds.Inset(gfx::Insets::VH(0, 10));
+#endif
   toolbar()->SetBoundsRect(toolbar_bounds);
 
   EXPECT_EQ(1, observer.bounds_changed_count_);
