@@ -19,6 +19,7 @@ source_set("frame") {
   public_deps = [
     "//base",
     "//brave/browser/ui/views/frame/edge_reveal",
+    "//chrome/browser/ui/views/frame:browser_view_header",
     "//components/tabs:public",
     "//ui/views",
   ]
@@ -30,8 +31,13 @@ source_set("frame") {
     "//brave/components/brave_origin/buildflags",
     "//chrome/browser/ui/exclusive_access",
     "//chrome/browser/ui/views/bookmarks",
+    "//chrome/browser/ui/views/frame:browser_frame_view",
     "//chrome/browser/ui/views/frame:browser_view_layout_delegate",
+    "//chrome/browser/ui/views/frame:browser_view_layout_delegate_impl",
+    "//chrome/browser/ui/views/frame:browser_view_tabbed_layout_impl",
     "//chrome/browser/ui/views/frame:custom_corners_background",
+    "//chrome/browser/ui/views/frame:multi_contents_view",
+    "//chrome/browser/ui/views/frame:top_container_view",
     "//chrome/browser/ui/views/infobars",
     "//ui/compositor",
   ]
@@ -89,10 +95,6 @@ source_set("unit_tests") {
     "layout/brave_browser_view_tabbed_layout_impl_unittest.cc",
   ]
 
-  if (is_linux) {
-    sources += [ "browser_frame_view_layout_linux_unittest.cc" ]
-  }
-
   deps = [
     ":frame",
     ":frame_impl",
@@ -104,6 +106,7 @@ source_set("unit_tests") {
     "//chrome/browser/ui/views:layout_provider",
     "//chrome/browser/ui/views/frame:browser_view_layout_delegate",
     "//chrome/browser/ui/views/frame:opaque_browser_frame_view_layout_delegate",
+    "//chrome/browser/ui/views/tabs/organizer:organizer_panel_host",
     "//chrome/test:test_support",
     "//components/tabs:test_support",
     "//content/test:test_support",
@@ -114,6 +117,14 @@ source_set("unit_tests") {
     "//ui/views:test_support",
     "//url",
   ]
+
+  if (is_linux) {
+    sources += [ "browser_frame_view_layout_linux_unittest.cc" ]
+
+    deps += [
+      "//chrome/browser/ui/views/frame:browser_frame_view_layout_linux_native",
+    ]
+  }
 }
 
 source_set("browser_tests") {
@@ -159,8 +170,12 @@ source_set("browser_tests") {
     "//chrome/browser/ui/immersive:immersive_mode_controller",
     "//chrome/browser/ui/side_panel:side_panel_views_dependent",
     "//chrome/browser/ui/tabs:features",
+    "//chrome/browser/ui/views:tab_search_bubble_host",
+    "//chrome/browser/ui/views/frame:browser_frame_view",
+    "//chrome/browser/ui/views/frame:browser_view_header",
     "//chrome/browser/ui/views/frame:multi_contents_view_mini_toolbar",
     "//chrome/browser/ui/views/frame:scrim_view",
+    "//chrome/browser/ui/views/frame:top_container_view",
     "//chrome/browser/ui/views/infobars",
     "//chrome/browser/ui/views/tabs/shared",
     "//chrome/browser/ui/window_feature_controller",
@@ -190,6 +205,7 @@ source_set("browser_tests") {
       "//chrome/browser/ui/tabs:features",
       "//chrome/browser/ui/views/frame",
       "//chrome/browser/ui/views/frame:custom_corners_background",
+      "//chrome/browser/ui/views/frame:top_container_view",
       "//components/prefs",
       "//ui/linux:test_support",
       "//ui/native_theme",
@@ -205,6 +221,7 @@ source_set("browser_tests") {
       "//chrome/browser/ui/tabs:features",
       "//chrome/browser/ui/views/frame",
       "//chrome/browser/ui/views/frame:browser_caption_button_container_win",
+      "//chrome/browser/ui/views/frame:browser_frame_view_win",
     ]
   }
 

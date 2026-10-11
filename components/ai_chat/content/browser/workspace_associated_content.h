@@ -38,7 +38,7 @@ namespace ai_chat {
 // loaded. The page holds a
 // FileSystemDirectoryHandle for a user-picked folder (delivered by the browser
 // via launchQueue) and registers the local file tools with Leo via WebMCP
-// (navigator.modelContext). This delegate owns the background WebContents, so
+// (document.modelContext). This delegate owns the background WebContents, so
 // its lifetime (and the page's) is tied to the conversation that owns the
 // delegate. Tool discovery reuses the same AIPageContentAgent harvest as tab
 // content (see GetContentTools).
@@ -46,8 +46,11 @@ class WorkspaceAssociatedContent : public AssociatedContentDelegate,
                                    public content::WebContentsObserver,
                                    public mojom::ContentToolsListener {
  public:
+  // Creates a new workspace. A null |folder_path| creates an empty workspace,
+  // which is sent no folder, so the page uses its origin private file system
+  // (OPFS) as the workspace's folder instead.
   WorkspaceAssociatedContent(
-      base::FilePath folder_path,
+      std::optional<base::FilePath> folder_path,
       content::BrowserContext* browser_context,
       base::OnceCallback<void(content::WebContents*)> attach_tab_helpers);
   ~WorkspaceAssociatedContent() override;
@@ -108,8 +111,9 @@ class WorkspaceAssociatedContent : public AssociatedContentDelegate,
   // The page hosting the workspace's tools; see page_url().
   const GURL page_url_;
 
-  // The folder path for new workspaces. Empty for restored workspaces, which
-  // get their FileSystemDirectoryHandle from IndexedDB instead.
+  // The folder path for new workspaces. Empty for empty workspaces, and for
+  // restored workspaces, which get their FileSystemDirectoryHandle from
+  // IndexedDB instead.
   std::optional<base::FilePath> folder_path_;
   std::unique_ptr<content::WebContents> web_contents_;
 

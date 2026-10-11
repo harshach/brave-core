@@ -26,3 +26,29 @@ substitutions:
       replace:
         '\1\n    import("//brave/components/brave_origin/buildflags/buildflags.gni")
         if (is_brave_origin_branded) { defines = [ "IS_BRAVE_ORIGIN_BRANDED" ] }'
+
+  - description: |-
+      Make the Origin and Socket build flags available to every target
+
+      add_import can't be used: the chrome_dll_resources rule above already
+      imports the file inside that target.
+    add_after_line:
+      line: 'import("//build/config/ui.gni")'
+      code: 'import("//brave/components/brave_origin/buildflags/buildflags.gni")'
+
+  - description: |-
+      Link Socket's profile migration into test binaries
+
+      chrome_main_delegate.cc includes brave_main_delegate.cc, which calls into
+      the Socket profile migration. The browser reaches it through
+      browser_dependencies; test binaries link this target directly.
+    add_before_line:
+      line: 'public_deps = [ "//ui/lottie" ]'
+      code: |2-
+
+          # chrome_main_delegate.cc includes brave_main_delegate.cc, which calls into
+          # the Socket profile migration. The browser reaches it through
+          # browser_dependencies; test binaries link this target directly.
+          if (is_mac && is_socket_branded) {
+            deps += [ "//brave/app:socket_profile_migration" ]
+          }

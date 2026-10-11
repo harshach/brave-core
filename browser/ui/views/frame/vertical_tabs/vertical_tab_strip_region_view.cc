@@ -1389,8 +1389,7 @@ BraveVerticalTabStripRegionView::BraveVerticalTabStripRegionView(
 
   widget_observation_.Observe(browser_view->GetWidget());
 
-  if (auto* focus_mode_controller =
-          browser_->GetFeatures().focus_mode_controller()) {
+  if (auto* focus_mode_controller = FocusModeController::From(browser_)) {
     focus_mode_observation_.Observe(focus_mode_controller);
   }
 

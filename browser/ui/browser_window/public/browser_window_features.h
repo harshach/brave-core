@@ -59,14 +59,6 @@ class BrowserWindowFeatures : public BrowserWindowFeatures_ChromiumImpl {
   void InitPostBrowserViewConstruction(BrowserView* browser_view) override;
   void TearDownPreBrowserWindowDestruction() override;
 
-  FocusModeController* focus_mode_controller() {
-    return focus_mode_controller_.get();
-  }
-
-  const FocusModeController* focus_mode_controller() const {
-    return focus_mode_controller_.get();
-  }
-
   // Available for normal Brave Origin windows. Owns live tab membership and
   // the selected space for this browser window.
   OriginSpaceController* origin_space_controller() {

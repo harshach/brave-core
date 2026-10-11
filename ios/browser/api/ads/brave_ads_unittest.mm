@@ -113,6 +113,12 @@ TEST_F(BraveAdsTest, IsServiceRunningReturnsFalseBeforeInitialization) {
   EXPECT_FALSE([ads_ isServiceRunning]);
 }
 
+TEST_F(BraveAdsTest,
+       IsNetworkConnectionAvailableReturnsFalseWhenServiceNotRunning) {
+  // Act & Assert
+  EXPECT_FALSE([bridge() isNetworkConnectionAvailable]);
+}
+
 TEST_F(BraveAdsTest, IsSupportedRegionMatchesUnderlyingAdsUtil) {
   // Act & Assert
   EXPECT_EQ(brave_ads::IsSupportedRegion(), [BraveAds isSupportedRegion]);
@@ -200,38 +206,6 @@ TEST_F(BraveAdsTest,
       profile_prefs()->GetBoolean(brave_news::prefs::kNewTabPageShowToday));
   EXPECT_TRUE(
       profile_prefs()->HasPrefPath(brave_news::prefs::kNewTabPageShowToday));
-}
-
-TEST_F(BraveAdsTest,
-       NotifySponsoredImagesIsEnabledPreferenceDidChangeSetsPrefsWhenEnabled) {
-  // Arrange
-  profile_prefs()->SetBoolean(
-      ntp_background_images::prefs::kNewTabPageShowBackgroundImage, false);
-  profile_prefs()->SetBoolean(brave_ads::prefs::kSponsoredEnabled, false);
-
-  // Act
-  [ads_ notifySponsoredImagesIsEnabledPreferenceDidChange:YES];
-
-  // Assert
-  EXPECT_TRUE(profile_prefs()->GetBoolean(
-      ntp_background_images::prefs::kNewTabPageShowBackgroundImage));
-  EXPECT_TRUE(profile_prefs()->GetBoolean(brave_ads::prefs::kSponsoredEnabled));
-}
-
-TEST_F(BraveAdsTest,
-       NotifySponsoredImagesIsEnabledPreferenceDidChangeSetsPrefsWhenDisabled) {
-  // Act
-  [ads_ notifySponsoredImagesIsEnabledPreferenceDidChange:NO];
-
-  // Assert
-  EXPECT_FALSE(profile_prefs()->GetBoolean(
-      ntp_background_images::prefs::kNewTabPageShowBackgroundImage));
-  EXPECT_TRUE(profile_prefs()->HasPrefPath(
-      ntp_background_images::prefs::kNewTabPageShowBackgroundImage));
-  EXPECT_FALSE(
-      profile_prefs()->GetBoolean(brave_ads::prefs::kSponsoredEnabled));
-  EXPECT_TRUE(
-      profile_prefs()->HasPrefPath(brave_ads::prefs::kSponsoredEnabled));
 }
 
 TEST_F(BraveAdsTest, IsNotificationsEnabledDefaultsToFalse) {
@@ -715,4 +689,22 @@ TEST_F(BraveAdsTest,
        RegisterAdsResourcesForCountryCodeReturnsFalseForUnknownCode) {
   // Act & Assert
   EXPECT_FALSE([ads_ registerAdsResourcesForCountryCode:@"zz"]);
+}
+
+TEST_F(BraveAdsTest, ClearsNewTabPageShowBackgroundImagePrefOnInit) {
+  // Arrange
+  profile_prefs()->SetBoolean(
+      ntp_background_images::prefs::kNewTabPageShowBackgroundImage, false);
+
+  // Act
+  BraveAds* ads = [[BraveAds alloc]
+      initWithStateStoragePath:base::SysUTF8ToNSString(
+                                   temp_dir_.GetPath().value())];
+
+  // Assert
+  EXPECT_NSNE(nil, ads);
+  EXPECT_FALSE(profile_prefs()->HasPrefPath(
+      ntp_background_images::prefs::kNewTabPageShowBackgroundImage));
+  EXPECT_TRUE(profile_prefs()->GetBoolean(
+      ntp_background_images::prefs::kNewTabPageShowBackgroundImage));
 }

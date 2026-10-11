@@ -1,8 +1,8 @@
 diff --git a/chrome/browser/sessions/session_restore.cc b/chrome/browser/sessions/session_restore.cc
-index 684340e2ae22a97ffcbb010bc31c9f7c9433492e..b68ff1a7c995d5a465bbb78c278594515c600f34 100644
+index e21bf8de37e7c9ac9e3a3e6412e0e4949274114b..8724b3666286af647d4b59b99dc93e21a46a6257 100644
 --- a/chrome/browser/sessions/session_restore.cc
 +++ b/chrome/browser/sessions/session_restore.cc
-@@ -865,6 +865,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -868,6 +868,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
  #endif
        }
  
@@ -11,7 +11,7 @@ index 684340e2ae22a97ffcbb010bc31c9f7c9433492e..b68ff1a7c995d5a465bbb78c27859451
        // 2. Track TYPE_NORMAL browsers.
        if (is_normal_window) {
          has_normal_browser = true;
-@@ -946,6 +948,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -949,6 +951,8 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
          chrome::CloseWebContents(browser, active_tab, true);
        }
  
@@ -20,11 +20,65 @@ index 684340e2ae22a97ffcbb010bc31c9f7c9433492e..b68ff1a7c995d5a465bbb78c27859451
        // Sanity check: A restored browser should have an active tab.
        // TODO(crbug.com/40662817): Change to DCHECK once we understand
        // why some browsers don't have an active tab on startup.
-@@ -1386,6 +1390,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+@@ -1020,6 +1024,7 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+       base::flat_map<tab_groups::TabGroupId, tab_groups::TabGroupId>*
+           new_group_ids,
+       bool& did_show_browser) {
++  [&]() -> void {
+     DVLOG(1) << "RestoreTabsToBrowser " << window.tabs.size();
+     // TODO(crbug.com/40662817): Change to DCHECK once we understand
+     // why some browsers don't have an active tab on startup.
+@@ -1091,7 +1096,13 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+             split_id, tab_index_list, split_tabs::SplitTabVisualData());
+       }
+     }
++    }();
++  if (auto fallback_index = MaybeAddFallbackTabIfEmpty(browser);
++      fallback_index != TabStripModel::kNoTab && !did_show_browser) {
++    ShowBrowser(browser, fallback_index);
++    did_show_browser = true;
+   }
++}
+ 
+   // |tab_index| is ignored for pinned tabs which will always be pushed behind
+   // the last existing pinned tab. If |is_selected_tab| is true the tab will be
+@@ -1120,6 +1131,11 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+     SessionRestore::NotifySessionRestoreStartedLoadingTabs();
+     int selected_index = GetNavigationIndexToSelect(tab);
+ 
++    if (BraveIsScheduledForCleanup(
++            tab.navigations[selected_index].virtual_url(), profile_)) {
++      return;
++    }
++
+     RecordAppLaunchForTab(browser, tab, selected_index);
+ 
+     // Associate sessionStorage (if any) to the restored tab.
+@@ -1382,9 +1398,13 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
+   // Appends the urls in |startup_tabs| to |browser|.
+   void AppendURLsToBrowser(BrowserWindowInterface* browser,
+                            const StartupTabs& startup_tabs) {
++  [&]() -> void {
+     bool is_first_tab = true;
+     for (const auto& startup_tab : startup_tabs) {
+       const GURL& url = startup_tab.url;
++      if (BraveIsScheduledForCleanup(url, profile_)) {
++        continue;
++      }
+ #if BUILDFLAG(IS_WIN) || BUILDFLAG(IS_MAC) || BUILDFLAG(IS_LINUX)
+       if (url == whats_new::GetWebUIStartupURL()) {
+         whats_new::StartWhatsNewFetch(browser);
+@@ -1401,9 +1421,11 @@ class SessionRestoreImpl : public BrowserCollectionObserver {
                                 : WindowOpenDisposition::NEW_BACKGROUND_TAB;
        params.tabstrip_add_types = add_types;
        is_first_tab = false;
-+      BraveModifyStartupTabNavigationParams(startup_tab, browser, params);
-       Navigate(&params);
+-      Navigate(&params);
++      BraveNavigateStartupTab(startup_tab, browser, params);
      }
-   }
+-  }
++    }();
++  MaybeAddFallbackTabIfEmpty(browser);
++}
+ 
+   // Normally opens |startup_tabs| in |last_normal_browser|, but if there are
+   // urls set from LAST_AND_URLS startup pref, those are opened in a new

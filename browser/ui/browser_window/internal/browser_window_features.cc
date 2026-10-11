@@ -34,7 +34,6 @@
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -78,13 +77,10 @@ BrowserWindowFeatures::~BrowserWindowFeatures() = default;
 void BrowserWindowFeatures::Init(BrowserWindowInterface* browser) {
   auto* profile = browser->GetProfile();
 
-  // Initialize vertical tab controller first because WindowFeatureController
-  // needs it to determine whether immersive fullscreen is supported.
-  // The WindowFeatureController takes vertical tab controller via constructor
-  // and it's initialized in BrowserWindowFeatures_ChromiumImpl::Init().
-
   if (BrowserSupportsFocusMode(browser)) {
-    focus_mode_controller_ = std::make_unique<FocusModeController>();
+    focus_mode_controller_ =
+        GetUserDataFactory().CreateInstance<FocusModeController>(
+            *browser, browser->GetUnownedUserDataHost());
   }
 
   // VerticalTabController should be constructed in Init() instead of

@@ -98,6 +98,11 @@ public class BrowserViewController: UIViewController {
     return webViewContainerBackdrop
   }()
   private var isContentHiddenInBackground: Bool = false
+  private var requiresPrivateBrowsingUnlock = false
+  /// The system auth sheet activates the scene again. Prompting twice cancels the
+  /// in-flight Face ID challenge.
+  private var didPromptForPrivateBrowsingUnlock = false
+  private var privateBrowsingUnlockCancellables: Set<AnyCancellable> = []
 
   var readerModeBar: ReaderModeBarView?
   var readerModeCache: ReaderModeCache
@@ -182,8 +187,9 @@ public class BrowserViewController: UIViewController {
   let bookmarkManager: BookmarkManager
   public let privateBrowsingManager: PrivateBrowsingManager
 
-  /// The most visited sites shown by the top sites section of every NTP in this window.
-  private lazy var mostVisitedSites: MostVisitedSites = {
+  /// The most visited sites shown by the top sites section of every NTP and the search screen in
+  /// this window.
+  private(set) lazy var mostVisitedSites: MostVisitedSites = {
     let mostVisitedSites = MostVisitedSitesFactory.get(for: profileController.profile)
     mostVisitedSites.enableTopSitesOnlyTileTypes()
     return mostVisitedSites
@@ -334,6 +340,7 @@ public class BrowserViewController: UIViewController {
       service: profileController.backgroundImagesService,
       rewards: BraveRewards.isSupported(prefService: profileController.profile.prefs)
         ? rewards : nil,
+      prefs: profileController.profile.prefs,
       privateBrowsingManager: privateBrowsingManager
     )
 
@@ -497,7 +504,6 @@ public class BrowserViewController: UIViewController {
     Preferences.Rewards.hideRewardsIcon.observe(from: self)
     Preferences.Rewards.rewardsToggledOnce.observe(from: self)
     Preferences.Playlist.enablePlaylistURLBarButton.observe(from: self)
-    Preferences.NewTabPage.backgroundMediaTypeRaw.observe(from: self)
     Preferences.Shields.blockAdsAndTrackingLevelRaw.observe(from: self)
     Preferences.Privacy.screenTimeEnabled.observe(from: self)
     Preferences.Translate.translateEnabled.observe(from: self)
@@ -509,6 +515,9 @@ public class BrowserViewController: UIViewController {
     }
     prefsChangeRegistrar.addObserver(forPath: kManagedBraveVPNDisabledPrefName) { [weak self] _ in
       self?.disconnectVPNIfDisabledByPolicy()
+    }
+    prefsChangeRegistrar.addObserver(forPath: kBraveAdsSponsoredEnabledPrefName) { [weak self] _ in
+      self?.recordAdsUsageType()
     }
     prefsChangeRegistrar.addObserver(forPath: kMediaBackgroundingEnabled) { [weak self] _ in
       guard let self else { return }
@@ -921,9 +930,91 @@ public class BrowserViewController: UIViewController {
       collapsedURLBarView.isKeyboardVisible = false
     }
 
-    if !isContentHiddenInBackground {
+    // Request only once the scene is active. `willEnterForeground` runs before that, and
+    // `WindowProtection` replaces its `LAContext` there, which cancels biometrics/passcode.
+    if requiresPrivateBrowsingUnlock {
+      promptForPrivateBrowsingUnlockIfNeeded()
       return
     }
+    showContentHiddenInBackground()
+  }
+
+  @objc private func sceneDidEnterBackgroundNotification(_ notification: NSNotification) {
+    guard let scene = notification.object as? UIScene, scene == currentScene else {
+      return
+    }
+    guard Preferences.Privacy.privateBrowsingLock.value,
+      privateBrowsingManager.isPrivateBrowsing
+    else {
+      return
+    }
+    requiresPrivateBrowsingUnlock = true
+    didPromptForPrivateBrowsingUnlock = false
+  }
+
+  private func promptForPrivateBrowsingUnlockIfNeeded() {
+    guard !didPromptForPrivateBrowsingUnlock else { return }
+    didPromptForPrivateBrowsingUnlock = true
+    // `.external` has no cancel button. Private-only has nowhere else to go.
+    let viewType: AuthViewType =
+      Preferences.Privacy.privateBrowsingOnly.value ? .external : .general
+    // Let the activation transition finish so Face ID can present.
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.requiresPrivateBrowsingUnlock else { return }
+      self.askForLocalAuthentication(viewType: viewType) { [weak self] success, error in
+        guard let self else { return }
+        guard success || error == .passcodeNotSet else { return }
+        self.endPrivateBrowsingUnlock(switchToNormalTabs: false)
+      }
+    }
+  }
+
+  private func observePrivateBrowsingUnlock() {
+    guard let windowProtection, privateBrowsingUnlockCancellables.isEmpty else { return }
+    windowProtection.finalizedAuthentication
+      .receive(on: RunLoop.main)
+      .sink { [weak self] success, _ in
+        guard success else { return }
+        // Also covers Browser Lock, which presents first and ignores a second challenge.
+        self?.endPrivateBrowsingUnlock(switchToNormalTabs: false)
+      }
+      .store(in: &privateBrowsingUnlockCancellables)
+    windowProtection.cancelPressed
+      .receive(on: RunLoop.main)
+      .sink { [weak self] in
+        guard Preferences.Privacy.privateBrowsingOnly.value == false else { return }
+        self?.endPrivateBrowsingUnlock(switchToNormalTabs: true)
+      }
+      .store(in: &privateBrowsingUnlockCancellables)
+  }
+
+  private func endPrivateBrowsingUnlock(switchToNormalTabs: Bool) {
+    guard requiresPrivateBrowsingUnlock else { return }
+    requiresPrivateBrowsingUnlock = false
+    if switchToNormalTabs {
+      let normalTabs = tabManager.allTabs.filter { !$0.isPrivate }
+      if let index = tabManager.normalTabSelectedIndex,
+        let tab = tabManager.allTabs[safe: index],
+        !tab.isPrivate
+      {
+        tabManager.selectTab(tab)
+      } else if let tab = normalTabs.last {
+        tabManager.selectTab(tab)
+      } else {
+        tabManager.addTabAndSelect(isPrivate: false)
+      }
+    }
+    if switchToNormalTabs, presentedViewController is TabGridHostingController {
+      dismiss(animated: false) { [weak self] in
+        self?.showContentHiddenInBackground()
+      }
+    } else {
+      showContentHiddenInBackground()
+    }
+  }
+
+  private func showContentHiddenInBackground() {
+    guard isContentHiddenInBackground else { return }
     isContentHiddenInBackground = false
     // Re-show any components that might have been hidden because they were being displayed
     // as part of a private mode tab
@@ -1021,6 +1112,7 @@ public class BrowserViewController: UIViewController {
     // We now show some elements since we're ready to use the app
     header.isHidden = false
     footer.isHidden = false
+    observePrivateBrowsingUnlock()
 
     NotificationCenter.default.do {
       $0.addObserver(
@@ -1033,6 +1125,12 @@ public class BrowserViewController: UIViewController {
         self,
         selector: #selector(sceneDidBecomeActiveNotification(_:)),
         name: UIScene.didActivateNotification,
+        object: nil
+      )
+      $0.addObserver(
+        self,
+        selector: #selector(sceneDidEnterBackgroundNotification(_:)),
+        name: UIScene.didEnterBackgroundNotification,
         object: nil
       )
       $0.addObserver(
@@ -2903,7 +3001,11 @@ extension BrowserViewController: NewTabPageDelegate {
   func brandedImageCalloutActioned(_ state: BrandedImageCalloutState) {
     guard state.hasDetailViewController else { return }
 
-    let vc = NTPLearnMoreViewController(state: state, rewards: rewards)
+    let vc = NTPLearnMoreViewController(
+      state: state,
+      rewards: rewards,
+      prefs: profileController.profile.prefs
+    )
 
     vc.linkHandler = { [weak self] url in
       self?.tabManager.selectedTab?.loadRequest(PrivilegedRequest(url: url) as URLRequest)
@@ -2917,6 +3019,10 @@ extension BrowserViewController: NewTabPageDelegate {
   }
 
   func showNewTabTakeoverInfoBarIfNeeded() {
+    guard
+      profileController.profile.prefs.boolean(forPath: kBraveAdsSponsoredEnabledPrefName)
+    else { return }
+
     // do not show if NTP is occluded by search
     guard !isSearchContainerVisible,
       rewards.ads.shouldDisplayNewTabTakeoverInfobar()
@@ -3002,8 +3108,6 @@ extension BrowserViewController: PreferencesObserver {
       }
     case Preferences.PrivacyReports.captureVPNAlerts.key:
       PrivacyReportsManager.scheduleVPNAlertsTask()
-    case Preferences.NewTabPage.backgroundMediaTypeRaw.key:
-      recordAdsUsageType()
     case Preferences.Privacy.screenTimeEnabled.key:
       if Preferences.Privacy.screenTimeEnabled.value, !ProcessInfo.processInfo.isiOSAppOnVisionOS {
         // Accessing `STWebpageController` on Vision OS results in a crash

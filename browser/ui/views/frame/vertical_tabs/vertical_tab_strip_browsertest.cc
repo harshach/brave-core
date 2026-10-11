@@ -46,12 +46,10 @@
 #include "cc/paint/display_item_list.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_command_controller.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
@@ -812,7 +810,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 
   // Focus mode and fullscreen float the sidebar on purpose. Leaving them has
   // to bring back the docked sidebar the window started with.
-  auto* focus_mode = browser()->GetFeatures().focus_mode_controller();
+  auto* focus_mode = FocusModeController::From(browser());
   ASSERT_TRUE(focus_mode);
   focus_mode->SetEnabled(true);
   focus_mode->SetEnabled(false);
@@ -3126,7 +3124,7 @@ class VerticalTabStripFocusModeTest : public VerticalTabStripBrowserTest {
   ~VerticalTabStripFocusModeTest() override = default;
 
   FocusModeController* focus_mode_controller() {
-    return browser()->GetFeatures().focus_mode_controller();
+    return FocusModeController::From(browser());
   }
 
   BraveVerticalTabStripRegionView* GetRegionView() {

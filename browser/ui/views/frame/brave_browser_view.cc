@@ -74,6 +74,7 @@
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
+#include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/commands/common/features.h"
 #include "brave/components/constants/pref_names.h"
@@ -742,7 +743,7 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
   }
 
   if (BrowserSupportsFocusMode(browser_)) {
-    auto* controller = browser_->GetFeatures().focus_mode_controller();
+    auto* controller = FocusModeController::From(browser_);
     CHECK(controller);
     focus_mode_observation_.Observe(controller);
 

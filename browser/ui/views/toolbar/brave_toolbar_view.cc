@@ -48,7 +48,6 @@
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/defaults.h"
 #include "chrome/browser/profiles/profile_manager.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/ui_features.h"
@@ -185,7 +184,8 @@ bool HasMultipleUserProfiles() {
 }
 
 bool IsAvatarButtonHideable(Profile* profile) {
-  return !profile->IsIncognitoProfile() && !profile->IsGuestSession();
+  return !profile->IsIncognitoProfile() && !profile->IsGuestSession() &&
+         !profile->IsEnterpriseIsolatedModeProfile();
 }
 
 // Brave-specific optional toolbar buttons should hide before the location bar

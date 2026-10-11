@@ -14,6 +14,7 @@
 #include "base/scoped_observation.h"
 #include "brave/components/sidebar/browser/sidebar_item.h"
 #include "brave/components/sidebar/browser/sidebar_service.h"
+#include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "ui/base/unowned_user_data/scoped_unowned_user_data.h"
 #include "ui/base/window_open_disposition.h"
 
@@ -40,7 +41,8 @@ class SidebarWebPanelController;
 // Controller will request about add/delete items to SidebarService.
 // TODO(https://github.com/brave/brave-browser/issues/45977): Avoid direct
 // Browser dependency. We should pass what we need like TabStripModel.
-class SidebarController : public SidebarService::Observer {
+class SidebarController : public SidebarService::Observer,
+                          public TabStripModelObserver {
  public:
   DECLARE_USER_DATA(SidebarController);
 
@@ -101,10 +103,19 @@ class SidebarController : public SidebarService::Observer {
   void OnShowSidebarOptionChanged(
       SidebarService::ShowSidebarOption option) override;
 
+  // TabStripModelObserver overrides:
+  void OnTabStripModelChanged(
+      TabStripModel* tab_strip_model,
+      const TabStripModelChange& change,
+      const TabStripSelectionChange& selection) override;
+
  private:
   void OnPreferenceChanged(const std::string& pref_name);
 
   SidePanelUI* GetSidePanelUI();
+
+  // Pushes the web panel's open/closed state into the model's active index.
+  void OnWebPanelStateChanged();
 
   // Iterate tabs by host (if tabs with host of URL exist).
   // Otherwise, load URL in the active tab.

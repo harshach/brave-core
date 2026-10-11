@@ -54,9 +54,11 @@ if (!is_android) {
       ":tabs_public",
       "//brave/browser/drag_drop",
       "//brave/browser/misc_metrics:misc_metrics_impl",
+      "//brave/browser/new_tab",
       "//brave/browser/ui:ui_features",
       "//brave/browser/ui/focus_mode",
       "//brave/browser/ui/side_panel",
+      "//brave/browser/ui/sidebar",
       "//brave/browser/ui/views/page_action",
       "//brave/components/image_metadata_stripper/common",
       "//brave/components/misc_metrics",
@@ -71,17 +73,13 @@ if (!is_android) {
       "//chrome/browser/ui/thumbnails",
     ]
 
-    if (is_win) {
-      deps += [ "//brave/browser/new_tab:background_color_tab_helper" ]
-    }
-
     if (enable_ai_chat) {
       deps += [ "//brave/browser/ai_chat" ]
     }
 
     if (enable_request_otr) {
       deps += [
-        "//brave/browser/request_otr:tab_helper",
+        "//brave/browser/request_otr",
         "//brave/components/request_otr/common",
       ]
     }
@@ -128,6 +126,7 @@ if (!is_android) {
 
     deps = [
       "//brave/components/tabs",
+      "//chrome/browser/ui:browser_window_header",
       "//chrome/browser/ui/tabs:features",
       "//chrome/browser/ui/tabs:tab_strip",
     ]
@@ -161,6 +160,7 @@ if (!is_android) {
         "//brave/components/containers/content/browser",
         "//brave/components/containers/core/browser",
         "//brave/components/containers/core/common",
+        "//chrome/browser/ui/views/frame:browser_view_header",
         "//components/tabs:public",
       ]
     }
@@ -431,6 +431,7 @@ source_set("browser_tests") {
       "//chrome/browser/ui/browser_window",
       "//chrome/browser/ui/tabs:tab_menu",
       "//chrome/browser/ui/tabs:tab_strip",
+      "//chrome/browser/ui/views/frame:browser_view_header",
       "//net:test_support",
     ]
   }

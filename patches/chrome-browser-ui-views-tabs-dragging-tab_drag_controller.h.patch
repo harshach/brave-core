@@ -1,5 +1,5 @@
 diff --git a/chrome/browser/ui/views/tabs/dragging/tab_drag_controller.h b/chrome/browser/ui/views/tabs/dragging/tab_drag_controller.h
-index 2c3baaa9242958ce243c885a212900e4f6c8dc1f..06554a53bac278a6b9d8708614170bb1698344f1 100644
+index a08a5a5b76cfea44f8a07dd1db5a70910fcdd67b..dd92afb2ac285543581bdb5b62b08ea16a5771e0 100644
 --- a/chrome/browser/ui/views/tabs/dragging/tab_drag_controller.h
 +++ b/chrome/browser/ui/views/tabs/dragging/tab_drag_controller.h
 @@ -136,7 +136,7 @@ class TabDragController : public views::WidgetObserver,
@@ -11,7 +11,7 @@ index 2c3baaa9242958ce243c885a212900e4f6c8dc1f..06554a53bac278a6b9d8708614170bb1
                                TabSlotView* source_view,
                                const std::vector<TabSlotView*>& dragging_views,
                                const gfx::Point& offset_from_source_view,
-@@ -229,6 +229,7 @@ class TabDragController : public views::WidgetObserver,
+@@ -236,6 +236,7 @@ class TabDragController : public views::WidgetObserver,
    const TabDragContext* GetAttachedContext() const override;
  
   private:
@@ -19,7 +19,7 @@ index 2c3baaa9242958ce243c885a212900e4f6c8dc1f..06554a53bac278a6b9d8708614170bb1
    friend class TabDragControllerTest;
  
    class SourceTabStripEmptinessTracker;
-@@ -424,7 +425,7 @@ class TabDragController : public views::WidgetObserver,
+@@ -431,7 +432,7 @@ class TabDragController : public views::WidgetObserver,
    // See Detach/Attach for parameter documentation. Transfers ownership of
    // `this` from `attached_context_` (which must own `this`) to
    // `target_context`.
@@ -27,8 +27,8 @@ index 2c3baaa9242958ce243c885a212900e4f6c8dc1f..06554a53bac278a6b9d8708614170bb1
 +  virtual void DetachAndAttachToNewContext(ReleaseCapture release_capture,
                                     TabDragContext* target_context);
  
-   // Detaches the tabs being dragged, creates a new Browser to contain them and
-@@ -469,7 +470,7 @@ class TabDragController : public views::WidgetObserver,
+   // Hides browsers whose tab strips emptied mid-drag and whose close was
+@@ -483,7 +484,7 @@ class TabDragController : public views::WidgetObserver,
    void RevertSplitAt(size_t drag_index);
  
    // Finishes a successful drag operation.
@@ -37,7 +37,7 @@ index 2c3baaa9242958ce243c885a212900e4f6c8dc1f..06554a53bac278a6b9d8708614170bb1
  
    // Maximizes the attached window.
    void MaximizeAttachedWindow();
-@@ -553,7 +554,7 @@ class TabDragController : public views::WidgetObserver,
+@@ -567,7 +568,7 @@ class TabDragController : public views::WidgetObserver,
  
    // Initializes `dragging_tabs_session_`, and performs a first MoveAttached
    // within `attached_context_`.
