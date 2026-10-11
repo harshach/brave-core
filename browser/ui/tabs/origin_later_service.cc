@@ -26,6 +26,8 @@
 #include "components/prefs/pref_service.h"
 #include "components/prefs/scoped_user_pref_update.h"
 #include "content/public/browser/web_contents.h"
+#include "content/public/browser/web_contents_observer.h"
+#include "content/public/browser/web_contents_user_data.h"
 
 namespace {
 
@@ -43,6 +45,56 @@ constexpr char kDismissedKey[] = "dismissed";
 // A page can't wake while there is no window to wake into, which is how every
 // session starts. Try again shortly rather than dropping it.
 constexpr base::TimeDelta kRetryWithoutWindow = base::Seconds(5);
+
+// Holds a snooze until its page has closed. Closing runs the page's
+// beforeunload handler, and a page the user keeps must not come back later as
+// a second copy.
+class PendingSnooze : public content::WebContentsUserData<PendingSnooze>,
+                      public content::WebContentsObserver {
+ public:
+  ~PendingSnooze() override = default;
+
+  // content::WebContentsObserver:
+  void BeforeUnloadFired(bool proceed) override {
+    if (!proceed) {
+      // Destroys `this`.
+      web_contents()->RemoveUserData(UserDataKey());
+    }
+  }
+
+  void WebContentsDestroyed() override {
+    if (service_) {
+      service_->SnoozePage(url_, std::move(title_), std::move(space_id_),
+                           wake_time_);
+    }
+    service_ = nullptr;
+  }
+
+ private:
+  friend class content::WebContentsUserData<PendingSnooze>;
+
+  PendingSnooze(content::WebContents* contents,
+                base::WeakPtr<OriginLaterService> service,
+                std::string space_id,
+                base::Time wake_time)
+      : content::WebContentsUserData<PendingSnooze>(*contents),
+        content::WebContentsObserver(contents),
+        service_(std::move(service)),
+        url_(contents->GetLastCommittedURL()),
+        title_(contents->GetTitle()),
+        space_id_(std::move(space_id)),
+        wake_time_(wake_time) {}
+
+  base::WeakPtr<OriginLaterService> service_;
+  const GURL url_;
+  std::u16string title_;
+  std::string space_id_;
+  const base::Time wake_time_;
+
+  WEB_CONTENTS_USER_DATA_KEY_DECL();
+};
+
+WEB_CONTENTS_USER_DATA_KEY_IMPL(PendingSnooze);
 
 }  // namespace
 
@@ -71,6 +123,19 @@ void OriginLaterService::SnoozePage(const GURL& url,
   snoozed_.push_back({base::Uuid::GenerateRandomV4().AsLowercaseString(), url,
                       std::move(title), std::move(space_id), wake_time});
   SortAndNotify();
+}
+
+bool OriginLaterService::SnoozeWhenClosed(content::WebContents* contents,
+                                          std::string space_id,
+                                          base::Time wake_time) {
+  if (!contents || !contents->GetLastCommittedURL().is_valid()) {
+    return false;
+  }
+  // Snoozing again before the page has closed replaces the earlier time.
+  contents->RemoveUserData(PendingSnooze::UserDataKey());
+  PendingSnooze::CreateForWebContents(contents, weak_factory_.GetWeakPtr(),
+                                      std::move(space_id), wake_time);
+  return true;
 }
 
 void OriginLaterService::WakeNow(const std::string& id) {

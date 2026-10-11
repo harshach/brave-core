@@ -78,8 +78,12 @@ class OriginSideViewController : public OriginSideView::Delegate,
   std::u16string GetSpaceName(const std::string& space_id) const;
 
   // Brings the panel, the web panel's contents and the header in line with
-  // `open_`, `mode_` and the active Space.
-  void Sync();
+  // `open_`, `mode_` and the active Space. Without `can_change_tabs`, as when
+  // the tab strip may be notifying observers, a change that needs another
+  // page in the main area first is finished from a posted task.
+  void Sync(bool can_change_tabs);
+  void ScheduleSync();
+  void RunScheduledSync();
   sidebar::SidebarWebPanelController* GetWebPanelController() const;
   // Moves focus out of `contents` when it is in the panel, so the panel can
   // let go of it without leaving the main area without a page.
@@ -100,6 +104,7 @@ class OriginSideViewController : public OriginSideView::Delegate,
   // Opens the panel once for a side page restored with the window.
   bool showed_restored_side_page_ = false;
   bool syncing_ = false;
+  bool sync_scheduled_ = false;
 
   raw_ptr<OriginLaterService> later_service_ = nullptr;
 

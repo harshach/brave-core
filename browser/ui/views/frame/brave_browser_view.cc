@@ -390,7 +390,21 @@ bool ActivateOriginQuickOpenTab(Profile* profile, const GURL& url) {
                             contents->GetLastCommittedURL() != url)) {
             continue;
           }
-          model->ActivateTabAt(index);
+          auto* space_controller =
+              browser_window->GetFeatures().origin_space_controller();
+          auto* view =
+              BraveBrowserView::GetBrowserViewForBrowser(browser_window);
+          if (space_controller && view && view->origin_side_view_controller() &&
+              space_controller->IsSidePage(contents)) {
+            // A side page shows in its Space's side view, never the main
+            // area.
+            space_controller->SelectSpace(
+                space_controller->GetSpaceIdForTab(contents));
+            view->origin_side_view_controller()->Show(
+                OriginSideViewMode::kPage);
+          } else {
+            model->ActivateTabAt(index);
+          }
           browser_window->GetWindow()->Show();
           browser_window->GetWindow()->Activate();
           activated = true;
@@ -992,8 +1006,10 @@ void BraveBrowserView::OnOriginLaterPicked(
     ShowOriginSidebarNotice(u"Reminder set for " + when_description);
     return;
   }
-  later->SnoozePage(page->GetLastCommittedURL(), page->GetTitle(), space_id,
-                    when);
+  if (!later->SnoozeWhenClosed(page.get(), space_id, when)) {
+    ShowOriginSidebarNotice(u"This page can't be snoozed yet");
+    return;
+  }
   // The page leaves now and comes back on its own; z would only bring back a
   // second copy, so it isn't recorded as closed.
   if (model->active_index() == index) {

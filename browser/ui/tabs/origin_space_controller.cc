@@ -279,7 +279,10 @@ size_t OriginSpaceController::GetPageCountForSpace(
 
 bool OriginSpaceController::ActiveSpaceHasTabs() const {
   for (int index = 0; index < tab_strip_model_->count(); ++index) {
-    if (IsTabInActiveSpace(tab_strip_model_->GetWebContentsAt(index))) {
+    auto* contents = tab_strip_model_->GetWebContentsAt(index);
+    // The side page can't be the main area's page, so alone it leaves the
+    // Space without one.
+    if (IsTabInActiveSpace(contents) && !IsSidePage(contents)) {
       return true;
     }
   }
@@ -523,8 +526,10 @@ bool OriginSpaceController::SelectReplacementTabForClose(
       if (IsSidePage(contents)) {
         return false;
       }
-      return visible_page_only ? ShouldShowTabInPageList(contents)
-                               : IsTabInActiveSpace(contents);
+      // Not ShouldShowTabInPageList(): that follows a hovered Space, and
+      // closing a page must not switch Spaces.
+      return IsTabInActiveSpace(contents) &&
+             (!visible_page_only || !IsTabPlaceholder(contents));
     };
 
     for (int index = active_index + 1; index < tab_strip_model_->count();
@@ -750,6 +755,16 @@ void OriginSpaceController::OnTabStripModelChanged(
     const auto* replace = change.GetReplace();
     const std::string space_id = GetSpaceIdForTab(replace->old_contents);
     EnsureSpaceForTab(replace->new_contents, space_id);
+    // A discarded page comes back as new contents and keeps what Origin knows
+    // about it.
+    const auto* old_data =
+        OriginSpaceTabData::FromWebContents(replace->old_contents);
+    auto* new_data = OriginSpaceTabData::FromWebContents(replace->new_contents);
+    if (old_data && new_data) {
+      new_data->set_side_page(old_data->side_page());
+      new_data->set_pinned_home_url(old_data->pinned_home_url());
+      new_data->set_custom_title(old_data->custom_title());
+    }
     WriteTabSessionData(replace->new_contents);
   } else if (change.type() == TabStripModelChange::Type::kRemoved) {
     for (const auto& removed : change.GetRemove()->contents) {

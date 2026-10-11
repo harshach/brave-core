@@ -1300,6 +1300,75 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginRenamedPageKeepsItsName) {
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginDiscardedPageKeepsWhatOriginKnows) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  const GURL home = pages[1]->GetLastCommittedURL();
+  model->SetTabPinned(model->GetIndexOfWebContents(pages[1]), true);
+  space_controller->SetPinnedHomeUrl(pages[1], home);
+  space_controller->SetCustomTitle(pages[1], u"Reading list");
+  // Only pages off screen are discarded, so the side page stays out of view.
+  origin_side_view_controller()->Hide();
+  space_controller->SetSidePage(pages[2], true);
+  ASSERT_EQ(nullptr, origin_side_view_panel_contents());
+
+  // Memory Saver puts new contents in place of a discarded page.
+  const auto discard = [&](content::WebContents* page) {
+    const int index = model->GetIndexOfWebContents(page);
+    std::unique_ptr<content::WebContents> old_contents =
+        model->DiscardWebContents(
+            page,
+            content::WebContents::Create(
+                content::WebContents::CreateParams(browser()->GetProfile())));
+    return model->GetWebContentsAt(index);
+  };
+  content::WebContents* pinned = discard(pages[1]);
+  ASSERT_TRUE(OriginSpaceController::GetCustomTitle(pinned));
+  EXPECT_EQ(u"Reading list", *OriginSpaceController::GetCustomTitle(pinned));
+  EXPECT_EQ(home, space_controller->GetPinnedHomeUrl(pinned));
+  content::WebContents* side_page = discard(pages[2]);
+  EXPECT_TRUE(space_controller->IsSidePage(side_page));
+  EXPECT_FALSE(space_controller->ShouldShowTabInPageList(side_page));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginActivatingAnotherSpacesSidePageShowsItAside) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  auto* workspace_service =
+      WorkspaceServiceFactory::GetForProfile(browser()->GetProfile());
+  ASSERT_GE(workspace_service->GetOriginSpaces().size(), 2u);
+  auto* controller = origin_side_view_controller();
+  const std::vector<content::WebContents*> pages = OpenOriginPages(2);
+  const std::string space_a = space_controller->active_space_id();
+  const std::string space_b =
+      workspace_service->GetOriginSpaces()[0].id == space_a
+          ? workspace_service->GetOriginSpaces()[1].id
+          : workspace_service->GetOriginSpaces()[0].id;
+
+  // Space A shows its side page; Space B's only page is its side page.
+  space_controller->MoveTabToSpace(pages[2], space_b);
+  space_controller->SetSidePage(pages[2], true);
+  ASSERT_TRUE(controller->MovePageToSide(pages[1]));
+  ASSERT_EQ(pages[1], origin_side_view_panel_contents());
+
+  // Ctrl+Tab, a notification or an extension can activate B's side page while
+  // the tab strip is notifying. Space B comes forward with the page aside and
+  // a page of its own in the main area.
+  model->ActivateTabAt(model->GetIndexOfWebContents(pages[2]));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return origin_side_view_panel_contents() == pages[2]; }));
+  EXPECT_EQ(space_b, space_controller->active_space_id());
+  EXPECT_NE(pages[2], model->GetActiveWebContents());
+  EXPECT_TRUE(
+      space_controller->IsTabInActiveSpace(model->GetActiveWebContents()));
+  EXPECT_TRUE(controller->IsOpen());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
                        OriginDoneCheckClosesThePageLikeD) {
   ASSERT_TRUE(embedded_test_server()->Start());
   auto* model = browser()->tab_strip_model();

@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "base/memory/raw_ptr.h"
+#include "base/memory/weak_ptr.h"
 #include "base/no_destructor.h"
 #include "base/observer_list.h"
 #include "base/observer_list_types.h"
@@ -78,6 +79,12 @@ class OriginLaterService : public KeyedService {
                   std::u16string title,
                   std::string space_id,
                   base::Time wake_time);
+  // Snoozes `contents` once it has closed; the caller closes it. A page kept
+  // open from its "Leave site?" prompt isn't snoozed. False, and nothing
+  // recorded, for a page that couldn't be reopened, which should stay open.
+  bool SnoozeWhenClosed(content::WebContents* contents,
+                        std::string space_id,
+                        base::Time wake_time);
   // Soonest first.
   const std::vector<SnoozedPage>& snoozed_pages() const { return snoozed_; }
   void WakeNow(const std::string& id);
@@ -119,6 +126,7 @@ class OriginLaterService : public KeyedService {
   base::WallClockTimer timer_;
   std::optional<base::Time> now_for_testing_;
   base::ObserverList<Observer> observers_;
+  base::WeakPtrFactory<OriginLaterService> weak_factory_{this};
 };
 
 class OriginLaterServiceFactory : public ProfileKeyedServiceFactory {

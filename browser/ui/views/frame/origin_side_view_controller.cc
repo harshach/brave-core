@@ -13,7 +13,9 @@
 #include "base/auto_reset.h"
 #include "base/check.h"
 #include "base/functional/bind.h"
+#include "base/location.h"
 #include "base/strings/utf_string_conversions.h"
+#include "base/task/sequenced_task_runner.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_utils.h"
 #include "brave/browser/ui/sidebar/sidebar_web_panel_controller.h"
@@ -113,7 +115,7 @@ OriginSideViewController::OriginSideViewController(
 
   space_observation_.Observe(space_controller_);
   OnOriginLaterChanged();
-  Sync();
+  Sync(/*can_change_tabs=*/true);
 }
 
 OriginSideViewController::~OriginSideViewController() {
@@ -133,7 +135,7 @@ void OriginSideViewController::Show(OriginSideViewMode mode) {
   open_ = true;
   mode_ = mode;
   showed_restored_side_page_ = true;
-  Sync();
+  Sync(/*can_change_tabs=*/true);
 }
 
 void OriginSideViewController::ToggleMode(OriginSideViewMode mode) {
@@ -148,7 +150,7 @@ void OriginSideViewController::Hide() {
   open_ = false;
   // Hidden on purpose: a side page coming back no longer reopens the panel.
   showed_restored_side_page_ = true;
-  Sync();
+  Sync(/*can_change_tabs=*/true);
 }
 
 void OriginSideViewController::ToggleActivePageSide() {
@@ -193,7 +195,7 @@ bool OriginSideViewController::MovePageToSide(content::WebContents* contents) {
   mode_ = OriginSideViewMode::kPage;
   showed_restored_side_page_ = true;
   space_controller_->SetSidePage(contents, true);
-  Sync();
+  Sync(/*can_change_tabs=*/true);
   return true;
 }
 
@@ -226,7 +228,7 @@ void OriginSideViewController::ReturnSidePageToMain() {
   if (index != TabStripModel::kNoTab) {
     model->ActivateTabAt(index);
   }
-  Sync();
+  Sync(/*can_change_tabs=*/true);
 }
 
 void OriginSideViewController::CloseSidePage() {
@@ -264,7 +266,8 @@ void OriginSideViewController::OnOriginSpaceControllerChanged() {
     open_ = true;
     mode_ = OriginSideViewMode::kPage;
   }
-  Sync();
+  // The tab strip may be notifying its observers, when it can't change.
+  Sync(/*can_change_tabs=*/false);
 }
 
 void OriginSideViewController::OnOriginLaterChanged() {
@@ -299,7 +302,22 @@ std::u16string OriginSideViewController::GetSpaceName(
   return space ? base::UTF8ToUTF16(space->name) : std::u16string();
 }
 
-void OriginSideViewController::Sync() {
+void OriginSideViewController::ScheduleSync() {
+  if (sync_scheduled_) {
+    return;
+  }
+  sync_scheduled_ = true;
+  base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+      FROM_HERE, base::BindOnce(&OriginSideViewController::RunScheduledSync,
+                                weak_factory_.GetWeakPtr()));
+}
+
+void OriginSideViewController::RunScheduledSync() {
+  sync_scheduled_ = false;
+  Sync(/*can_change_tabs=*/true);
+}
+
+void OriginSideViewController::Sync(bool can_change_tabs) {
   if (syncing_) {
     return;
   }
@@ -329,10 +347,22 @@ void OriginSideViewController::Sync() {
         open_ && mode_ == OriginSideViewMode::kPage ? side_page : nullptr;
     const content::WebContents* shown = web_panel->panel_contents();
     const bool ours = !shown || shown == attached_side_page_.get();
-    if (ours && shown != wanted) {
+    const content::WebContents* active =
+        browser_->tab_strip_model()->GetActiveWebContents();
+    if (ours && shown != wanted && !can_change_tabs && active &&
+        (active == shown || active == wanted)) {
+      // The active page has to leave the main area first. Let go of a page
+      // that isn't active now and finish the rest once the tab strip can
+      // change.
+      if (shown && shown != active) {
+        web_panel->SetPanelContents(nullptr);
+        attached_side_page_.reset();
+      }
+      ScheduleSync();
+    } else if (ours && shown != wanted) {
       FocusMainPageIfActive(const_cast<content::WebContents*>(shown));
-      // A restored side page can come back as the active tab. It can't be on
-      // screen in the main area and the panel at once.
+      // A restored or switched-to side page can be the active tab. It can't be
+      // on screen in the main area and the panel at once.
       FocusMainPageIfActive(wanted);
       web_panel->SetPanelContents(wanted);
       attached_side_page_ =
