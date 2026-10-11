@@ -164,6 +164,7 @@
 #include "ui/views/layout/fill_layout.h"
 #include "ui/views/view_class_properties.h"
 #include "ui/views/view_utils.h"
+#include "url/url_constants.h"
 
 #if BUILDFLAG(ENABLE_EXTENSIONS)
 #include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
@@ -1101,6 +1102,12 @@ void BraveBrowserView::ShowOriginQuickOpenForAddress() {
   if (page && model && model->ShouldDisplayURL() &&
       !(controller && controller->IsTabPlaceholder(page))) {
     address = model->GetFormattedFullURL();
+    // The omnibox drops "http://". Quick Open needs it to read an edited
+    // address with a query as an address rather than a search.
+    if (model->GetURL().SchemeIs(url::kHttpScheme) &&
+        !address.starts_with(u"http://")) {
+      address.insert(0, u"http://");
+    }
   }
   ShowOriginQuickOpen();
   if (!address.empty()) {

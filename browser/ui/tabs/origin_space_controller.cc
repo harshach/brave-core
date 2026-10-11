@@ -43,11 +43,36 @@
 #include "content/public/common/referrer.h"
 #include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "ui/base/page_transition_types.h"
+#include "url/origin.h"
 #include "url/url_constants.h"
 
 namespace {
 
 constexpr size_t kMaxSessionSpaceBackups = 4096;
+
+// The icon `contents` showed at `url`, so a pin that sleeps there keeps its
+// face, as a discarded tab does. Any page from the same origin will do when
+// the exact address has left the history.
+std::optional<content::FaviconStatus> FindFavicon(
+    content::WebContents* contents,
+    const GURL& url) {
+  content::NavigationController& history = contents->GetController();
+  std::optional<content::FaviconStatus> same_origin;
+  for (int i = history.GetEntryCount() - 1; i >= 0; --i) {
+    content::NavigationEntry* entry = history.GetEntryAtIndex(i);
+    if (!entry->GetFavicon().valid) {
+      continue;
+    }
+    if (entry->GetURL() == url) {
+      return entry->GetFavicon();
+    }
+    if (!same_origin &&
+        url::Origin::Create(entry->GetURL()).IsSameOriginWith(url)) {
+      same_origin = entry->GetFavicon();
+    }
+  }
+  return same_origin;
+}
 
 // Holds an unloading pin's place while its page closes the usual way. If the
 // page's "Leave site?" prompt keeps it, nothing happens; once it has gone,
@@ -485,7 +510,7 @@ bool OriginSpaceController::SeparateFromPin(content::WebContents* contents) {
   // to the pin stays with the pin.
   tab_strip_model_->SetTabPinned(index, false);
   SetCustomTitle(contents, std::u16string());
-  InsertUnloadedPin(index, home, space_id, name);
+  InsertUnloadedPin(index, home, space_id, name, FindFavicon(contents, home));
   return true;
 }
 
@@ -513,13 +538,15 @@ bool OriginSpaceController::UnloadPinnedPage(content::WebContents* contents) {
         base::BindOnce(&OriginSpaceController::InsertUnloadedPin,
                        weak_factory_.GetWeakPtr(), index, home,
                        GetSpaceIdForTab(contents),
-                       custom_title ? *custom_title : std::u16string()));
+                       custom_title ? *custom_title : std::u16string(),
+                       FindFavicon(contents, home)));
     tab_strip_model_->CloseWebContentsAt(index, TabCloseTypes::CLOSE_NONE);
     return true;
   }
   // Swapping in unloaded contents keeps the tile, its place and what Origin
   // knows about the page (see the kReplaced handling).
-  tab_strip_model_->DiscardWebContents(contents, CreateUnloadedPage(home));
+  tab_strip_model_->DiscardWebContents(
+      contents, CreateUnloadedPage(home, FindFavicon(contents, home)));
   return true;
 }
 
@@ -541,16 +568,18 @@ int OriginSpaceController::GetUnreadCount(std::u16string_view title) {
   return std::max(count, 0);
 }
 
-void OriginSpaceController::InsertUnloadedPin(int index,
-                                              const GURL& home,
-                                              const std::string& space_id,
-                                              const std::u16string& name) {
+void OriginSpaceController::InsertUnloadedPin(
+    int index,
+    const GURL& home,
+    const std::string& space_id,
+    const std::u16string& name,
+    std::optional<content::FaviconStatus> favicon) {
   if (tab_strip_model_->closing_all()) {
     return;
   }
   index = std::clamp(index, 0, tab_strip_model_->IndexOfFirstNonPinnedTab());
-  tab_strip_model_->InsertWebContentsAt(index, CreateUnloadedPage(home),
-                                        AddTabTypes::ADD_PINNED);
+  tab_strip_model_->InsertWebContentsAt(
+      index, CreateUnloadedPage(home, favicon), AddTabTypes::ADD_PINNED);
   content::WebContents* pin = tab_strip_model_->GetWebContentsAt(index);
   // Inserting records the tab without its history, and a restore drops tabs
   // without history. Record it as duplicating a tab does.
@@ -564,7 +593,8 @@ void OriginSpaceController::InsertUnloadedPin(int index,
 }
 
 std::unique_ptr<content::WebContents> OriginSpaceController::CreateUnloadedPage(
-    const GURL& url) const {
+    const GURL& url,
+    const std::optional<content::FaviconStatus>& favicon) const {
   content::WebContents::CreateParams params(profile_);
   params.initially_hidden = true;
   params.desired_renderer_state =
@@ -577,6 +607,9 @@ std::unique_ptr<content::WebContents> OriginSpaceController::CreateUnloadedPage(
       /*initiator_base_url=*/std::nullopt, ui::PAGE_TRANSITION_AUTO_BOOKMARK,
       /*is_renderer_initiated=*/false, std::string(), profile_,
       /*blob_url_loader_factory=*/nullptr));
+  if (favicon) {
+    entries.back()->GetFavicon() = *favicon;
+  }
   page->GetController().Restore(0, content::RestoreType::kRestored, &entries);
   // Loads when it is next shown, as a discarded tab does.
   page->SetWasDiscarded(true);

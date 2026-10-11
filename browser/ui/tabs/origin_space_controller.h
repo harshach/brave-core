@@ -21,6 +21,7 @@
 #include "brave/browser/workspaces/workspace_service.h"
 #include "chrome/browser/ui/tabs/tab_strip_model_observer.h"
 #include "components/sessions/core/session_id.h"
+#include "content/public/browser/favicon_status.h"
 #include "url/gurl.h"
 
 class Profile;
@@ -174,15 +175,18 @@ class OriginSpaceController : public TabStripModelObserver,
   void RememberActiveTab(content::WebContents* contents);
   void EnsureActiveTabInActiveSpace();
   void WriteTabSessionData(content::WebContents* contents);
-  // A page at `url` that loads only when it is first shown.
+  // A page at `url` that loads only when it is first shown, showing
+  // `favicon` until then.
   std::unique_ptr<content::WebContents> CreateUnloadedPage(
-      const GURL& url) const;
+      const GURL& url,
+      const std::optional<content::FaviconStatus>& favicon) const;
   // Pins an unloaded page at `home` near `index`, in `space_id`, named
   // `name` when it isn't empty.
   void InsertUnloadedPin(int index,
                          const GURL& home,
                          const std::string& space_id,
-                         const std::u16string& name);
+                         const std::u16string& name,
+                         std::optional<content::FaviconStatus> favicon);
   void WriteWindowSessionData();
   void NotifyChanged();
 

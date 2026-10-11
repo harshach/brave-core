@@ -162,6 +162,7 @@
 #if BUILDFLAG(IS_MAC)
 #include "base/mac/mac_util.h"
 #include "chrome/browser/ui/fullscreen_util_mac.h"
+#include "ui/base/test/scoped_fake_nswindow_focus.h"
 #endif  // BUILDFLAG(IS_MAC)
 
 using views::ShapeContextTokensOverride::kRoundedCornersBorderRadius;
@@ -415,8 +416,10 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(quick_open->GetVisible());
   views::Textfield* field = quick_open->search_field_;
   EXPECT_TRUE(field->HasFocus());
+  // The address keeps its scheme, which the omnibox drops for http.
   EXPECT_EQ(
-      browser()->GetFeatures().location_bar_model()->GetFormattedFullURL(),
+      u"http://" +
+          browser()->GetFeatures().location_bar_model()->GetFormattedFullURL(),
       field->GetText());
   EXPECT_EQ(field->GetText(), field->GetSelectedText());
   EXPECT_EQ(OriginQuickOpenDisposition::kReplace,
@@ -528,7 +531,12 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginCopyLinkKeys) {
             PressOriginKey(ui::VKEY_Y, blink::WebInputEvent::kAltKey));
   EXPECT_EQ(u"[Title Of Awesomeness](" + base::UTF8ToUTF16(clean.spec()) + u")",
             ReadClipboardText());
-  // The page reports its selection to the browser while it has focus.
+  // The page reports its selection to the browser while it has focus and its
+  // window is key, which a locked screen never grants.
+#if BUILDFLAG(IS_MAC)
+  ui::test::ScopedFakeNSWindowFocus fake_focus;
+  browser_view()->GetWidget()->Activate();
+#endif
   page->Focus();
   ASSERT_TRUE(content::ExecJs(page,
                               "const range = document.createRange();"

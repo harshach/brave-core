@@ -62,8 +62,8 @@ constexpr int kButtonSize = 26;
 constexpr int kIconSize = 16;
 constexpr int kButtonGap = 2;
 constexpr int kTrailingInset = 4;
-// Below this the host is mostly ellipsis, so buttons give way to it.
-constexpr int kMinHostWidth = 72;
+// Buttons give way to a host this wide; a longer one may be cut short.
+constexpr int kComfortableHostWidth = 150;
 
 std::unique_ptr<views::ImageButton> MakeIconButton(
     views::Button::PressedCallback callback,
@@ -347,18 +347,20 @@ void OriginAddressPill::Layout(PassKey) {
   };
 
   // Right to left: the menu and Shields always show; Copy Link and then
-  // Extensions give way when the host would be left too little room. Both
-  // stay in the menu.
+  // Extensions give way before the host is cut short, up to a comfortable
+  // width. Both stay in the menu, as in Arc's narrow pill.
+  const int host_width =
+      std::min(host_button_->GetPreferredSize().width(), kComfortableHostWidth);
   int right = bounds.right() - kTrailingInset;
   right = place(menu_button_, right);
   right = place(shields_button_, right);
   const int copy_width = kButtonSize + kButtonGap;
-  const bool show_copy = right - copy_width >= kMinHostWidth;
+  const bool show_copy = right - copy_width >= host_width;
   copy_button_->SetVisible(show_copy);
   if (show_copy) {
     right = place(copy_button_, right);
   }
-  const bool show_extensions = show_copy && right - copy_width >= kMinHostWidth;
+  const bool show_extensions = show_copy && right - copy_width >= host_width;
   extensions_button_->SetVisible(show_extensions);
   if (show_extensions) {
     right = place(extensions_button_, right);
