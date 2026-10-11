@@ -538,11 +538,9 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginCopyLinkKeys) {
   browser_view()->GetWidget()->Activate();
 #endif
   page->Focus();
-  ASSERT_TRUE(content::ExecJs(page,
-                              "const range = document.createRange();"
-                              "range.selectNodeContents(document.body);"
-                              "getSelection().removeAllRanges();"
-                              "getSelection().addRange(range);"));
+  // Selected the way a user would: the page only reports selections made by
+  // input or the browser, never by script.
+  page->SelectAll();
   ASSERT_TRUE(base::test::RunUntil([&] {
     auto* view = page->GetRenderWidgetHostView();
     return view && !view->GetSelectedText().empty();
