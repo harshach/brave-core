@@ -12,6 +12,8 @@
 #include "base/check.h"
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
+#include "base/location.h"
+#include "base/memory/weak_ptr.h"
 #include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/browser/ui/color/brave_color_id.h"
@@ -281,13 +283,22 @@ class BraveTab::OriginRenameField : public views::Textfield,
   // views::Textfield:
   void OnBlur() override {
     views::Textfield::OnBlur();
-    if (tab_) {
+    // Focus also leaves while the row is being taken out of the window, when
+    // the row's children can't change; finish once that is over.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, base::BindOnce(&OriginRenameField::EndAfterBlur,
+                                  weak_factory_.GetWeakPtr()));
+  }
+
+ private:
+  void EndAfterBlur() {
+    if (tab_ && !HasFocus()) {
       tab_->EndOriginRename(/*keep=*/true);
     }
   }
 
- private:
   raw_ptr<BraveTab> tab_ = nullptr;
+  base::WeakPtrFactory<OriginRenameField> weak_factory_{this};
 };
 
 BEGIN_METADATA(BraveTab, OriginRenameField)
@@ -1171,13 +1182,22 @@ void BraveTab::BeginOriginRename() {
 #endif
 }
 
+views::Textfield* BraveTab::origin_rename_field_for_testing() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return origin_rename_field_;
+#else
+  return nullptr;
+#endif
+}
+
 void BraveTab::EndOriginRename(bool keep) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!origin_rename_field_) {
     return;
   }
   const std::u16string name(origin_rename_field_->GetText());
-  // Cleared before removal: losing focus on the way out calls back in here.
+  // Losing focus on the way out must not call back in here.
+  origin_rename_field_->Detach();
   std::unique_ptr<OriginRenameField> field =
       RemoveChildViewT(origin_rename_field_.ExtractAsDangling());
   base::SequencedTaskRunner::GetCurrentDefault()->DeleteSoon(FROM_HERE,

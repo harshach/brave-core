@@ -26,6 +26,7 @@
 namespace views {
 class ImageButton;
 class ImageView;
+class Textfield;
 }  // namespace views
 
 namespace tabs {
@@ -113,6 +114,7 @@ class BraveTab : public Tab
   views::ImageButton* origin_done_button_for_testing() {
     return origin_done_button_;
   }
+  views::Textfield* origin_rename_field_for_testing();
 
   // Returns whether this tab should have an accent painted.
   bool ShouldPaintTabAccent() const;

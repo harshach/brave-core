@@ -1273,12 +1273,18 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginRenamedPageKeepsItsName) {
       page, embedded_test_server()->GetURL("/title1.html")));
   const int index = model->GetIndexOfWebContents(page);
 
-  // c opens the editor over the active page's title.
+  // c opens the editor over the active page's title; Enter keeps the name.
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             PressOriginKey(ui::VKEY_C));
   EXPECT_TRUE(GetOriginPageRow(index)->IsOriginRenaming());
-
-  space_controller->SetCustomTitle(page, u"Reading list");
+  views::Textfield* field =
+      GetOriginPageRow(index)->origin_rename_field_for_testing();
+  ASSERT_TRUE(field);
+  field->SetText(u"Reading list");
+  views::View* const field_view = field;
+  EXPECT_TRUE(field_view->OnKeyPressed(
+      ui::KeyEvent(ui::EventType::kKeyPressed, ui::VKEY_RETURN, ui::EF_NONE)));
+  EXPECT_FALSE(GetOriginPageRow(index)->IsOriginRenaming());
   EXPECT_EQ(u"Reading list", GetOriginPageRow(index)->data().title);
   // The page keeps its real title; only the list shows the name.
   EXPECT_NE(u"Reading list", page->GetTitle());
@@ -1286,6 +1292,11 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginRenamedPageKeepsItsName) {
   // An empty name gives the page its title back.
   space_controller->SetCustomTitle(page, u"");
   EXPECT_EQ(page->GetTitle(), GetOriginPageRow(index)->data().title);
+
+  // The window closes with a rename still open.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_C));
+  EXPECT_TRUE(GetOriginPageRow(index)->IsOriginRenaming());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
