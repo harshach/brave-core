@@ -67,12 +67,13 @@ struct Preset {
   ParsedTime when;
 };
 
-// The fixed choices offered before the user types, in order:
+// The fixed choices offered before the user types, soonest first:
 // "Later today" (as "later"; omitted once that falls on a later day),
 // "This evening" (today 6 PM; omitted from 5 PM on), "Tomorrow" (9 AM),
 // "This weekend" (the first Saturday after today, 9 AM; labeled
 // "Next weekend" on Saturday and Sunday) and "Next week" (the first Monday
-// after today, 9 AM). Each label parses back to its own time.
+// after today, 9 AM). A choice at the same time as an earlier one is left out.
+// Each label parses back to its own time.
 std::vector<Preset> GetPresets(base::Time now);
 
 }  // namespace origin_time_parser

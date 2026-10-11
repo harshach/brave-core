@@ -70,15 +70,18 @@
 #include "ui/base/window_open_disposition_utils.h"
 #include "ui/color/color_provider.h"
 #include "ui/events/event.h"
+#include "ui/events/event_observer.h"
 #include "ui/gfx/canvas.h"
 #include "ui/gfx/color_utils.h"
-#include "ui/events/event_observer.h"
+#include "ui/gfx/geometry/insets.h"
+#include "ui/gfx/geometry/rect.h"
+#include "ui/gfx/geometry/size.h"
 #include "ui/views/bubble/bubble_anchor.h"
 #include "ui/views/event_monitor.h"
-#include "ui/views/view_targeter.h"
 #include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/flex_layout_types.h"
 #include "ui/views/view_class_properties.h"
+#include "ui/views/view_targeter.h"
 #include "ui/views/view_utils.h"
 #include "ui/views/widget/widget.h"
 #include "ui/views/window/hit_test_utils.h"
@@ -528,6 +531,15 @@ void BraveToolbarView::Init() {
   }
 
   EnsureOriginExtensionsToolbar();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_side_view_spacer_ = AddChildView(std::make_unique<views::View>());
+  origin_side_view_spacer_->SetVisible(false);
+  origin_side_view_spacer_->SetProperty(
+      views::kFlexBehaviorKey,
+      views::FlexSpecification(views::MinimumFlexSizeRule::kPreferred,
+                               views::MaximumFlexSizeRule::kPreferred));
+  origin_side_view_spacer_->SetProperty(views::kMarginsKey, gfx::Insets());
+#endif
   brave_initialized_ = true;
   UpdateHorizontalPadding();
 }
@@ -882,6 +894,16 @@ void BraveToolbarView::ScheduleOriginPageChromeReveal(bool revealed) {
 #endif
 }
 
+void BraveToolbarView::SetOriginSideViewInset(int inset) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_side_view_inset_ == inset) {
+    return;
+  }
+  origin_side_view_inset_ = inset;
+  InvalidateLayout();
+#endif
+}
+
 double BraveToolbarView::origin_page_chrome_reveal_fraction() const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   return origin_page_chrome_animation_.GetCurrentValue();
@@ -973,6 +995,24 @@ void BraveToolbarView::Layout(PassKey) {
   }
 
   EnsureOriginExtensionsToolbar();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_side_view_spacer_) {
+    // The inset is measured from the window's edge; this bar may stop short
+    // of it.
+    int spacer_width = origin_side_view_inset_;
+    if (spacer_width > 0 && GetWidget()) {
+      const int window_right = GetWidget()->GetRootView()->width();
+      spacer_width -=
+          window_right - ConvertRectToWidget(GetLocalBounds()).right();
+    }
+    spacer_width = std::clamp(spacer_width, 0, width());
+    origin_side_view_spacer_->SetPreferredSize(gfx::Size(spacer_width, 0));
+    origin_side_view_spacer_->SetVisible(spacer_width > 0);
+    if (children().back() != origin_side_view_spacer_) {
+      ReorderChildView(origin_side_view_spacer_, children().size());
+    }
+  }
+#endif
 
   // In this Layout, location bar's rect is set twice.
   // First one is by upstream's flex layout.

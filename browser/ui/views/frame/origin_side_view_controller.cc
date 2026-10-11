@@ -26,6 +26,7 @@
 #include "brave/browser/ui/views/frame/origin_side_view_snoozed.h"
 #include "brave/browser/ui/views/frame/origin_side_view_tags.h"
 #include "brave/browser/ui/views/frame/split_view/brave_multi_contents_view.h"
+#include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_service.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
@@ -36,11 +37,14 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/chrome_pages.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
+#include "chrome/browser/ui/views/frame/browser_view.h"
 #include "components/favicon/content/content_favicon_driver.h"
 #include "components/prefs/pref_service.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/base/models/image_model.h"
+#include "ui/views/view_utils.h"
+#include "ui/views/widget/widget.h"
 #include "url/gurl.h"
 
 OriginSideViewController::OriginSideViewController(
@@ -114,6 +118,7 @@ OriginSideViewController::OriginSideViewController(
   }
 
   space_observation_.Observe(space_controller_);
+  side_view_observation_.Observe(side_view_);
   OnOriginLaterChanged();
   Sync(/*can_change_tabs=*/true);
 }
@@ -268,6 +273,37 @@ void OriginSideViewController::OnOriginSpaceControllerChanged() {
   }
   // The tab strip may be notifying its observers, when it can't change.
   Sync(/*can_change_tabs=*/false);
+}
+
+void OriginSideViewController::OnViewVisibilityChanged(
+    views::View* observed_view,
+    views::View* starting_view,
+    bool visible) {
+  UpdateToolbarInset();
+}
+
+void OriginSideViewController::OnViewBoundsChanged(views::View* observed_view) {
+  UpdateToolbarInset();
+}
+
+void OriginSideViewController::UpdateToolbarInset() {
+  auto* browser_view = BrowserView::GetBrowserViewForBrowser(browser_);
+  auto* toolbar =
+      browser_view
+          ? views::AsViewClass<BraveToolbarView>(browser_view->toolbar())
+          : nullptr;
+  views::Widget* widget = side_view_->GetWidget();
+  if (!toolbar || !widget) {
+    return;
+  }
+  int inset = 0;
+  if (side_view_->IsDrawn() && side_view_->width() > 0) {
+    inset = std::max(
+        0,
+        widget->GetRootView()->width() -
+            side_view_->ConvertRectToWidget(side_view_->GetLocalBounds()).x());
+  }
+  toolbar->SetOriginSideViewInset(inset);
 }
 
 void OriginSideViewController::OnOriginLaterChanged() {

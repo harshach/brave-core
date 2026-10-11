@@ -41,6 +41,7 @@ constexpr char kSpaceIdKey[] = "space_id";
 constexpr char kTimeKey[] = "time";
 constexpr char kDoneKey[] = "done";
 constexpr char kDismissedKey[] = "dismissed";
+constexpr char kRenamedKey[] = "renamed";
 
 // A page can't wake while there is no window to wake into, which is how every
 // session starts. Try again shortly rather than dropping it.
@@ -64,8 +65,7 @@ class PendingSnooze : public content::WebContentsUserData<PendingSnooze>,
 
   void WebContentsDestroyed() override {
     if (service_) {
-      service_->SnoozePage(url_, std::move(title_), std::move(space_id_),
-                           wake_time_);
+      service_->SnoozePage(std::move(page_));
     }
     service_ = nullptr;
   }
@@ -79,17 +79,19 @@ class PendingSnooze : public content::WebContentsUserData<PendingSnooze>,
                 base::Time wake_time)
       : content::WebContentsUserData<PendingSnooze>(*contents),
         content::WebContentsObserver(contents),
-        service_(std::move(service)),
-        url_(contents->GetLastCommittedURL()),
-        title_(contents->GetTitle()),
-        space_id_(std::move(space_id)),
-        wake_time_(wake_time) {}
+        service_(std::move(service)) {
+    // Listed, and later reopened, under the name the page list shows.
+    const std::u16string* custom_title =
+        OriginSpaceController::GetCustomTitle(contents);
+    page_ = {.url = contents->GetLastCommittedURL(),
+             .title = custom_title ? *custom_title : contents->GetTitle(),
+             .space_id = std::move(space_id),
+             .wake_time = wake_time,
+             .renamed = custom_title != nullptr};
+  }
 
   base::WeakPtr<OriginLaterService> service_;
-  const GURL url_;
-  std::u16string title_;
-  std::string space_id_;
-  const base::Time wake_time_;
+  OriginLaterService::SnoozedPage page_;
 
   WEB_CONTENTS_USER_DATA_KEY_DECL();
 };
@@ -113,15 +115,12 @@ void OriginLaterService::RegisterProfilePrefs(
   registry->RegisterListPref(kRemindersPref);
 }
 
-void OriginLaterService::SnoozePage(const GURL& url,
-                                    std::u16string title,
-                                    std::string space_id,
-                                    base::Time wake_time) {
-  if (!url.is_valid()) {
+void OriginLaterService::SnoozePage(SnoozedPage page) {
+  if (!page.url.is_valid()) {
     return;
   }
-  snoozed_.push_back({base::Uuid::GenerateRandomV4().AsLowercaseString(), url,
-                      std::move(title), std::move(space_id), wake_time});
+  page.id = base::Uuid::GenerateRandomV4().AsLowercaseString();
+  snoozed_.push_back(std::move(page));
   SortAndNotify();
 }
 
@@ -244,7 +243,8 @@ void OriginLaterService::Load() {
     }
     snoozed_.push_back({*id, GURL(*url),
                         title ? base::UTF8ToUTF16(*title) : std::u16string(),
-                        space_id ? *space_id : std::string(), *time});
+                        space_id ? *space_id : std::string(), *time,
+                        dict->FindBool(kRenamedKey).value_or(false)});
   }
   for (const base::Value& value : prefs->GetList(kRemindersPref)) {
     const base::DictValue* dict = value.GetIfDict();
@@ -281,7 +281,8 @@ void OriginLaterService::Save() {
                        .Set(kUrlKey, page.url.spec())
                        .Set(kTitleKey, base::UTF16ToUTF8(page.title))
                        .Set(kSpaceIdKey, page.space_id)
-                       .Set(kTimeKey, base::TimeToValue(page.wake_time)));
+                       .Set(kTimeKey, base::TimeToValue(page.wake_time))
+                       .Set(kRenamedKey, page.renamed));
   }
   profile_->GetPrefs()->SetList(kSnoozedPagesPref, std::move(snoozed));
 
@@ -389,6 +390,9 @@ bool OriginLaterService::OpenSnoozedPage(const SnoozedPage& page) {
   auto* space_controller = target->GetFeatures().origin_space_controller();
   if (!page.space_id.empty()) {
     space_controller->MoveTabToSpace(contents, page.space_id);
+  }
+  if (page.renamed) {
+    space_controller->SetCustomTitle(contents, page.title);
   }
   observers_.Notify(&Observer::OnSnoozedPageReturned, contents);
   return true;

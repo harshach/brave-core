@@ -898,6 +898,12 @@ std::vector<Preset> GetPresets(base::Time now) {
       AtLocalTime(NextWeekday(today, kSaturday), {.hour = kDefaultHour}));
   add(u"Next week",
       AtLocalTime(NextWeekday(today, kMonday), {.hour = kDefaultHour}));
+  // Soonest first. On a weekend "Next week" comes before "Next weekend", and
+  // on a Sunday it is "Tomorrow" again, so it is left out.
+  const auto time = [](const Preset& preset) { return preset.when.time; };
+  std::ranges::stable_sort(presets, {}, time);
+  const auto repeats = std::ranges::unique(presets, {}, time);
+  presets.erase(repeats.begin(), repeats.end());
   return presets;
 }
 

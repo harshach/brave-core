@@ -124,6 +124,11 @@ class BraveToolbarView : public ToolbarView,
   // 0 while hidden, 1 while shown, and everything between during the reveal.
   double origin_page_chrome_reveal_fraction() const;
 
+  // How far Origin's side view reaches in from the window's right edge, 0
+  // while it is closed. The side view runs up beside the page into this bar's
+  // strip, so the trailing controls stay clear of it.
+  void SetOriginSideViewInset(int inset);
+
  private:
   // views::View already declares OnEvent() with an incompatible signature, so
   // the pointer watch lives in its own observer.
@@ -176,6 +181,9 @@ class BraveToolbarView : public ToolbarView,
   raw_ptr<ToolbarButton> workspaces_button_ = nullptr;
   raw_ptr<BraveBookmarkButton> bookmark_ = nullptr;
   raw_ptr<BraveShieldsToolbarButton> origin_shields_button_ = nullptr;
+  // Last in the bar; as wide as the part of the side view under the bar.
+  raw_ptr<views::View> origin_side_view_spacer_ = nullptr;
+  int origin_side_view_inset_ = 0;
   // Tracks the preference to determine whether bookmark editing is allowed.
   BooleanPrefMember edit_bookmarks_enabled_;
 

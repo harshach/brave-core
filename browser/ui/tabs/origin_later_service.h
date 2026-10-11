@@ -45,6 +45,9 @@ class OriginLaterService : public KeyedService {
     std::u16string title;
     std::string space_id;
     base::Time wake_time;
+    // `title` is a name the user gave the page, which it keeps when it
+    // comes back.
+    bool renamed = false;
   };
 
   struct Reminder {
@@ -74,11 +77,9 @@ class OriginLaterService : public KeyedService {
 
   static void RegisterProfilePrefs(user_prefs::PrefRegistrySyncable* registry);
 
-  // Records a page to reopen at `wake_time`. The caller closes the page.
-  void SnoozePage(const GURL& url,
-                  std::u16string title,
-                  std::string space_id,
-                  base::Time wake_time);
+  // Records a page to reopen at `page.wake_time` and gives it an id. The
+  // caller closes the page.
+  void SnoozePage(SnoozedPage page);
   // Snoozes `contents` once it has closed; the caller closes it. A page kept
   // open from its "Leave site?" prompt isn't snoozed. False, and nothing
   // recorded, for a page that couldn't be reopened, which should stay open.

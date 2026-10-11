@@ -5,10 +5,13 @@
 
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 
+#include <algorithm>
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "base/base64.h"
 #include "base/check.h"
@@ -1117,6 +1120,22 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   // Page mode with no side page explains how to get one.
   EXPECT_EQ(OriginSideViewMode::kPage, controller->mode());
   EXPECT_TRUE(side_view->page_empty_state_for_testing()->GetVisible());
+  // The top bar's controls stay over the page, off the panel's header.
+  RunScheduledLayouts();
+  const gfx::Rect side_view_bounds =
+      side_view->ConvertRectToWidget(side_view->GetLocalBounds());
+  std::vector<views::View*> pending = {browser_view()->toolbar()};
+  while (!pending.empty()) {
+    views::View* control = pending.back();
+    pending.pop_back();
+    std::ranges::copy(control->children(), std::back_inserter(pending));
+    if (control->IsDrawn() && !control->bounds().IsEmpty() &&
+        views::IsViewClass<ToolbarButton>(control)) {
+      EXPECT_FALSE(side_view_bounds.Intersects(
+          control->ConvertRectToWidget(control->GetLocalBounds())))
+          << control->GetClassName();
+    }
+  }
 
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             PressOriginKey(ui::VKEY_OEM_5));
@@ -1399,6 +1418,8 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   const std::vector<content::WebContents*> pages = OpenOriginPages(2);
   model->ActivateTabAt(model->GetIndexOfWebContents(pages[1]));
   const GURL snoozed_url = pages[1]->GetLastCommittedURL();
+  browser()->GetFeatures().origin_space_controller()->SetCustomTitle(
+      pages[1], u"Read later");
   const int initial_count = model->count();
 
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
@@ -1417,6 +1438,9 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_EQ(1u, later->snoozed_pages().size());
   const OriginLaterService::SnoozedPage snoozed = later->snoozed_pages()[0];
   EXPECT_EQ(snoozed_url, snoozed.url);
+  // Listed under the name the user gave it.
+  EXPECT_EQ(u"Read later", snoozed.title);
+  EXPECT_TRUE(snoozed.renamed);
   EXPECT_GE(snoozed.wake_time, before + base::Hours(2) - base::Minutes(1));
   EXPECT_LE(snoozed.wake_time,
             base::Time::Now() + base::Hours(2) + base::Minutes(1));
@@ -1446,8 +1470,11 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(
       base::test::RunUntil([&] { return model->count() == initial_count; }));
   EXPECT_TRUE(later->snoozed_pages().empty());
-  EXPECT_EQ(snoozed_url,
-            model->GetWebContentsAt(model->count() - 1)->GetVisibleURL());
+  content::WebContents* woken = model->GetWebContentsAt(model->count() - 1);
+  EXPECT_EQ(snoozed_url, woken->GetVisibleURL());
+  // It comes back with that name.
+  ASSERT_TRUE(OriginSpaceController::GetCustomTitle(woken));
+  EXPECT_EQ(u"Read later", *OriginSpaceController::GetCustomTitle(woken));
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,

@@ -108,10 +108,13 @@ primitives so Chromium security updates remain mergeable.
   left out of the page list, page counts and `j`/`k`, follows its Space, and
   comes back with the tab after a restart. Fullscreen video in the page takes
   the window from the side view; fullscreen video in the side page takes it
-  from the page. The downloads shortcut opens the Downloads tool.
+  from the page. The downloads shortcut opens the Downloads tool. While the
+  side view is open the top bar's controls end at the page's edge, clear of
+  the side view's header.
 - Snoozing (`l`) closes the page and reopens it in its Space, in the profile's
-  most recent window, at the time typed in plain words ("in 2h", "fri 3pm")
-  or picked from presets. A reminder (`a`) remembers the page and a time, and
+  most recent window, under the name the user gave it, at the time typed in
+  plain words ("in 2h", "fri 3pm") or picked from presets, which are listed
+  soonest first. A page kept open from its "Leave site?" prompt isn't snoozed. A reminder (`a`) remembers the page and a time, and
   once due waits above the Spaces row until it is done. Both are kept in
   profile prefs by `OriginLaterService`; private windows have neither.
   Clicking a row in the Snoozed or Reminders tool opens its page.

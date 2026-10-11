@@ -386,16 +386,16 @@ TEST(OriginTimeParserTest, PresetsOnAWeekendOfferTheNextOne) {
                 "Later today: Sat 2025-10-18 13:00",
                 "This evening: Sat 2025-10-18 18:00",
                 "Tomorrow: Sun 2025-10-19 09:00",
-                "Next weekend: Sat 2025-10-25 09:00",
                 "Next week: Mon 2025-10-20 09:00",
+                "Next weekend: Sat 2025-10-25 09:00",
             }));
+  // On a Sunday next week starts tomorrow.
   EXPECT_EQ(PresetFields(LocalTime(2025, 10, 19, 10, 0)),
             (std::vector<std::string>{
                 "Later today: Sun 2025-10-19 13:00",
                 "This evening: Sun 2025-10-19 18:00",
                 "Tomorrow: Mon 2025-10-20 09:00",
                 "Next weekend: Sat 2025-10-25 09:00",
-                "Next week: Mon 2025-10-20 09:00",
             }));
 }
 

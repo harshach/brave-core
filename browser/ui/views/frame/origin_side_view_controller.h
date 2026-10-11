@@ -12,6 +12,7 @@
 #include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/views/frame/origin_side_view.h"
+#include "ui/views/view_observer.h"
 #include "url/gurl.h"
 
 class Browser;
@@ -30,7 +31,8 @@ class SidebarWebPanelController;
 // and drawn by Brave's web panel; in the other modes it shows a native tool.
 class OriginSideViewController : public OriginSideView::Delegate,
                                  public OriginSpaceController::Observer,
-                                 public OriginLaterService::Observer {
+                                 public OriginLaterService::Observer,
+                                 public views::ViewObserver {
  public:
   OriginSideViewController(Browser* browser,
                            BraveMultiContentsView* multi_contents_view);
@@ -71,6 +73,15 @@ class OriginSideViewController : public OriginSideView::Delegate,
 
   // OriginLaterService::Observer:
   void OnOriginLaterChanged() override;
+
+  // views::ViewObserver:
+  void OnViewVisibilityChanged(views::View* observed_view,
+                               views::View* starting_view,
+                               bool visible) override;
+  void OnViewBoundsChanged(views::View* observed_view) override;
+
+  // Tells the top bar how much of its strip the side view takes.
+  void UpdateToolbarInset();
 
   // Opens a page from a tool: the open copy if there is one, otherwise a new
   // page in the active Space.
@@ -113,6 +124,8 @@ class OriginSideViewController : public OriginSideView::Delegate,
       space_observation_{this};
   base::ScopedObservation<OriginLaterService, OriginLaterService::Observer>
       later_observation_{this};
+  base::ScopedObservation<views::View, views::ViewObserver>
+      side_view_observation_{this};
   base::WeakPtrFactory<OriginSideViewController> weak_factory_{this};
 };
 
