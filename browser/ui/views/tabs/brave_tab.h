@@ -16,7 +16,10 @@
 #include "brave/browser/ui/views/tabs/accent_color/brave_tab_accent_types.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
+#include "content/public/browser/web_contents_observer.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/gfx/geometry/point.h"
+#include "ui/gfx/image/image_skia.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 #include "brave/components/containers/core/browser/containers_service_observer.h"
@@ -110,6 +113,12 @@ class BraveTab : public Tab
   bool IsOriginRenaming() const { return !!origin_rename_field_; }
   // Origin: whether a pinned page has left the address it was pinned at.
   bool IsOriginPinnedPageAway() const;
+  // Origin: the colour a pinned tile washes its surface with, taken from its
+  // favicon, as Arc's Favorites do. Null without a favicon.
+  std::optional<SkColor> GetOriginTileTint() const;
+  // Origin: an unread count the page shows in its title, such as "Inbox (3)",
+  // for a badge on its tile. 0 when there is none.
+  int GetOriginUnreadCount() const;
 
   views::ImageButton* origin_done_button_for_testing() {
     return origin_done_button_;
@@ -228,6 +237,28 @@ class BraveTab : public Tab
   raw_ptr<OriginRenameField> origin_rename_field_ = nullptr;
   raw_ptr<views::View> origin_drag_handle_ = nullptr;
   bool origin_hierarchy_drop_target_ = false;
+  // The favicon the tile tint was last taken from, and that tint.
+  mutable gfx::ImageSkia origin_tint_source_;
+  mutable std::optional<SkColor> origin_tint_;
+
+  // Repaints a tile when its page's unread count changes. A tile the user
+  // named keeps the same tab data while the page's title moves, so nothing
+  // else would repaint it.
+  class OriginTitleWatcher : public content::WebContentsObserver {
+   public:
+    explicit OriginTitleWatcher(BraveTab* tab);
+    ~OriginTitleWatcher() override;
+
+    void Watch(content::WebContents* contents);
+
+    // content::WebContentsObserver:
+    void TitleWasSet(content::NavigationEntry* entry) override;
+
+   private:
+    const raw_ptr<BraveTab> tab_;
+    int unread_count_ = 0;
+  };
+  OriginTitleWatcher origin_title_watcher_{this};
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;

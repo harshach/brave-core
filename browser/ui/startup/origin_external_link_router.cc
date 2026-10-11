@@ -24,10 +24,13 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/tabs/split_tab_metrics.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "components/split_tabs/split_tab_visual_data.h"
+#include "content/public/browser/frame_tree_node_id.h"
+#include "content/public/browser/page_navigator.h"
 #include "content/public/browser/web_contents.h"
 #include "ui/base/base_window.h"
 #include "ui/base/window_open_disposition.h"
@@ -285,6 +288,31 @@ void ConfigureNavigation(const GURL& url,
   base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
       FROM_HERE, base::BindOnce(&FinalizeRoutedBrowser, temporary->GetWeakPtr(),
                                 std::move(synthetic_fallback)));
+}
+
+bool OpenInTemporaryWindow(BrowserWindowInterface* source_browser,
+                           const content::OpenURLParams& params) {
+  Profile* profile = source_browser ? source_browser->GetProfile() : nullptr;
+  if (!GetRoutingWorkspaceService(params.url, profile)) {
+    return false;
+  }
+  Browser* temporary = FindTemporaryBrowser(profile);
+  if (!temporary && GetBrowserWindowCreationStatusForProfile(*profile) ==
+                        BrowserWindowInterface::CreationStatus::kOk) {
+    temporary = CreateTemporaryBrowser(profile, source_browser);
+  }
+  if (!temporary) {
+    return false;
+  }
+
+  NavigateParams navigate_params(temporary, params.url, params.transition);
+  navigate_params.FillNavigateParamsFromOpenURLParams(params);
+  // The link loads in a new page, not in the frame it was clicked in.
+  navigate_params.frame_tree_node_id = content::FrameTreeNodeId();
+  navigate_params.disposition = WindowOpenDisposition::NEW_FOREGROUND_TAB;
+  navigate_params.window_action = NavigateParams::WindowAction::kShowWindow;
+  Navigate(&navigate_params);
+  return true;
 }
 
 std::string GetSuggestedSpaceId(Browser* temporary_browser, const GURL& url) {

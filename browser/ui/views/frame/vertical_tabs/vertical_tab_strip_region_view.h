@@ -127,6 +127,11 @@ class BraveVerticalTabStripRegionView : public views::View,
 
   // A short notice above the Spaces row, e.g. "Snoozed until Tomorrow 9 AM".
   void ShowOriginSidebarNotice(std::u16string text);
+
+  // Hosts the address pill above the page list. It is built by the browser
+  // view, which owns the actions behind its buttons.
+  void SetOriginAddressPill(std::unique_ptr<views::View> pill);
+  views::View* origin_address_pill() { return origin_address_pill_; }
   OriginSidebarStrips* origin_sidebar_strips_for_testing() {
     return origin_sidebar_strips_;
   }
@@ -235,6 +240,8 @@ class BraveVerticalTabStripRegionView : public views::View,
   int GetOriginPageListTop() const;
   // The rows stacked above the Spaces row; zero while none has anything.
   int GetOriginSidebarStripsHeight() const;
+  // The pill's height and the gap below it; 0 while there is no pill.
+  int GetOriginAddressPillHeight() const;
   void SetOriginWorkspaceIcon(std::string icon);
   void ShowOriginQuickOpen();
   void UpdateOriginWorkspaceMeta();
@@ -361,6 +368,7 @@ class BraveVerticalTabStripRegionView : public views::View,
   raw_ptr<views::View> origin_workspace_strip_ = nullptr;
   raw_ptr<views::LabelButton> origin_workspace_add_button_ = nullptr;
   raw_ptr<OriginSidebarStrips> origin_sidebar_strips_ = nullptr;
+  raw_ptr<views::View> origin_address_pill_ = nullptr;
   std::vector<raw_ptr<views::LabelButton>> origin_workspace_buttons_;
   raw_ptr<views::LabelButton> origin_workspace_drop_target_button_ = nullptr;
   std::string origin_drag_destination_space_id_;

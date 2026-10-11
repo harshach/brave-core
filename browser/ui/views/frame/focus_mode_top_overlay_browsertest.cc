@@ -26,6 +26,7 @@
 #include "chrome/browser/ui/views/frame/browser_widget.h"
 #include "chrome/browser/ui/views/frame/top_container_view.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
+#include "chrome/browser/ui/views/omnibox/omnibox_view_views.h"
 #include "chrome/browser/ui/views/tabs/tab_strip.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
 #include "chrome/test/base/chrome_test_path_utils.h"
@@ -196,8 +197,9 @@ IN_PROC_BROWSER_TEST_F(FocusModeTopOverlayBrowserTest,
   ASSERT_TRUE(ui_test_utils::NavigateToURL(
       browser(), https_server_.GetURL("/empty.html")));
 
-  // Focus the location bar (omnibox), which lives inside the top container.
-  chrome::FocusLocationBar(browser());
+  // Focus the omnibox, which lives inside the top container. Origin sends
+  // Command+L to Quick Open, so focus the field itself.
+  browser_view()->GetLocationBarView()->omnibox_view()->RequestFocus();
   views::View* focused = focus_manager->GetFocusedView();
   ASSERT_TRUE(focused);
   ASSERT_TRUE(top_container->Contains(focused));

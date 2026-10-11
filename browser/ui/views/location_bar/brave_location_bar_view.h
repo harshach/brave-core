@@ -80,6 +80,7 @@ class BraveLocationBarView : public LocationBarView {
   int GetBorderRadius() const override;
   void FocusLocation(bool is_user_initiated,
                      bool clear_focus_if_failed) override;
+  void FocusSearch() override;
 
   void SetOriginPageChromeColors(SkColor background,
                                  SkColor ring,

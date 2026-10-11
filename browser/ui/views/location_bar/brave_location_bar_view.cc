@@ -17,6 +17,7 @@
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
 #include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
+#include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_controller.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_view.h"
 #include "brave/browser/ui/views/location_bar/brave_shields_page_info_controller.h"
@@ -447,6 +448,15 @@ int BraveLocationBarView::GetBorderRadius() const {
 
 void BraveLocationBarView::FocusLocation(bool is_user_initiated,
                                          bool clear_focus_if_failed) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (auto* browser_view =
+          browser_ ? BraveBrowserView::GetBrowserViewForBrowser(browser_)
+                   : nullptr;
+      browser_view && browser_view->RouteOriginAddressFocus(
+                          /*search=*/false, is_user_initiated)) {
+    return;
+  }
+#endif
   if (base::FeatureList::IsEnabled(tabs::kBraveSharedPinnedTabs) &&
       browser_->GetProfile()->GetPrefs()->GetBoolean(
           brave_tabs::kSharedPinnedTab)) {
@@ -458,6 +468,21 @@ void BraveLocationBarView::FocusLocation(bool is_user_initiated,
   }
 
   omnibox_view_->SetFocus(is_user_initiated);
+}
+
+void BraveLocationBarView::FocusSearch() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Search the Web… (Command+Option+F) and Ctrl+K would otherwise type into
+  // the hidden field in keyword mode.
+  if (auto* browser_view =
+          browser_ ? BraveBrowserView::GetBrowserViewForBrowser(browser_)
+                   : nullptr;
+      browser_view && browser_view->RouteOriginAddressFocus(
+                          /*search=*/true, /*is_user_initiated=*/true)) {
+    return;
+  }
+#endif
+  LocationBarView::FocusSearch();
 }
 
 SkPath BraveLocationBarView::GetFocusRingHighlightPath() const {

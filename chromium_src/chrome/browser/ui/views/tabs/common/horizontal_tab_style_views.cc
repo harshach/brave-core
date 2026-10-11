@@ -9,6 +9,8 @@
 #include "base/dcheck_is_on.h"
 #include "base/logging.h"
 #include "base/memory/raw_ptr.h"
+#include "base/numerics/safe_conversions.h"
+#include "base/strings/string_number_conversions.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/tabs/brave_tab.h"
@@ -20,6 +22,8 @@
 #include "ui/base/models/image_model.h"
 #include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/color_utils.h"
+#include "ui/gfx/font_list.h"
+#include "ui/gfx/text_utils.h"
 #include "ui/views/view_utils.h"
 
 #include <chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc>
@@ -465,12 +469,21 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     {
       gfx::ScopedCanvas scoped_canvas(canvas);
       const float scale = canvas->UndoDeviceScaleFactor();
+      const SkPath surface =
+          GetPath(TabStyle::PathType::kHighlight, scale, /*flags=*/{});
       cc::PaintFlags flags;
       flags.setAntiAlias(true);
       flags.setColor(SkColorSetARGB(0x1A, 0xFF, 0xFF, 0xFF));
       flags.setStyle(cc::PaintFlags::kFill_Style);
-      canvas->DrawPath(
-          GetPath(TabStyle::PathType::kHighlight, scale, /*flags=*/{}), flags);
+      canvas->DrawPath(surface, flags);
+      // Each tile takes a wash of its icon's colour, as Arc's Favorites do.
+      // The selected tile keeps the plain selected fill so it still stands
+      // out.
+      if (const std::optional<SkColor> tint = brave_tab->GetOriginTileTint();
+          tint && !tab()->IsActive()) {
+        flags.setColor(SkColorSetA(*tint, 0x2E));
+        canvas->DrawPath(surface, flags);
+      }
     }
 
     const ui::ImageModel& favicon = tab()->data().favicon;
@@ -478,24 +491,57 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
       constexpr int kOriginPinnedFaviconSize = 26;
       const gfx::ImageSkia image =
           favicon.Rasterize(tab()->GetColorProvider());
+      // An unloaded page keeps its tile but looks asleep until it is opened.
+      const bool asleep = tab()->data().is_tab_discarded;
+      if (asleep) {
+        canvas->SaveLayerAlpha(0x73);
+      }
       canvas->DrawImageInt(
           image, 0, 0, image.width(), image.height(),
           tile.x() + (tile.width() - kOriginPinnedFaviconSize) / 2,
           tile.y() + (tile.height() - kOriginPinnedFaviconSize) / 2,
           kOriginPinnedFaviconSize, kOriginPinnedFaviconSize,
           /*filter=*/true);
+      if (asleep) {
+        canvas->Restore();
+      }
+    }
+
+    constexpr SkColor kOriginAccent = SkColorSetRGB(0xFB, 0x54, 0x2B);
+    // An unread count from the page's title sits on the corner, as mail and
+    // chat show it in Arc.
+    const int unread = brave_tab->GetOriginUnreadCount();
+    if (unread > 0) {
+      const std::u16string text =
+          unread > 99 ? u"99+" : base::NumberToString16(unread);
+      const gfx::FontList font =
+          gfx::FontList().DeriveWithSizeDelta(-3).DeriveWithWeight(
+              gfx::Font::Weight::BOLD);
+      constexpr int kBadgeHeight = 14;
+      const int badge_width =
+          std::max(kBadgeHeight, gfx::GetStringWidth(text, font) + 8);
+      const gfx::Rect badge(base::ClampFloor(tile.right()) - badge_width - 3,
+                            base::ClampFloor(tile.y()) + 3, badge_width,
+                            kBadgeHeight);
+      cc::PaintFlags pill;
+      pill.setAntiAlias(true);
+      pill.setColor(kOriginAccent);
+      pill.setStyle(cc::PaintFlags::kFill_Style);
+      canvas->DrawRoundRect(badge, kBadgeHeight / 2, pill);
+      canvas->DrawStringRectWithFlags(text, font, SK_ColorWHITE, badge,
+                                      gfx::Canvas::TEXT_ALIGN_CENTER);
     }
 
     // A dot in the corner says the page has left the address it was pinned
-    // at; h takes it back.
+    // at; h takes it back. It gives the badge its corner.
     if (brave_tab->IsOriginPinnedPageAway()) {
       cc::PaintFlags dot;
       dot.setAntiAlias(true);
-      dot.setColor(SkColorSetRGB(0xFB, 0x54, 0x2B));
+      dot.setColor(kOriginAccent);
       dot.setStyle(cc::PaintFlags::kFill_Style);
       constexpr float kDotRadius = 3.0f;
-      canvas->DrawCircle(gfx::PointF(tile.right() - 7.0f, tile.y() + 7.0f),
-                         kDotRadius, dot);
+      const float dot_x = unread > 0 ? tile.x() + 7.0f : tile.right() - 7.0f;
+      canvas->DrawCircle(gfx::PointF(dot_x, tile.y() + 7.0f), kDotRadius, dot);
     }
   }
 #endif

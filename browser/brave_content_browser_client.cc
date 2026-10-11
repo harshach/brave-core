@@ -271,6 +271,9 @@ using extensions::ChromeContentBrowserClientExtensionsPart;
 #if BUILDFLAG(ENABLE_AI_CHAT)
 #include "brave/browser/ui/ai_chat/utils.h"
 #endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "brave/browser/ui/tabs/origin_pinned_link_throttle.h"
+#endif
 #else
 #include "brave/browser/ui/webui/brave_account/brave_account_ui_android.h"
 #if BUILDFLAG(ENABLE_AI_CHAT)
@@ -1534,6 +1537,10 @@ void BraveContentBrowserClient::CreateThrottlesForNavigation(
 #if !BUILDFLAG(IS_ANDROID)
   NewTabShowsNavigationThrottle::MaybeCreateAndAdd(registry);
   SplitViewLinkNavigationThrottle::MaybeCreateAndAdd(registry);
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // After the split view link, which the user asked for explicitly.
+  OriginPinnedLinkThrottle::MaybeCreateAndAdd(registry);
+#endif
 #endif
 
 #if BUILDFLAG(ENABLE_TOR)

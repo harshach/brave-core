@@ -106,6 +106,10 @@ public:
   // Ctrl/Cmd+T pass no activation key.
   void
   ShowAndFocus(std::optional<ui::KeyboardCode> activation_key = std::nullopt);
+  // After ShowAndFocus(): fills the field with the page's `address`, selected,
+  // and sets Replace, so what is typed over it loads in the current page, as
+  // in the omnibox.
+  void EditAddress(const std::u16string& address);
   void Dismiss();
 
   // views::TextfieldController:
@@ -133,6 +137,7 @@ private:
       BraveBrowserViewTest_OriginQuickOpenNumberTypesUntilResultNavigation_Test;
   friend class BraveBrowserViewTest_OriginQuickOpenFetchesMissingFavicon_Test;
   friend class BraveBrowserViewTest_OriginTaggedPageShowsInQuickOpen_Test;
+  friend class BraveBrowserViewTest_OriginCommandLEditsAddressInQuickOpen_Test;
 
   static constexpr size_t kSectionCount = 3;
 

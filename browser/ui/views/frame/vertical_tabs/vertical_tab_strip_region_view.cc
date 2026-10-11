@@ -145,6 +145,11 @@ constexpr int kOriginSidebarMaximumWidth = 416;
 constexpr int kOriginWorkspaceHeaderHeight = 58;
 constexpr int kOriginSearchFieldHeight = 30;
 constexpr int kOriginPageListTopPadding = 8;
+// The address pill sits flush with the page rows' inset, as Arc's does.
+constexpr int kOriginAddressPillInset = 8;
+constexpr int kOriginAddressPillTopPadding = 4;
+// Narrower than this the host would show only an ellipsis.
+constexpr int kOriginAddressPillMinWidth = 140;
 constexpr int kOriginNewPageRowHeight = 32;
 constexpr int kOriginWorkspaceGap = 6;
 constexpr SkColor kOriginPickerSurface = SkColorSetRGB(0x1C, 0x1F, 0x25);
@@ -1803,7 +1808,35 @@ void BraveVerticalTabStripRegionView::ShowOriginSidebarNotice(
 
 int BraveVerticalTabStripRegionView::GetOriginPageListTop() const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return GetOriginWorkspaceHeaderHeight() + kOriginPageListTopPadding;
+  return GetOriginWorkspaceHeaderHeight() + GetOriginAddressPillHeight() +
+         kOriginPageListTopPadding;
+#else
+  return 0;
+#endif
+}
+
+void BraveVerticalTabStripRegionView::SetOriginAddressPill(
+    std::unique_ptr<views::View> pill) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_address_pill_) {
+    origin_page_column_->RemoveChildViewT(
+        std::exchange(origin_address_pill_, nullptr));
+  }
+  if (pill) {
+    origin_address_pill_ = origin_page_column_->AddChildView(std::move(pill));
+  }
+  InvalidateLayout();
+#endif
+}
+
+int BraveVerticalTabStripRegionView::GetOriginAddressPillHeight() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!origin_address_pill_ ||
+      GetContentsBounds().width() < kOriginAddressPillMinWidth) {
+    return 0;
+  }
+  return kOriginAddressPillTopPadding +
+         origin_address_pill_->GetPreferredSize().height();
 #else
   return 0;
 #endif
@@ -2396,6 +2429,15 @@ void BraveVerticalTabStripRegionView::Layout(PassKey) {
   origin_workspace_header_->SetBounds(workspace_x, 0, contents_view_width,
                                       GetOriginWorkspaceHeaderHeight());
   origin_search_button_->SetBoundsRect(gfx::Rect());
+  if (origin_address_pill_) {
+    const int pill_height = GetOriginAddressPillHeight();
+    origin_address_pill_->SetVisible(pill_height > 0);
+    origin_address_pill_->SetBounds(
+        kOriginAddressPillInset,
+        GetOriginWorkspaceHeaderHeight() + kOriginAddressPillTopPadding,
+        std::max(0, workspace_width - 2 * kOriginAddressPillInset),
+        std::max(0, pill_height - kOriginAddressPillTopPadding));
+  }
 
   const int workspace_bar_y =
       std::max(0, contents_bounds.height() - kOriginWorkspaceBarHeight);

@@ -60,11 +60,24 @@ primitives so Chromium security updates remain mergeable.
   list, which the page keeps across restarts; a pinned page remembers the
   address it was pinned at, `h` returns it there, Shift+H makes the current
   address its home, and its tile shows a dot while it is elsewhere.
-- The top bar's address field and page actions follow the page's scroll:
-  reading downward takes them away, coming back up returns them, as does
-  Command/Ctrl+L. Hovering the bar holds it open but never summons it, because
-  the page owns that strip while the bar is away and revealing on approach
-  would move whatever the pointer was reaching for.
+- Pinned pages are Arc-style tiles, four to a row and per Space: the favicon
+  on a wash of its own colour, a count badge when the title starts with one
+  ("(3) Inbox"), and a dimmed favicon while unloaded. Shift+P edits a pin's
+  address (`OriginPinnedUrlEditorView`); `x` separates a pin that has
+  wandered off, moving that page into the list and starting the pin over,
+  unloaded, at its address; `u` unloads a pin and keeps its tile. A link from
+  a pinned page to another site opens in the temporary window rather than
+  taking the pin away (`OriginPinnedLinkThrottle`).
+- In normal windows the address lives in a pill at the top of the sidebar, as
+  in Arc (`OriginAddressPill`): the host, extensions, Copy Link, Shields and a
+  menu with Copy Link's formats, site settings and the pin actions. The top
+  bar's page chrome is retired there, so the page keeps that strip and only
+  the window controls and navigation buttons remain over the sidebar.
+  Command/Ctrl+L, or a click on the host, opens Quick Open on the current
+  address in Replace mode. Copy Link drops tracking parameters
+  (`origin_copy_link`); `y`, Shift+Y and Option/Alt+Y copy a clean link, a
+  Markdown link and a link to the selected text. Other windows keep the bar,
+  which follows the page's scroll there.
 - Navigation mode maps the arrow keys and `j`/`k` to adjacent pages, `1`-`9` to the Space
   in that position of the bottom row, Command/Ctrl+Up and Command/Ctrl+Down to
   adjacent spaces, `o` and `n` to the native Quick Open palette, `d` to close
@@ -81,8 +94,8 @@ primitives so Chromium security updates remain mergeable.
   receive their original input. `\` shows or hides the side view, `.` moves
   the page into it or back to the list, `?` opens the shortcut sheet, `c`
   renames, `h` returns a pinned page home, `l` snoozes, `a` sets a reminder,
-  `t` tags, `w` closes the page, `e` edits the Space, and `[`/`]` go back and
-  forward.
+  `t` tags, `w` closes the page, `e` edits the Space, `[`/`]` go back and
+  forward, `y` copies the link, and `x` and `u` separate and unload a pin.
 - A Space carries an equalizer badge only while an unmuted page in it is
   producing sound. Clicking the badge mutes the Space and hides it. Paused,
   silent and muted pages have no rail status. `OriginMediaMonitor` supplies
@@ -130,8 +143,9 @@ The focused regression set covers Origin defaults, forced vertical-tree
 presentation, Space CRUD and persistence, per-space tab isolation, last-page
 selection, empty-space window restoration, fallback from invalid session data,
 the right web-panel feature default, the side view and side pages, Space
-preview, page rows (done, rename, pinned home), snoozing, reminders, tags and
-the time parser. Chromium patch files are also checked
+preview, page rows (done, rename, pinned home), pinned tiles and their
+actions, the address pill, Peek, Copy Link, snoozing, reminders, tags and the
+time parser. Chromium patch files are also checked
 against the patched source before each handoff.
 
 ## Update policy

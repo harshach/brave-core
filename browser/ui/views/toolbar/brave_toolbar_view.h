@@ -113,6 +113,11 @@ class BraveToolbarView : public ToolbarView,
   // for an action that needs the address field, such as Command+L.
   void RevealOriginPageChrome();
 
+  // In Origin's normal windows the address lives in the sidebar, as in Arc,
+  // and the page keeps this bar's strip for good: only the window controls
+  // and navigation buttons over the sidebar remain.
+  bool IsOriginPageChromeRetired() const;
+
   // Reading moves the address field out of the way; coming back up brings it
   // back. Hover and omnibox focus still override both.
   void OnOriginPageScrolled(bool scrolled_down);
@@ -142,6 +147,7 @@ class BraveToolbarView : public ToolbarView,
   void EnsureOriginExtensionsToolbar();
   void UpdateOriginPageChromeControls();
   void SetOriginPageChromeRevealed(bool revealed);
+  void RetireOriginPageChrome();
   void OnOriginPointerMoved(const gfx::Point& screen_point);
   void ApplyOriginScrollState(bool scrolled_down);
   void ScheduleOriginPageChromeReveal(bool revealed);

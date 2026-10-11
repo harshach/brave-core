@@ -85,8 +85,11 @@ constexpr int kOriginSplitSectionTopInset = 8;
 constexpr int kOriginSplitSectionBottomInset = 2;
 constexpr int kOriginNewPageHorizontalInset = 8;
 constexpr int kOriginNewPageTopInset = 4;
-constexpr int kOriginPinnedColumns = 3;
-constexpr int kOriginPinnedTileHeight = 52;
+// Four across, as Arc's Favorites. Tiles keep a little wider than tall and
+// shrink with a narrow sidebar.
+constexpr int kOriginPinnedColumns = 4;
+constexpr int kOriginPinnedTileMinHeight = 40;
+constexpr int kOriginPinnedTileMaxHeight = 52;
 constexpr int kOriginPinnedTileGap = 8;
 constexpr int kOriginPinnedSectionBottomInset = 6;
 
@@ -1433,22 +1436,25 @@ void BraveTabContainer::UpdateIdealBounds() {
       const int tile_width = std::max(
           0, (row_width - (kOriginPinnedColumns - 1) * kOriginPinnedTileGap) /
                  kOriginPinnedColumns);
+      const int tile_height =
+          std::clamp(tile_width * 5 / 6, kOriginPinnedTileMinHeight,
+                     kOriginPinnedTileMaxHeight);
       const int stride = tile_width + kOriginPinnedTileGap;
       int column = 0;
       for (const size_t index : visible_pinned_tab_indices) {
         gfx::Rect bounds = tabs_view_model_.ideal_bounds(index);
         bounds.set_x(margin + column * stride);
         bounds.set_width(tile_width);
-        bounds.set_height(kOriginPinnedTileHeight);
+        bounds.set_height(tile_height);
         bounds.set_y(compact_y);
         tabs_view_model_.set_ideal_bounds(index, bounds);
         if (++column == kOriginPinnedColumns) {
           column = 0;
-          compact_y += kOriginPinnedTileHeight + kOriginPinnedTileGap;
+          compact_y += tile_height + kOriginPinnedTileGap;
         }
       }
       if (column != 0) {
-        compact_y += kOriginPinnedTileHeight + kOriginPinnedTileGap;
+        compact_y += tile_height + kOriginPinnedTileGap;
       }
       compact_y += kOriginPinnedSectionBottomInset;
     }

@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <map>
+#include <memory>
 #include <optional>
 #include <string>
 
@@ -98,6 +99,21 @@ class OriginSpaceController : public TabStripModelObserver,
   void SetPinnedHomeUrl(content::WebContents* contents, const GURL& url);
   bool IsPinnedPageAway(content::WebContents* contents) const;
   bool ReturnPinnedPageHome(content::WebContents* contents);
+  // Arc's "Separate From Pinned Tab": the page a pin has wandered to moves
+  // into the page list with its history, and the pin starts over, unloaded,
+  // at its home address. False unless `contents` is a pinned page away from
+  // home.
+  bool SeparateFromPin(content::WebContents* contents);
+  // Arc's "Close and Keep Pinned": the pinned page unloads back at its home
+  // address and loads again when its tile is opened. `contents` must not be
+  // the active tab. False for a page that isn't pinned or is already unloaded.
+  // A page with unload handlers closes the usual way instead, so its "Leave
+  // site?" prompt can keep it, and the pin returns once it has gone.
+  bool UnloadPinnedPage(content::WebContents* contents);
+
+  // The count mail and chat put in brackets near the start of a title:
+  // "(3) Slack", "Inbox (12) - me@example.com - Gmail". 0 without one.
+  static int GetUnreadCount(std::u16string_view title);
 
   // A name the user gave the page, shown in the page list in place of its
   // title. Null when the page shows its own title.
@@ -158,6 +174,15 @@ class OriginSpaceController : public TabStripModelObserver,
   void RememberActiveTab(content::WebContents* contents);
   void EnsureActiveTabInActiveSpace();
   void WriteTabSessionData(content::WebContents* contents);
+  // A page at `url` that loads only when it is first shown.
+  std::unique_ptr<content::WebContents> CreateUnloadedPage(
+      const GURL& url) const;
+  // Pins an unloaded page at `home` near `index`, in `space_id`, named
+  // `name` when it isn't empty.
+  void InsertUnloadedPin(int index,
+                         const GURL& home,
+                         const std::string& space_id,
+                         const std::u16string& name);
   void WriteWindowSessionData();
   void NotifyChanged();
 

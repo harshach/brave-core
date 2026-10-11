@@ -21,6 +21,7 @@
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/brave_actions/brave_shields_toolbar_button.h"
@@ -276,7 +277,11 @@ void BraveToolbarView::Init() {
       .RegisterCaptionArea(this);
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+  if (IsOriginPageChromeRetired()) {
+    RetireOriginPageChrome();
+  } else {
+    SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+  }
 #endif
 
   // For non-normal mode, we don't have to do any more work.
@@ -731,7 +736,12 @@ void BraveToolbarView::AddedToWidget() {
   SetEventTargeter(std::make_unique<views::ViewTargeter>(this));
   origin_page_chrome_pointer_watcher_ =
       std::make_unique<OriginPointerWatcher>(this, GetWidget()->GetNativeWindow());
-  SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+  if (IsOriginPageChromeRetired()) {
+    // Init() ran before the later page actions existed; hide those too.
+    RetireOriginPageChrome();
+  } else {
+    SetOriginPageChromeRevealed(origin_scroll_wants_page_chrome_);
+  }
 #endif
 }
 
@@ -768,6 +778,9 @@ void BraveToolbarView::OnOriginPointerMoved(const gfx::Point& screen_point) {
 
 void BraveToolbarView::RevealOriginPageChrome() {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (IsOriginPageChromeRetired()) {
+    return;
+  }
   origin_page_chrome_reveal_timer_.Stop();
   SetOriginPageChromeRevealed(true);
 #endif
@@ -775,7 +788,8 @@ void BraveToolbarView::RevealOriginPageChrome() {
 
 void BraveToolbarView::OnOriginPageScrolled(bool scrolled_down) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (base::TimeTicks::Now() < origin_scroll_resume_at_) {
+  if (IsOriginPageChromeRetired() ||
+      base::TimeTicks::Now() < origin_scroll_resume_at_) {
     // This is the page settling after the bar took or gave back its strip,
     // not the reader moving. Acting on it oscillates the bar.
     return;
@@ -850,7 +864,7 @@ bool BraveToolbarView::DoesIntersectRect(const views::View* target,
 
 bool BraveToolbarView::ShouldHoldOriginPageChromeOpen() const {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  if (!location_bar_view_) {
+  if (!location_bar_view_ || IsOriginPageChromeRetired()) {
     return false;
   }
   // The pointer sits over the page while reading, so letting it close the bar
@@ -912,9 +926,39 @@ double BraveToolbarView::origin_page_chrome_reveal_fraction() const {
 #endif
 }
 
+bool BraveToolbarView::IsOriginPageChromeRetired() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return display_mode_ == DisplayMode::kNormal &&
+         browser_->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL &&
+         !origin_external_link::IsTemporaryLinkBrowser(browser_);
+#else
+  return false;
+#endif
+}
+
+void BraveToolbarView::RetireOriginPageChrome() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  origin_scroll_wants_page_chrome_ = false;
+  origin_page_chrome_revealed_ = false;
+  origin_page_chrome_reveal_timer_.Stop();
+  origin_scroll_settle_timer_.Stop();
+  for (views::View* view : GetOriginPageChromeViews()) {
+    if (view) {
+      view->SetCanProcessEventsWithinSubtree(false);
+    }
+  }
+  // No slide: the window opens with the page already in the strip.
+  origin_page_chrome_animation_.Reset(0.0);
+  AnimationProgressed(&origin_page_chrome_animation_);
+#endif
+}
+
 void BraveToolbarView::SetOriginPageChromeRevealed(bool revealed) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (display_mode_ != DisplayMode::kNormal) {
+    return;
+  }
+  if (revealed && IsOriginPageChromeRetired()) {
     return;
   }
   if (!revealed && ShouldHoldOriginPageChromeOpen()) {

@@ -22,6 +22,7 @@
 #include "brave/browser/ui/commands/accelerator_service.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/views/frame/origin_address_pill.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/commands/browser/accelerator_pref_manager.h"
@@ -39,6 +40,7 @@
 #include "ui/color/color_provider_key.h"
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/geometry/rounded_corners_f.h"
+#include "ui/views/view_tracker.h"
 #include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -83,6 +85,7 @@ class FocusModeTitleBarView;
 class FocusModeTopOverlay;
 class OriginQuickOpenView;
 class OriginLaterPickerView;
+class OriginPinnedUrlEditorView;
 class OriginTagPickerView;
 class OriginSideViewController;
 class OriginSpaceWindowTheme;
@@ -138,6 +141,10 @@ class BraveBrowserView : public BrowserView,
       const;
   // Previews `space_id`'s theme on this window until reset with nullopt.
   void PreviewOriginSpaceTheme(std::optional<std::string> space_id);
+  // Where the top bar is retired its address field can't be seen, so asking
+  // to focus it opens Quick Open instead: on the current address, or empty
+  // for a search. Returns false where the bar is still in use.
+  bool RouteOriginAddressFocus(bool search, bool is_user_initiated);
 
   // Returns the bounding rectangle, in screen coordinates, used to detect
   // mouse-over events that control sidebar visibility. The bounds of a
@@ -407,6 +414,19 @@ class BraveBrowserView : public BrowserView,
   // t: tags the active page.
   void ShowOriginTagPicker();
   void ShowOriginSidebarNotice(std::u16string text);
+  // The address pill at the top of the sidebar stands in for the top bar.
+  void AddOriginAddressPill();
+  // Command+L and a click on the pill edit the address in Quick Open.
+  void ShowOriginQuickOpenForAddress();
+  void RunOriginAddressCommand(OriginAddressPill::Command command);
+  bool IsOriginAddressCommandEnabled(OriginAddressPill::Command command);
+  // y, Shift+Y and Option+Y.
+  void CopyOriginLink(OriginAddressPill::Command format);
+  // x, u and Shift+P on a pinned page.
+  void SeparateActiveOriginPin();
+  void UnloadActiveOriginPin();
+  void ShowOriginPinnedUrlEditor(
+      std::optional<ui::KeyboardCode> activation_key);
 
   sidebar::Sidebar* InitSidebar() override;
   void ToggleSidebar() override;
@@ -442,6 +462,9 @@ class BraveBrowserView : public BrowserView,
   raw_ptr<OriginQuickOpenView> origin_quick_open_view_ = nullptr;
   raw_ptr<OriginLaterPickerView> origin_later_picker_view_ = nullptr;
   raw_ptr<OriginTagPickerView> origin_tag_picker_view_ = nullptr;
+  raw_ptr<OriginPinnedUrlEditorView> origin_pinned_url_editor_view_ = nullptr;
+  // Owned by the sidebar.
+  views::ViewTracker origin_address_pill_;
   raw_ptr<OriginTemporaryLinkView> origin_temporary_link_view_ = nullptr;
   raw_ptr<views::View> vertical_tab_strip_host_view_ = nullptr;
   raw_ptr<BraveVerticalTabStripContainerView>

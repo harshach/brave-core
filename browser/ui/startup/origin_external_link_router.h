@@ -15,6 +15,10 @@ class BrowserWindowInterface;
 class GURL;
 struct NavigateParams;
 
+namespace content {
+struct OpenURLParams;
+}  // namespace content
+
 namespace origin_external_link {
 
 enum class KeepDisposition {
@@ -42,6 +46,14 @@ bool RoutesNavigation(const GURL& url,
 void ConfigureNavigation(const GURL& url,
                          BrowserWindowInterface* fallback_browser,
                          NavigateParams* params);
+
+// Opens a link from a page in `source_browser` in front, in the profile's
+// temporary link window, as Arc's Peek does. Domain rules do not apply.
+// `params` keeps the link's initiator and referrer, so the page loads as the
+// link it was and not as a typed address. Returns false when the profile or
+// link has no temporary window.
+bool OpenInTemporaryWindow(BrowserWindowInterface* source_browser,
+                           const content::OpenURLParams& params);
 
 // Returns the best destination for an unassigned link: a persisted domain
 // rule, the last Space chosen with Keep, a Space already containing the domain,

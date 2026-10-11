@@ -18,6 +18,7 @@
 #include "base/feature_list.h"
 #include "base/functional/bind.h"
 #include "base/strings/string_util.h"
+#include "base/strings/utf_string_conversions.h"
 #include "base/task/bind_post_task.h"
 #include "base/task/sequenced_task_runner.h"
 #include "brave/app/brave_command_ids.h"
@@ -37,6 +38,7 @@
 #include "brave/browser/ui/startup/origin_external_link_router.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/tabs/brave_tab_strip_model.h"
+#include "brave/browser/ui/tabs/origin_copy_link.h"
 #include "brave/browser/ui/tabs/origin_later_service.h"
 #include "brave/browser/ui/tabs/origin_media_monitor.h"
 #include "brave/browser/ui/tabs/origin_space_controller.h"
@@ -45,7 +47,9 @@
 #include "brave/browser/ui/views/brave_help_bubble/brave_help_bubble_host_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_title_bar_view.h"
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
+#include "brave/browser/ui/views/frame/origin_address_pill.h"
 #include "brave/browser/ui/views/frame/origin_later_picker_view.h"
+#include "brave/browser/ui/views/frame/origin_pinned_url_editor_view.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view_controller.h"
 #include "brave/browser/ui/views/frame/origin_site_identity.h"
@@ -66,6 +70,7 @@
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "brave/browser/ui/views/toolbar/screenshot_button.h"
 #include "brave/browser/ui/views/window_closing_confirm_dialog_view.h"
+#include "brave/browser/url_sanitizer/url_sanitizer_service_factory.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/common/pref_names.h"
 #include "brave/components/brave_origin/buildflags/buildflags.h"
@@ -138,6 +143,7 @@
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/accelerators/accelerator_manager.h"
 #include "ui/base/base_window.h"
+#include "ui/base/clipboard/scoped_clipboard_writer.h"
 #include "ui/base/hit_test.h"
 #include "ui/base/metadata/metadata_header_macros.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
@@ -665,6 +671,10 @@ BraveBrowserView::BraveBrowserView(BrowserWindowInterface* browser)
                 base::BindRepeating(&BraveBrowserView::HideOriginLaterPicker,
                                     base::Unretained(this))));
       }
+      origin_pinned_url_editor_view_ =
+          AddChildView(std::make_unique<OriginPinnedUrlEditorView>(
+              base::BindRepeating(&BraveBrowserView::HideOriginLaterPicker,
+                                  base::Unretained(this))));
     }
   }
 #endif
@@ -778,6 +788,9 @@ void BraveBrowserView::Layout(PassKey) {
     }
     if (origin_tag_picker_view_) {
       origin_tag_picker_view_->SetBoundsRect(empty_space_bounds);
+    }
+    if (origin_pinned_url_editor_view_) {
+      origin_pinned_url_editor_view_->SetBoundsRect(empty_space_bounds);
     }
   }
 #endif
@@ -1051,6 +1064,256 @@ void BraveBrowserView::ShowOriginSidebarNotice(std::u16string text) {
                          ->vertical_tab_strip_region_view()) {
     region->ShowOriginSidebarNotice(std::move(text));
   }
+}
+
+void BraveBrowserView::AddOriginAddressPill() {
+  if (!origin_quick_open_view_ || !vertical_tab_strip_container_view_ ||
+      browser()->GetType() != BrowserWindowInterface::Type::TYPE_NORMAL) {
+    return;
+  }
+  auto* region =
+      vertical_tab_strip_container_view_->vertical_tab_strip_region_view();
+  if (!region) {
+    return;
+  }
+  OriginAddressPill::Callbacks callbacks;
+  callbacks.edit_address = base::BindRepeating(
+      &BraveBrowserView::ShowOriginQuickOpenForAddress, base::Unretained(this));
+  callbacks.run_command = base::BindRepeating(
+      &BraveBrowserView::RunOriginAddressCommand, base::Unretained(this));
+  callbacks.is_command_enabled = base::BindRepeating(
+      &BraveBrowserView::IsOriginAddressCommandEnabled, base::Unretained(this));
+  auto pill = std::make_unique<OriginAddressPill>(
+      static_cast<Browser*>(browser_.get()), std::move(callbacks));
+  origin_address_pill_.SetView(pill.get());
+  region->SetOriginAddressPill(std::move(pill));
+  views::AsViewClass<OriginAddressPill>(origin_address_pill_.view())->Update();
+}
+
+void BraveBrowserView::ShowOriginQuickOpenForAddress() {
+  if (!origin_quick_open_view_) {
+    return;
+  }
+  std::u16string address;
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = GetActiveWebContents();
+  const LocationBarModel* model = browser()->GetFeatures().location_bar_model();
+  if (page && model && model->ShouldDisplayURL() &&
+      !(controller && controller->IsTabPlaceholder(page))) {
+    address = model->GetFormattedFullURL();
+  }
+  ShowOriginQuickOpen();
+  if (!address.empty()) {
+    origin_quick_open_view_->EditAddress(address);
+  }
+}
+
+void BraveBrowserView::RunOriginAddressCommand(
+    OriginAddressPill::Command command) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index = model->active_index();
+  content::WebContents* page =
+      index == TabStripModel::kNoTab ? nullptr : model->GetWebContentsAt(index);
+  switch (command) {
+    case OriginAddressPill::kCopyLink:
+    case OriginAddressPill::kCopyLinkAsMarkdown:
+    case OriginAddressPill::kCopyLinkToHighlight:
+      CopyOriginLink(command);
+      return;
+    case OriginAddressPill::kSiteSettings:
+    case OriginAddressPill::kExtensions:
+      if (auto* pill = views::AsViewClass<OriginAddressPill>(
+              origin_address_pill_.view())) {
+        if (command == OriginAddressPill::kSiteSettings) {
+          pill->ShowSiteSettings();
+        } else {
+          pill->ShowExtensions();
+        }
+      }
+      return;
+    case OriginAddressPill::kPinPage:
+      if (page) {
+        model->SetTabPinned(index, !model->IsTabPinned(index));
+      }
+      return;
+    case OriginAddressPill::kBackToPinnedAddress:
+      if (controller && page) {
+        controller->ReturnPinnedPageHome(page);
+      }
+      return;
+    case OriginAddressPill::kReplacePinnedAddress:
+      if (controller && page && model->IsTabPinned(index)) {
+        controller->SetPinnedHomeUrl(page, page->GetLastCommittedURL());
+      }
+      return;
+    case OriginAddressPill::kEditPinnedAddress:
+      ShowOriginPinnedUrlEditor(std::nullopt);
+      return;
+    case OriginAddressPill::kSeparateFromPin:
+      SeparateActiveOriginPin();
+      return;
+    case OriginAddressPill::kUnloadKeepPinned:
+      UnloadActiveOriginPin();
+      return;
+  }
+}
+
+bool BraveBrowserView::IsOriginAddressCommandEnabled(
+    OriginAddressPill::Command command) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index = model->active_index();
+  content::WebContents* page =
+      index == TabStripModel::kNoTab ? nullptr : model->GetWebContentsAt(index);
+  if (!controller || !page || controller->IsTabPlaceholder(page)) {
+    return false;
+  }
+  const bool pinned = model->IsTabPinned(index);
+  switch (command) {
+    case OriginAddressPill::kCopyLink:
+    case OriginAddressPill::kCopyLinkAsMarkdown:
+      return page->GetLastCommittedURL().is_valid();
+    case OriginAddressPill::kCopyLinkToHighlight: {
+      auto* view = page->GetRenderWidgetHostView();
+      return view && origin_copy_link::LinkToText(page->GetLastCommittedURL(),
+                                                  view->GetSelectedText());
+    }
+    case OriginAddressPill::kPinPage:
+      return !controller->IsSidePage(page);
+    case OriginAddressPill::kBackToPinnedAddress:
+    case OriginAddressPill::kReplacePinnedAddress:
+    case OriginAddressPill::kSeparateFromPin:
+      return pinned && controller->IsPinnedPageAway(page);
+    case OriginAddressPill::kEditPinnedAddress:
+      return pinned;
+    case OriginAddressPill::kUnloadKeepPinned:
+      return pinned && !page->WasDiscarded() && !controller->IsSidePage(page);
+    case OriginAddressPill::kSiteSettings:
+    case OriginAddressPill::kExtensions:
+      return true;
+  }
+  return false;
+}
+
+void BraveBrowserView::CopyOriginLink(OriginAddressPill::Command format) {
+  if (!IsOriginAddressCommandEnabled(OriginAddressPill::kCopyLink)) {
+    return;
+  }
+  content::WebContents* page = GetActiveWebContents();
+  const GURL url = origin_copy_link::CleanUrl(
+      brave::URLSanitizerServiceFactory::GetForBrowserContext(GetProfile()),
+      page->GetLastCommittedURL());
+  std::u16string text;
+  std::u16string notice;
+  switch (format) {
+    case OriginAddressPill::kCopyLinkAsMarkdown:
+      text = origin_copy_link::MarkdownLink(page->GetTitle(), url);
+      notice = u"Copied as a Markdown link";
+      break;
+    case OriginAddressPill::kCopyLinkToHighlight: {
+      auto* view = page->GetRenderWidgetHostView();
+      const std::optional<GURL> link = origin_copy_link::LinkToText(
+          url, view ? view->GetSelectedText() : std::u16string());
+      if (!link) {
+        ShowOriginSidebarNotice(u"Select text on the page to link to it");
+        return;
+      }
+      text = base::UTF8ToUTF16(link->spec());
+      notice = u"Copied a link to the selected text";
+      break;
+    }
+    default:
+      text = base::UTF8ToUTF16(url.spec());
+      notice = u"Copied link";
+      break;
+  }
+  ui::ScopedClipboardWriter(ui::ClipboardBuffer::kCopyPaste).WriteText(text);
+  ShowOriginSidebarNotice(std::move(notice));
+}
+
+void BraveBrowserView::SeparateActiveOriginPin() {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index = model->active_index();
+  if (!controller || index == TabStripModel::kNoTab) {
+    return;
+  }
+  if (!model->IsTabPinned(index)) {
+    ShowOriginSidebarNotice(u"Only a pinned page can be separated");
+    return;
+  }
+  if (!controller->SeparateFromPin(model->GetWebContentsAt(index))) {
+    ShowOriginSidebarNotice(u"This page is still at its pinned address");
+    return;
+  }
+  ShowOriginSidebarNotice(u"Separated; the pin is back at its address");
+}
+
+void BraveBrowserView::UnloadActiveOriginPin() {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index = model->active_index();
+  if (!controller || index == TabStripModel::kNoTab) {
+    return;
+  }
+  content::WebContents* page = model->GetWebContentsAt(index);
+  if (!model->IsTabPinned(index) || controller->IsSidePage(page)) {
+    ShowOriginSidebarNotice(u"Only a pinned page can be unloaded");
+    return;
+  }
+  // Move off the page first: the one on screen can't be unloaded.
+  const int closing[] = {index};
+  controller->SelectReplacementTabForClose(closing);
+  if (model->GetActiveWebContents() == page ||
+      !controller->UnloadPinnedPage(page)) {
+    return;
+  }
+  ShowOriginSidebarNotice(u"Unloaded; it stays pinned");
+}
+
+void BraveBrowserView::ShowOriginPinnedUrlEditor(
+    std::optional<ui::KeyboardCode> activation_key) {
+  auto* controller = browser()->GetFeatures().origin_space_controller();
+  auto* model = browser()->tab_strip_model();
+  const int index = model->active_index();
+  if (!origin_pinned_url_editor_view_ || !controller ||
+      index == TabStripModel::kNoTab) {
+    return;
+  }
+  if (!model->IsTabPinned(index)) {
+    ShowOriginSidebarNotice(u"Only a pinned page has an address to edit");
+    return;
+  }
+  content::WebContents* page = model->GetWebContentsAt(index);
+  HideOriginQuickOpen();
+  origin_insert_mode_ = false;
+  ReorderChildView(origin_pinned_url_editor_view_, -1);
+  EnsureFindBarHostViewIsLastChild();
+  origin_pinned_url_editor_view_->Show(
+      controller->GetPinnedHomeUrl(page), page->GetTitle(), activation_key,
+      base::BindOnce(
+          [](base::WeakPtr<BraveBrowserView> view,
+             base::WeakPtr<content::WebContents> page, const GURL& home) {
+            if (!view || !page) {
+              return;
+            }
+            auto* controller =
+                view->browser()->GetFeatures().origin_space_controller();
+            if (!controller) {
+              return;
+            }
+            // A page sitting at its old address follows it to the new one;
+            // one that has wandered off stays where it is.
+            const bool was_home = !controller->IsPinnedPageAway(page.get());
+            controller->SetPinnedHomeUrl(page.get(), home);
+            if (was_home) {
+              controller->ReturnPinnedPageHome(page.get());
+            }
+            view->ShowOriginSidebarNotice(u"Pinned address saved");
+          },
+          weak_ptr_.GetWeakPtr(), page->GetWeakPtr()));
+  InvalidateLayout();
 }
 
 void BraveBrowserView::CloseActiveOriginTabTree() {
@@ -1464,6 +1727,9 @@ void BraveBrowserView::AddedToWidget() {
             this, vertical_tab_strip_host_view_));
     GetBrowserViewLayout()->set_vertical_tab_strip_host(
         vertical_tab_strip_host_view_.get());
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    AddOriginAddressPill();
+#endif
   }
 
   if (focus_mode_title_bar_view_) {
@@ -2015,13 +2281,40 @@ void BraveBrowserView::DidChangeVerticalScrollDirection(
 
 void BraveBrowserView::SetFocusToLocationBar(bool is_user_initiated) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  // Origin's address field is hidden until wanted, and a hidden view cannot
-  // take focus, so bring the page chrome back before asking for it.
+  // The address lives in the sidebar pill, so Command+L edits it in Quick
+  // Open, as Arc's does.
+  if (RouteOriginAddressFocus(/*search=*/false, is_user_initiated)) {
+    return;
+  }
+  // Other windows keep their bar, hidden until wanted, and a hidden view
+  // cannot take focus.
   if (auto* brave_toolbar = static_cast<BraveToolbarView*>(toolbar())) {
     brave_toolbar->RevealOriginPageChrome();
   }
 #endif
   BrowserView::SetFocusToLocationBar(is_user_initiated);
+}
+
+bool BraveBrowserView::RouteOriginAddressFocus(bool search,
+                                               bool is_user_initiated) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  auto* toolbar_view = views::AsViewClass<BraveToolbarView>(toolbar());
+  if (!origin_quick_open_view_ || !toolbar_view ||
+      !toolbar_view->IsOriginPageChromeRetired()) {
+    return false;
+  }
+  // Nothing else may focus the hidden field: typing would go nowhere visible.
+  if (is_user_initiated) {
+    if (search) {
+      ShowOriginQuickOpen();
+    } else {
+      ShowOriginQuickOpenForAddress();
+    }
+  }
+  return true;
+#else
+  return false;
+#endif
 }
 
 void BraveBrowserView::UpdateToolbar(content::WebContents* contents) {
@@ -2031,6 +2324,10 @@ void BraveBrowserView::UpdateToolbar(content::WebContents* contents) {
   UpdateOriginPageChromeColor(contents ? contents : GetActiveWebContents());
   if (origin_temporary_link_view_) {
     origin_temporary_link_view_->Update();
+  }
+  if (auto* pill =
+          views::AsViewClass<OriginAddressPill>(origin_address_pill_.view())) {
+    pill->Update();
   }
 #endif
 
@@ -2045,6 +2342,13 @@ bool BraveBrowserView::UpdateToolbarSecurityState() {
   bool state_changed = BrowserView::UpdateToolbarSecurityState();
   if (state_changed) {
     UpdateFocusModeState();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // The pill warns about a page that stops being secure after it loads.
+    if (auto* pill = views::AsViewClass<OriginAddressPill>(
+            origin_address_pill_.view())) {
+      pill->Update();
+    }
+#endif
   }
   return state_changed;
 }
@@ -2099,6 +2403,11 @@ void BraveBrowserView::ScheduleOriginPageHeaderColorSample(
     content::WebContents* contents) {
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
   if (!contents || contents != GetActiveWebContents()) {
+    return;
+  }
+  // The sample only tints the address field, which a retired bar never shows.
+  auto* toolbar_view = views::AsViewClass<BraveToolbarView>(toolbar());
+  if (toolbar_view && toolbar_view->IsOriginPageChromeRetired()) {
     return;
   }
   const GURL url = contents->GetVisibleURL();
@@ -2358,6 +2667,16 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
             OriginSideViewMode::kShortcuts);
         return content::KeyboardEventProcessingResult::HANDLED;
       }
+      // Shift+Y copies the page as a Markdown link.
+      if (accelerator.key_code() == ui::VKEY_Y) {
+        CopyOriginLink(OriginAddressPill::kCopyLinkAsMarkdown);
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
+      // Shift+P edits the address a pinned page returns to.
+      if (accelerator.key_code() == ui::VKEY_P) {
+        ShowOriginPinnedUrlEditor(ui::VKEY_P);
+        return content::KeyboardEventProcessingResult::HANDLED;
+      }
       // Shift+H makes where a pinned page is now its address to return to.
       if (accelerator.key_code() == ui::VKEY_H) {
         auto* controller = browser()->GetFeatures().origin_space_controller();
@@ -2370,6 +2689,15 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
         }
         return content::KeyboardEventProcessingResult::HANDLED;
       }
+    }
+
+    // Option+Y links to the text selected on the page.
+    if (!origin_insert_mode_ && contents &&
+        !contents->IsFocusedElementEditable() &&
+        accelerator.modifiers() == ui::EF_ALT_DOWN &&
+        accelerator.key_code() == ui::VKEY_Y) {
+      CopyOriginLink(OriginAddressPill::kCopyLinkToHighlight);
+      return content::KeyboardEventProcessingResult::HANDLED;
     }
 
     if (!origin_insert_mode_ && !has_modifiers && contents &&
@@ -2442,6 +2770,19 @@ content::KeyboardEventProcessingResult BraveBrowserView::PreHandleKeyboardEvent(
           return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_C:
           BeginOriginRenameOfActivePage();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_Y:
+          CopyOriginLink(OriginAddressPill::kCopyLink);
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_X:
+          SeparateActiveOriginPin();
+          return content::KeyboardEventProcessingResult::HANDLED;
+        case ui::VKEY_U:
+          // Unloading replaces the page this key event belongs to.
+          base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+              FROM_HERE,
+              base::BindOnce(&BraveBrowserView::UnloadActiveOriginPin,
+                             weak_ptr_.GetWeakPtr()));
           return content::KeyboardEventProcessingResult::HANDLED;
         case ui::VKEY_L:
           // Later: the page leaves until the time chosen.
@@ -2545,6 +2886,13 @@ bool BraveBrowserView::AcceleratorPressed(const ui::Accelerator& accelerator) {
       accelerator.key_code() == ui::VKEY_ESCAPE && origin_tag_picker_view_ &&
       origin_tag_picker_view_->GetVisible()) {
     origin_tag_picker_view_->Dismiss();
+    return true;
+  }
+  if (accelerator.modifiers() == ui::EF_NONE &&
+      accelerator.key_code() == ui::VKEY_ESCAPE &&
+      origin_pinned_url_editor_view_ &&
+      origin_pinned_url_editor_view_->GetVisible()) {
+    origin_pinned_url_editor_view_->Dismiss();
     return true;
   }
 

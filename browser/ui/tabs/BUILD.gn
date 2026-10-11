@@ -245,6 +245,7 @@ if (!is_android) {
       "//components/tabs:public",
       "//content/public/browser",
       "//content/public/common",
+      "//services/network/public/cpp",
       "//ui/base",
     ]
   }
@@ -305,6 +306,21 @@ if (!is_android) {
       "//components/pref_registry",
       "//components/prefs",
       "//content/public/browser",
+    ]
+  }
+
+  source_set("origin_copy_link") {
+    sources = [
+      "origin_copy_link.cc",
+      "origin_copy_link.h",
+    ]
+
+    public_deps = [ "//url" ]
+
+    deps = [
+      "//base",
+      "//base:i18n",
+      "//brave/components/url_sanitizer/core/browser",
     ]
   }
 
@@ -405,10 +421,17 @@ source_set("browser_tests") {
   }
 
   if (!is_android) {
+    sources += [ "origin_pinned_link_throttle_browsertest.cc" ]
     deps += [
+      ":origin_space_controller",
       ":tab_menu",
       ":tab_model",
+      "//brave/components/brave_origin/buildflags",
+      "//chrome/browser/profiles:profile",
+      "//chrome/browser/ui/browser_window",
       "//chrome/browser/ui/tabs:tab_menu",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//net:test_support",
     ]
   }
 

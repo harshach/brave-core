@@ -413,23 +413,30 @@ int ScoreSiteMatch(std::string_view query,
 std::optional<GURL> BuildTypedDomainCandidate(std::u16string_view input) {
   std::u16string trimmed;
   base::TrimWhitespace(input, base::TrimPositions::TRIM_ALL, &trimmed);
-  std::string typed = base::ToLowerASCII(base::UTF16ToUTF8(trimmed));
-  if (typed.empty() || typed.find_first_of(" \t\r\n?#@") != std::string::npos) {
+  const std::string original = base::UTF16ToUTF8(trimmed);
+  std::string typed = base::ToLowerASCII(original);
+  if (typed.empty() || typed.find_first_of(" \t\r\n") != std::string::npos) {
     return std::nullopt;
   }
 
+  // A scheme makes the input an address, query and fragment included, as
+  // Command+L's prefilled one is. Paths and queries keep their case.
   const bool has_scheme =
       typed.starts_with("http://") || typed.starts_with("https://");
   if (has_scheme) {
-    GURL explicit_url(typed);
+    GURL explicit_url(original);
     return IsUsefulPageURL(explicit_url) ? std::optional<GURL>(explicit_url)
                                          : std::nullopt;
+  }
+  if (typed.find_first_of("?#@") != std::string::npos) {
+    return std::nullopt;
   }
 
   const size_t slash = typed.find('/');
   std::string host = typed.substr(0, slash);
+  // ToLowerASCII() keeps byte offsets, so the path can come from `original`.
   const std::string path =
-      slash == std::string::npos ? std::string() : typed.substr(slash);
+      slash == std::string::npos ? std::string() : original.substr(slash);
   if (host.starts_with("www.")) {
     host.erase(0, 4);
   }
@@ -1091,6 +1098,20 @@ void OriginQuickOpenView::ShowAndFocus(
   search_field_->RequestFocus();
   RebuildSpaceControls();
   LoadZeroStateData();
+}
+
+void OriginQuickOpenView::EditAddress(const std::u16string& address) {
+  selected_disposition_ = OriginQuickOpenDisposition::kReplace;
+  UpdateDispositionButtons();
+  user_input_ = address;
+  selected_result_ = 0;
+  // The address is already whole; completing it inline would only append.
+  suppress_inline_autocomplete_ = true;
+  updating_inline_autocomplete_ = true;
+  search_field_->SetText(address);
+  search_field_->SelectAll(/*reversed=*/false);
+  updating_inline_autocomplete_ = false;
+  StartAutocomplete(user_input_);
 }
 
 void OriginQuickOpenView::Dismiss() {

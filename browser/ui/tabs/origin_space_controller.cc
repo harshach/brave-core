@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <optional>
 #include <set>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -26,6 +27,7 @@
 #include "chrome/browser/sessions/session_service.h"
 #include "chrome/browser/sessions/session_service_factory.h"
 #include "chrome/browser/ui/tab_ui_helper.h"
+#include "chrome/browser/ui/tabs/tab_enums.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
 #include "components/prefs/pref_service.h"
@@ -33,15 +35,56 @@
 #include "components/sessions/content/session_tab_helper.h"
 #include "components/tabs/public/tab_interface.h"
 #include "content/public/browser/navigation_controller.h"
+#include "content/public/browser/navigation_entry.h"
+#include "content/public/browser/restore_type.h"
 #include "content/public/browser/web_contents.h"
+#include "content/public/browser/web_contents_observer.h"
 #include "content/public/browser/web_contents_user_data.h"
 #include "content/public/common/referrer.h"
+#include "services/network/public/cpp/shared_url_loader_factory.h"
 #include "ui/base/page_transition_types.h"
 #include "url/url_constants.h"
 
 namespace {
 
 constexpr size_t kMaxSessionSpaceBackups = 4096;
+
+// Holds an unloading pin's place while its page closes the usual way. If the
+// page's "Leave site?" prompt keeps it, nothing happens; once it has gone,
+// `restore_pin` puts an unloaded pin back.
+class PendingKeptPin : public content::WebContentsUserData<PendingKeptPin>,
+                       public content::WebContentsObserver {
+ public:
+  ~PendingKeptPin() override = default;
+
+  // content::WebContentsObserver:
+  void BeforeUnloadFired(bool proceed) override {
+    if (!proceed) {
+      // Destroys `this`.
+      web_contents()->RemoveUserData(UserDataKey());
+    }
+  }
+
+  void WebContentsDestroyed() override {
+    // Not from inside the tab strip's close.
+    base::SequencedTaskRunner::GetCurrentDefault()->PostTask(
+        FROM_HERE, std::move(restore_pin_));
+  }
+
+ private:
+  friend class content::WebContentsUserData<PendingKeptPin>;
+
+  PendingKeptPin(content::WebContents* contents, base::OnceClosure restore_pin)
+      : content::WebContentsUserData<PendingKeptPin>(*contents),
+        content::WebContentsObserver(contents),
+        restore_pin_(std::move(restore_pin)) {}
+
+  base::OnceClosure restore_pin_;
+
+  WEB_CONTENTS_USER_DATA_KEY_DECL();
+};
+
+WEB_CONTENTS_USER_DATA_KEY_IMPL(PendingKeptPin);
 
 std::string SessionIdKey(SessionID id) {
   return base::NumberToString(id.id());
@@ -425,6 +468,119 @@ bool OriginSpaceController::ReturnPinnedPageHome(
       GetPinnedHomeUrl(contents), content::Referrer(),
       ui::PAGE_TRANSITION_AUTO_BOOKMARK, std::string());
   return true;
+}
+
+bool OriginSpaceController::SeparateFromPin(content::WebContents* contents) {
+  const int index = tab_strip_model_->GetIndexOfWebContents(contents);
+  if (index == TabStripModel::kNoTab || !tab_strip_model_->IsTabPinned(index) ||
+      !IsPinnedPageAway(contents)) {
+    return false;
+  }
+  const GURL home = GetPinnedHomeUrl(contents);
+  const std::string space_id = GetSpaceIdForTab(contents);
+  const std::u16string* custom_title = GetCustomTitle(contents);
+  const std::u16string name = custom_title ? *custom_title : std::u16string();
+
+  // Unpinning moves the page into the list and forgets its home; a name given
+  // to the pin stays with the pin.
+  tab_strip_model_->SetTabPinned(index, false);
+  SetCustomTitle(contents, std::u16string());
+  InsertUnloadedPin(index, home, space_id, name);
+  return true;
+}
+
+bool OriginSpaceController::UnloadPinnedPage(content::WebContents* contents) {
+  const int index = tab_strip_model_->GetIndexOfWebContents(contents);
+  if (index == TabStripModel::kNoTab || !tab_strip_model_->IsTabPinned(index) ||
+      index == tab_strip_model_->active_index() || contents->WasDiscarded() ||
+      IsSidePage(contents)) {
+    return false;
+  }
+  GURL home = GetPinnedHomeUrl(contents);
+  if (!home.is_valid()) {
+    home = contents->GetLastCommittedURL();
+  }
+  if (!home.is_valid()) {
+    return false;
+  }
+  if (contents->NeedToFireBeforeUnloadOrUnloadEvents()) {
+    // Swapping it out would skip the page's unload handlers and any prompt
+    // to keep unsaved work. Close it as d does; it isn't kept for z, since
+    // the pin comes back.
+    const std::u16string* custom_title = GetCustomTitle(contents);
+    PendingKeptPin::CreateForWebContents(
+        contents,
+        base::BindOnce(&OriginSpaceController::InsertUnloadedPin,
+                       weak_factory_.GetWeakPtr(), index, home,
+                       GetSpaceIdForTab(contents),
+                       custom_title ? *custom_title : std::u16string()));
+    tab_strip_model_->CloseWebContentsAt(index, TabCloseTypes::CLOSE_NONE);
+    return true;
+  }
+  // Swapping in unloaded contents keeps the tile, its place and what Origin
+  // knows about the page (see the kReplaced handling).
+  tab_strip_model_->DiscardWebContents(contents, CreateUnloadedPage(home));
+  return true;
+}
+
+// static
+int OriginSpaceController::GetUnreadCount(std::u16string_view title) {
+  const size_t open = title.find(u'(');
+  if (open == std::u16string_view::npos || open > 32) {
+    return 0;
+  }
+  const size_t close = title.find(u')', open);
+  if (close == std::u16string_view::npos || close == open + 1 ||
+      close > open + 6) {
+    return 0;
+  }
+  int count = 0;
+  if (!base::StringToInt(title.substr(open + 1, close - open - 1), &count)) {
+    return 0;
+  }
+  return std::max(count, 0);
+}
+
+void OriginSpaceController::InsertUnloadedPin(int index,
+                                              const GURL& home,
+                                              const std::string& space_id,
+                                              const std::u16string& name) {
+  if (tab_strip_model_->closing_all()) {
+    return;
+  }
+  index = std::clamp(index, 0, tab_strip_model_->IndexOfFirstNonPinnedTab());
+  tab_strip_model_->InsertWebContentsAt(index, CreateUnloadedPage(home),
+                                        AddTabTypes::ADD_PINNED);
+  content::WebContents* pin = tab_strip_model_->GetWebContentsAt(index);
+  // Inserting records the tab without its history, and a restore drops tabs
+  // without history. Record it as duplicating a tab does.
+  if (SessionService* session_service =
+          SessionServiceFactory::GetForProfileIfExisting(profile_)) {
+    session_service->TabRestored(pin, /*pinned=*/true);
+  }
+  MoveTabToSpace(pin, space_id);
+  SetPinnedHomeUrl(pin, home);
+  SetCustomTitle(pin, name);
+}
+
+std::unique_ptr<content::WebContents> OriginSpaceController::CreateUnloadedPage(
+    const GURL& url) const {
+  content::WebContents::CreateParams params(profile_);
+  params.initially_hidden = true;
+  params.desired_renderer_state =
+      content::WebContents::CreateParams::kNoRendererProcess;
+  std::unique_ptr<content::WebContents> page =
+      content::WebContents::Create(params);
+  std::vector<std::unique_ptr<content::NavigationEntry>> entries;
+  entries.push_back(content::NavigationController::CreateNavigationEntry(
+      url, content::Referrer(), /*initiator_origin=*/std::nullopt,
+      /*initiator_base_url=*/std::nullopt, ui::PAGE_TRANSITION_AUTO_BOOKMARK,
+      /*is_renderer_initiated=*/false, std::string(), profile_,
+      /*blob_url_loader_factory=*/nullptr));
+  page->GetController().Restore(0, content::RestoreType::kRestored, &entries);
+  // Loads when it is next shown, as a discarded tab does.
+  page->SetWasDiscarded(true);
+  return page;
 }
 
 // static

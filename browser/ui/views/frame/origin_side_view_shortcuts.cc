@@ -29,8 +29,12 @@ namespace {
 
 #if BUILDFLAG(IS_MAC)
 constexpr char16_t kMod[] = u"⌘";
+constexpr char16_t kShift[] = u"⇧";
+constexpr char16_t kAlt[] = u"⌥";
 #else
 constexpr char16_t kMod[] = u"Ctrl ";
+constexpr char16_t kShift[] = u"Shift ";
+constexpr char16_t kAlt[] = u"Alt ";
 #endif
 
 constexpr int kHorizontalInset = 16;
@@ -38,6 +42,14 @@ constexpr int kRowHeight = 30;
 
 std::u16string Mod(std::u16string_view key) {
   return std::u16string(kMod) + std::u16string(key);
+}
+
+std::u16string Shift(std::u16string_view key) {
+  return std::u16string(kShift) + std::u16string(key);
+}
+
+std::u16string Alt(std::u16string_view key) {
+  return std::u16string(kAlt) + std::u16string(key);
 }
 
 // One key cap. Keys read as keys, not as prose.
@@ -67,11 +79,21 @@ OriginSideViewShortcuts::GetSections() {
            {{u"r"}, u"Reload"},
            {{u"["}, u"Back"},
            {{u"]"}, u"Forward"},
-           {{u"p"}, u"Pin or unpin"},
-           {{u"h"}, u"Return a pinned page to its pinned address"},
            {{u"c"}, u"Rename the page"},
+           {{u"y"}, u"Copy a clean link"},
+           {{Shift(u"Y")}, u"Copy as a Markdown link"},
+           {{Alt(u"Y")}, u"Copy a link to the selected text"},
            {{u"m"}, u"Mute or unmute this window"},
            {{u"f"}, u"Focus mode"},
+       }},
+      {u"Pinned pages",
+       {
+           {{u"p"}, u"Pin or unpin"},
+           {{u"h"}, u"Back to its pinned address"},
+           {{Shift(u"H")}, u"Make this its pinned address"},
+           {{Shift(u"P")}, u"Edit its pinned address"},
+           {{u"x"}, u"Separate the page from its pin"},
+           {{u"u"}, u"Unload it and keep the pin"},
        }},
       {u"Spaces",
        {
@@ -83,6 +105,7 @@ OriginSideViewShortcuts::GetSections() {
        {
            {{u"o", u"n"}, u"Find or open a page"},
            {{Mod(u"T")}, u"Find or open a page"},
+           {{Mod(u"L")}, u"Edit the address"},
            {{Mod(u"K")}, u"Commands"},
            {{u"#"}, u"In Quick Open, search tagged pages"},
        }},

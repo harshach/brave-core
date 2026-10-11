@@ -16,8 +16,10 @@
 #include "base/base64.h"
 #include "base/check.h"
 #include "base/functional/callback.h"
+#include "base/json/string_escape.h"
 #include "base/memory/weak_ptr.h"
 #include "base/run_loop.h"
+#include "base/strings/utf_string_conversions.h"
 #include "base/task/sequenced_task_runner.h"
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
@@ -37,7 +39,9 @@
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/frame/brave_contents_view_util.h"
+#include "brave/browser/ui/views/frame/origin_address_pill.h"
 #include "brave/browser/ui/views/frame/origin_later_picker_view.h"
+#include "brave/browser/ui/views/frame/origin_pinned_url_editor_view.h"
 #include "brave/browser/ui/views/frame/origin_quick_open_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view.h"
 #include "brave/browser/ui/views/frame/origin_side_view_controller.h"
@@ -76,6 +80,7 @@
 #include "extensions/test/test_extension_dir.h"
 #endif
 #include "build/build_config.h"
+#include "chrome/app/chrome_command_ids.h"
 #include "chrome/browser/bookmarks/bookmark_model_factory.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/infobars/confirm_infobar_creator.h"
@@ -106,6 +111,7 @@
 #include "chrome/browser/ui/views/frame/scrim_view.h"
 #include "chrome/browser/ui/views/frame/top_container_view.h"
 #include "chrome/browser/ui/views/infobars/infobar_container_view.h"
+#include "chrome/browser/ui/views/location_bar/location_bar_view.h"
 #include "chrome/browser/ui/views/side_panel/side_panel.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_button.h"
 #include "chrome/browser/ui/window_feature_controller/window_feature_controller.h"
@@ -119,16 +125,21 @@
 #include "components/infobars/core/confirm_infobar_delegate.h"
 #include "components/infobars/core/infobar.h"
 #include "components/input/native_web_keyboard_event.h"
+#include "components/omnibox/browser/location_bar_model.h"
 #include "components/prefs/pref_service.h"
+#include "content/public/browser/render_widget_host_view.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/test/browser_test.h"
 #include "content/public/test/browser_test_utils.h"
 #include "content/public/test/test_navigation_observer.h"
+#include "net/dns/mock_host_resolver.h"
 #include "net/test/embedded_test_server/http_request.h"
 #include "net/test/embedded_test_server/http_response.h"
 #include "third_party/blink/public/common/input/web_input_event.h"
 #include "ui/base/accelerators/accelerator.h"
 #include "ui/base/base_window.h"
+#include "ui/base/clipboard/clipboard.h"
+#include "ui/base/clipboard/test/test_clipboard.h"
 #include "ui/base/hit_test.h"
 #include "ui/compositor/layer.h"
 #include "ui/events/base_event_utils.h"
@@ -137,6 +148,7 @@
 #include "ui/events/keycodes/keyboard_codes.h"
 #include "ui/gfx/animation/animation.h"
 #include "ui/gfx/animation/animation_test_api.h"
+#include "ui/menus/simple_menu_model.h"
 #include "ui/views/controls/textfield/textfield.h"
 #include "ui/views/focus/focus_manager.h"
 #include "ui/views/layout/layout_provider.h"
@@ -209,6 +221,13 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
   BraveBrowserViewTest& operator=(const BraveBrowserViewTest&) = delete;
 
  protected:
+  void SetUpOnMainThread() override {
+    InProcessBrowserTest::SetUpOnMainThread();
+    // Rules can't change once the test body runs, so named test hosts such as
+    // www.example.test resolve to the test server from the start.
+    host_resolver()->AddRule("*", "127.0.0.1");
+  }
+
   void ToggleVerticalTabStrip() {
     brave::ToggleVerticalTabStrip(browser());
     browser_non_client_frame_view()->DeprecatedLayoutImmediately();
@@ -292,6 +311,23 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
     return brave_browser_view()->origin_tag_picker_view_;
   }
 
+  OriginPinnedUrlEditorView* origin_pinned_url_editor_view() {
+    return brave_browser_view()->origin_pinned_url_editor_view_;
+  }
+
+  OriginAddressPill* origin_address_pill() {
+    return views::AsViewClass<OriginAddressPill>(
+        brave_browser_view()->origin_address_pill_.view());
+  }
+
+  std::u16string ReadClipboardText() {
+    base::test::TestFuture<std::u16string> text;
+    ui::Clipboard::GetForCurrentThread()->ReadText(
+        ui::ClipboardBuffer::kCopyPaste, /*data_dst=*/std::nullopt,
+        text.GetCallback());
+    return text.Take();
+  }
+
   OriginSidebarStrips* origin_sidebar_strips() {
     return brave_browser_view()
         ->vertical_tab_strip_container_view()
@@ -338,34 +374,233 @@ class BraveBrowserViewTest : public InProcessBrowserTest {
 };
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
-                       OriginTopBarIgnoresScrollFromItsOwnResize) {
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTopBarStaysRetired) {
   ASSERT_TRUE(embedded_test_server()->Start());
   ASSERT_TRUE(content::NavigateToURL(
       browser()->tab_strip_model()->GetActiveWebContents(),
       embedded_test_server()->GetURL("/title1.html")));
-  // A fresh tab leaves focus in the omnibox, which holds the bar open on
-  // purpose; this test is about the scroll path, so move focus to the page.
   browser_view()->contents_web_view()->RequestFocus();
 
   auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
   ASSERT_TRUE(toolbar);
-  // A page opens at its top, so the bar starts on screen.
-  ASSERT_TRUE(toolbar->origin_page_chrome_revealed());
+  // The address lives in the sidebar, so the page has the top strip from the
+  // start.
+  EXPECT_TRUE(toolbar->IsOriginPageChromeRetired());
+  EXPECT_FALSE(toolbar->origin_page_chrome_revealed());
+  EXPECT_EQ(0.0, toolbar->origin_page_chrome_reveal_fraction());
 
-  toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
-  ASSERT_TRUE(base::test::RunUntil(
-      [&] { return !toolbar->origin_page_chrome_revealed(); }));
-
-  // Giving the strip back to the page reflows it, and that reflow reports its
-  // own upward scroll. Following it would put the bar straight back and leave
-  // the two trading places, which reads as flicker.
+  // Scrolling back up and asking for the bar leave it away.
   toolbar->OnOriginPageScrolled(/*scrolled_down=*/false);
+  toolbar->RevealOriginPageChrome();
   base::RunLoop settle;
   base::SequencedTaskRunner::GetCurrentDefault()->PostDelayedTask(
       FROM_HERE, settle.QuitClosure(), base::Milliseconds(400));
   settle.Run();
   EXPECT_FALSE(toolbar->origin_page_chrome_revealed());
+  EXPECT_EQ(0.0, toolbar->origin_page_chrome_reveal_fraction());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginCommandLEditsAddressInQuickOpen) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  content::WebContents* page = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      page, embedded_test_server()->GetURL("/title1.html")));
+  browser_view()->contents_web_view()->RequestFocus();
+  const int initial_count = model->count();
+
+  chrome::ExecuteCommand(browser(), IDC_FOCUS_LOCATION);
+  OriginQuickOpenView* quick_open = origin_quick_open_view();
+  ASSERT_TRUE(quick_open->GetVisible());
+  views::Textfield* field = quick_open->search_field_;
+  EXPECT_TRUE(field->HasFocus());
+  EXPECT_EQ(
+      browser()->GetFeatures().location_bar_model()->GetFormattedFullURL(),
+      field->GetText());
+  EXPECT_EQ(field->GetText(), field->GetSelectedText());
+  EXPECT_EQ(OriginQuickOpenDisposition::kReplace,
+            quick_open->GetEffectiveDisposition());
+  // The hidden omnibox never takes the keys.
+  auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
+  EXPECT_FALSE(toolbar->origin_page_chrome_revealed());
+  EXPECT_FALSE(toolbar->location_bar_view()->Contains(
+      browser_view()->GetFocusManager()->GetFocusedView()));
+
+  // An address typed over it loads in the same page, query and case intact.
+  const GURL next = embedded_test_server()->GetURL("/title2.html?Q=Mixed#Top");
+  const std::u16string next_text = base::UTF8ToUTF16(next.spec());
+  field->SetText(next_text);
+  quick_open->ContentsChanged(field, next_text);
+  content::TestNavigationObserver load(page);
+  quick_open->Submit(quick_open->GetEffectiveDisposition());
+  load.Wait();
+  EXPECT_EQ(next, page->GetLastCommittedURL());
+  EXPECT_EQ(initial_count, model->count());
+  EXPECT_EQ(page, model->GetActiveWebContents());
+
+  // Search the Web… and direct requests for the field land in Quick Open
+  // too, never in the hidden omnibox.
+  quick_open->Dismiss();
+  chrome::ExecuteCommand(browser(), IDC_FOCUS_SEARCH);
+  ASSERT_TRUE(quick_open->GetVisible());
+  EXPECT_TRUE(field->GetText().empty());
+  EXPECT_TRUE(field->HasFocus());
+  quick_open->Dismiss();
+  toolbar->location_bar_view()->FocusLocation(/*is_user_initiated=*/true,
+                                              /*clear_focus_if_failed=*/false);
+  ASSERT_TRUE(quick_open->GetVisible());
+  EXPECT_FALSE(toolbar->location_bar_view()->Contains(
+      browser_view()->GetFocusManager()->GetFocusedView()));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginAddressPillShowsTheHost) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  OriginAddressPill* pill = origin_address_pill();
+  ASSERT_TRUE(pill);
+  ASSERT_TRUE(content::NavigateToURL(
+      model->GetActiveWebContents(),
+      embedded_test_server()->GetURL("www.example.test", "/title1.html")));
+  EXPECT_EQ(u"example.test", pill->GetHostTextForTesting());
+
+  // It heads the sidebar, above the pages.
+  auto* region = brave_browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  browser_view()->DeprecatedLayoutImmediately();
+  EXPECT_TRUE(region->Contains(pill));
+  EXPECT_TRUE(pill->IsDrawn());
+  EXPECT_LE(pill->ConvertRectToWidget(pill->GetLocalBounds()).bottom(),
+            GetOriginPageRow(0)
+                ->ConvertRectToWidget(GetOriginPageRow(0)->GetLocalBounds())
+                .y());
+
+  // The menu offers Pin Page until the page is pinned, then the pin's actions.
+  std::unique_ptr<ui::SimpleMenuModel> menu = pill->BuildMenuModelForTesting();
+  EXPECT_TRUE(menu->GetIndexOfCommandId(OriginAddressPill::kPinPage));
+  EXPECT_FALSE(menu->GetIndexOfCommandId(OriginAddressPill::kSeparateFromPin));
+  model->SetTabPinned(0, true);
+  menu = pill->BuildMenuModelForTesting();
+  EXPECT_FALSE(menu->GetIndexOfCommandId(OriginAddressPill::kPinPage));
+  const std::optional<size_t> separate =
+      menu->GetIndexOfCommandId(OriginAddressPill::kSeparateFromPin);
+  ASSERT_TRUE(separate);
+  // At its pinned address there is nothing to separate.
+  EXPECT_FALSE(menu->IsEnabledAt(*separate));
+  const std::optional<size_t> unload =
+      menu->GetIndexOfCommandId(OriginAddressPill::kUnloadKeepPinned);
+  ASSERT_TRUE(unload);
+  EXPECT_TRUE(menu->IsEnabledAt(*unload));
+
+  // Clicking the host edits the address.
+  views::test::ButtonTestApi(pill->host_button_for_testing())
+      .NotifyClick(ui::MouseEvent(ui::EventType::kMousePressed, gfx::Point(),
+                                  gfx::Point(), base::TimeTicks::Now(),
+                                  ui::EF_LEFT_MOUSE_BUTTON,
+                                  ui::EF_LEFT_MOUSE_BUTTON));
+  EXPECT_TRUE(origin_quick_open_view()->GetVisible());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginCopyLinkKeys) {
+  ui::TestClipboard::CreateForCurrentThread();
+  ASSERT_TRUE(embedded_test_server()->Start());
+  content::WebContents* page =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      page, embedded_test_server()->GetURL(
+                "/title2.html?utm_source=newsletter&id=7")));
+  const GURL clean = embedded_test_server()->GetURL("/title2.html?id=7");
+
+  // y copies the link without its trackers.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_Y));
+  EXPECT_EQ(base::UTF8ToUTF16(clean.spec()), ReadClipboardText());
+
+  // Shift+Y copies it as Markdown, under the page's title.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_Y, blink::WebInputEvent::kShiftKey));
+  EXPECT_EQ(u"[Title Of Awesomeness](" + base::UTF8ToUTF16(clean.spec()) + u")",
+            ReadClipboardText());
+
+  // Option+Y needs selected text, and leaves the clipboard alone without it.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_Y, blink::WebInputEvent::kAltKey));
+  EXPECT_EQ(u"[Title Of Awesomeness](" + base::UTF8ToUTF16(clean.spec()) + u")",
+            ReadClipboardText());
+  // The page reports its selection to the browser while it has focus.
+  page->Focus();
+  ASSERT_TRUE(content::ExecJs(page,
+                              "const range = document.createRange();"
+                              "range.selectNodeContents(document.body);"
+                              "getSelection().removeAllRanges();"
+                              "getSelection().addRange(range);"));
+  ASSERT_TRUE(base::test::RunUntil([&] {
+    auto* view = page->GetRenderWidgetHostView();
+    return view && !view->GetSelectedText().empty();
+  }));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_Y, blink::WebInputEvent::kAltKey));
+  EXPECT_TRUE(ReadClipboardText().starts_with(base::UTF8ToUTF16(clean.spec()) +
+                                              u"#:~:text=This%20page%20has"))
+      << ReadClipboardText();
+  ui::Clipboard::DestroyClipboardForCurrentThread();
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginPinnedPagesTileFourAcross) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  OpenOriginPages(5);
+  for (int i = 0; i < 5; ++i) {
+    model->SetTabPinned(i, true);
+  }
+  auto* region = brave_browser_view()
+                     ->vertical_tab_strip_container_view()
+                     ->vertical_tab_strip_region_view();
+  region->tab_strip()->StopAnimating();
+  browser_view()->DeprecatedLayoutImmediately();
+  region->tab_strip()->StopAnimating();
+
+  std::vector<gfx::Rect> tiles;
+  for (int i = 0; i < 5; ++i) {
+    tiles.push_back(GetOriginPageRow(i)->bounds());
+  }
+  // Four to a row; the fifth starts the next one.
+  EXPECT_EQ(tiles[0].y(), tiles[3].y());
+  EXPECT_LT(tiles[2].x(), tiles[3].x());
+  EXPECT_GT(tiles[4].y(), tiles[0].y());
+  EXPECT_EQ(tiles[0].x(), tiles[4].x());
+  for (const gfx::Rect& tile : tiles) {
+    EXPECT_EQ(tiles[0].width(), tile.width());
+    EXPECT_GE(tile.height(), 40);
+    EXPECT_LE(tile.height(), 52);
+  }
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTileBadgeCountsUnread) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  content::WebContents* page = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      page, embedded_test_server()->GetURL("/title1.html")));
+  model->SetTabPinned(0, true);
+  const auto set_title = [&](const std::u16string& title) {
+    content::TitleWatcher watcher(page, title);
+    ASSERT_TRUE(content::ExecJs(
+        page, "document.title = " + base::GetQuotedJSONString(title)));
+    ASSERT_EQ(title, watcher.WaitAndGetTitle());
+  };
+  set_title(u"(3) Inbox");
+  EXPECT_EQ(3, GetOriginPageRow(0)->GetOriginUnreadCount());
+  set_title(u"Inbox (2) - Mail");
+  EXPECT_EQ(2, GetOriginPageRow(0)->GetOriginUnreadCount());
+  set_title(u"Inbox");
+  EXPECT_EQ(0, GetOriginPageRow(0)->GetOriginUnreadCount());
+  // A name given to the tile doesn't hide the page's count.
+  browser()->GetFeatures().origin_space_controller()->SetCustomTitle(page,
+                                                                     u"Mail");
+  set_title(u"(12) Inbox");
+  EXPECT_EQ(12, GetOriginPageRow(0)->GetOriginUnreadCount());
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
@@ -1281,6 +1516,159 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             PressOriginKey(ui::VKEY_P));
   EXPECT_FALSE(space_controller->GetPinnedHomeUrl(page).is_valid());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
+                       OriginSeparateFromPinStartsThePinOver) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = model->GetActiveWebContents();
+  const GURL home = embedded_test_server()->GetURL("/title1.html");
+  const GURL elsewhere = embedded_test_server()->GetURL("/title2.html");
+  ASSERT_TRUE(content::NavigateToURL(page, home));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P));
+  space_controller->SetCustomTitle(page, u"Inbox");
+
+  // At its pinned address there is nothing to separate.
+  const int initial_count = model->count();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_X));
+  EXPECT_EQ(initial_count, model->count());
+  EXPECT_TRUE(model->IsTabPinned(model->GetIndexOfWebContents(page)));
+
+  ASSERT_TRUE(content::NavigateToURL(page, elsewhere));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_X));
+  ASSERT_EQ(initial_count + 1, model->count());
+  // The page that wandered off joins the list and stays on screen.
+  EXPECT_EQ(page, model->GetActiveWebContents());
+  EXPECT_FALSE(model->IsTabPinned(model->GetIndexOfWebContents(page)));
+  EXPECT_EQ(elsewhere, page->GetLastCommittedURL());
+  EXPECT_FALSE(OriginSpaceController::GetCustomTitle(page));
+  EXPECT_FALSE(space_controller->GetPinnedHomeUrl(page).is_valid());
+
+  // The pin starts over at its address, unloaded, and keeps its name.
+  content::WebContents* pin = model->GetWebContentsAt(0);
+  ASSERT_NE(page, pin);
+  EXPECT_TRUE(model->IsTabPinned(0));
+  EXPECT_TRUE(pin->WasDiscarded());
+  EXPECT_EQ(home, space_controller->GetPinnedHomeUrl(pin));
+  ASSERT_TRUE(OriginSpaceController::GetCustomTitle(pin));
+  EXPECT_EQ(u"Inbox", *OriginSpaceController::GetCustomTitle(pin));
+  EXPECT_EQ(space_controller->GetSpaceIdForTab(page),
+            space_controller->GetSpaceIdForTab(pin));
+
+  // Opening the tile loads its address.
+  content::TestNavigationObserver load(pin);
+  model->ActivateTabAt(0);
+  load.Wait();
+  EXPECT_EQ(home, pin->GetLastCommittedURL());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginUnloadKeepsThePinnedTile) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  const std::vector<content::WebContents*> pages = OpenOriginPages(1);
+  model->ActivateTabAt(0);
+  const GURL home = pages[0]->GetLastCommittedURL();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P));
+  ASSERT_TRUE(model->IsTabPinned(0));
+  ASSERT_TRUE(content::NavigateToURL(
+      pages[0], embedded_test_server()->GetURL("/title3.html")));
+
+  // u unloads the pin, moving to another page first.
+  const int initial_count = model->count();
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_U));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return model->GetWebContentsAt(0)->WasDiscarded(); }));
+  content::WebContents* pin = model->GetWebContentsAt(0);
+  EXPECT_EQ(initial_count, model->count());
+  EXPECT_TRUE(model->IsTabPinned(0));
+  EXPECT_NE(0, model->active_index());
+  EXPECT_EQ(home, space_controller->GetPinnedHomeUrl(pin));
+
+  // It comes back at its pinned address.
+  content::TestNavigationObserver load(pin);
+  model->ActivateTabAt(0);
+  load.Wait();
+  EXPECT_EQ(home, pin->GetLastCommittedURL());
+  EXPECT_FALSE(pin->WasDiscarded());
+
+  // A page with an unload handler closes the usual way, so its prompt could
+  // keep it, and the pin comes back once it has gone.
+  ASSERT_TRUE(content::ExecJs(
+      pin, "addEventListener('beforeunload', e => { e.preventDefault(); });",
+      content::EXECUTE_SCRIPT_NO_USER_GESTURE));
+  ASSERT_TRUE(base::test::RunUntil(
+      [&] { return pin->NeedToFireBeforeUnloadOrUnloadEvents(); }));
+  ASSERT_EQ(pin, model->GetActiveWebContents());
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_U));
+  ASSERT_TRUE(base::test::RunUntil([&] {
+    return model->count() == initial_count &&
+           model->GetWebContentsAt(0) != pin &&
+           model->GetWebContentsAt(0)->WasDiscarded();
+  }));
+  EXPECT_TRUE(model->IsTabPinned(0));
+  EXPECT_EQ(home,
+            space_controller->GetPinnedHomeUrl(model->GetWebContentsAt(0)));
+  EXPECT_NE(0, model->active_index());
+
+  // u on a page that isn't pinned leaves it be.
+  model->ActivateTabAt(1);
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_U));
+  base::RunLoop().RunUntilIdle();
+  EXPECT_EQ(1, model->active_index());
+  EXPECT_FALSE(model->GetWebContentsAt(1)->WasDiscarded());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginEditPinnedAddress) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  auto* model = browser()->tab_strip_model();
+  auto* space_controller = browser()->GetFeatures().origin_space_controller();
+  content::WebContents* page = model->GetActiveWebContents();
+  ASSERT_TRUE(content::NavigateToURL(
+      page, embedded_test_server()->GetURL("/title1.html")));
+  OriginPinnedUrlEditorView* editor = origin_pinned_url_editor_view();
+  ASSERT_TRUE(editor);
+
+  // Only a pinned page has an address to edit.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P, blink::WebInputEvent::kShiftKey));
+  EXPECT_FALSE(editor->GetVisible());
+
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P));
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P, blink::WebInputEvent::kShiftKey));
+  ASSERT_TRUE(editor->GetVisible());
+  EXPECT_TRUE(editor->field_for_testing()->HasFocus());
+
+  // A page at its old address follows it to the new one.
+  const GURL next = embedded_test_server()->GetURL("/title2.html");
+  editor->field_for_testing()->SetText(base::UTF8ToUTF16(next.spec()));
+  content::TestNavigationObserver load(page);
+  EXPECT_TRUE(editor->SubmitForTesting());
+  load.Wait();
+  EXPECT_FALSE(editor->GetVisible());
+  EXPECT_EQ(next, space_controller->GetPinnedHomeUrl(page));
+  EXPECT_EQ(next, page->GetLastCommittedURL());
+
+  // Escape closes the card without saving.
+  EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
+            PressOriginKey(ui::VKEY_P, blink::WebInputEvent::kShiftKey));
+  ASSERT_TRUE(editor->GetVisible());
+  editor->field_for_testing()->SetText(u"https://example.com/");
+  EXPECT_TRUE(brave_browser_view()->AcceleratorPressed(
+      ui::Accelerator(ui::VKEY_ESCAPE, ui::EF_NONE)));
+  EXPECT_FALSE(editor->GetVisible());
+  EXPECT_EQ(next, space_controller->GetPinnedHomeUrl(page));
 }
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginRenamedPageKeepsItsName) {

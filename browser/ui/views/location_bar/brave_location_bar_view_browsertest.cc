@@ -63,6 +63,10 @@ class BraveLocationBarViewBrowserTest : public InProcessBrowserTest {
 
   OmniboxViewViews* omnibox_view() { return location_bar()->omnibox_view(); }
 
+  // FocusLocation() opens Quick Open where Origin has retired the top bar,
+  // so focus the field itself, as FocusLocation() otherwise does.
+  void FocusOmnibox() { omnibox_view()->SetFocus(/*is_user_initiated=*/true); }
+
   OmniboxController* controller() {
     return location_bar()->GetOmniboxController();
   }
@@ -123,8 +127,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
   // Check promotion button is launched.
   GetTemplateURLService()->SetUserSelectedDefaultSearchProvider(
       &bing_template_url);
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(u"a");
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));
@@ -142,8 +145,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
       &brave_template_url);
 
   // Check button is not shown with brave search.
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(u"a");
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));
@@ -175,8 +177,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
   // Unset dismissed and simulate promotion button click.
   browser()->GetProfile()->GetPrefs()->SetBoolean(
       brave_search_conversion::prefs::kDismissed, false);
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(search_term);
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));

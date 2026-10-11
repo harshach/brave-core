@@ -44,11 +44,13 @@
 #include "chrome/browser/ui/views/tabs/tab/tab_title.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
 #include "components/vector_icons/vector_icons.h"
+#include "content/public/browser/web_contents.h"
 #include "ui/base/metadata/metadata_impl_macros.h"
 #include "ui/base/models/image_model.h"
 #include "ui/compositor/compositor.h"
 #include "ui/compositor/layer.h"
 #include "ui/gfx/canvas.h"
+#include "ui/gfx/color_analysis.h"
 #include "ui/gfx/color_palette.h"
 #include "ui/gfx/favicon_size.h"
 #include "ui/gfx/geometry/skia_conversions.h"
@@ -1080,6 +1082,11 @@ void BraveTab::OnTabDataChanged(TabChangeType tab_change_type,
     UpdateOriginPinButton();
     InvalidateLayout();
   }
+  // Only tiles show a count. A discard swaps the page, which changes the data
+  // and brings us back here to follow the new one.
+  const tabs::TabInterface* tab = tab_handle().Get();
+  origin_title_watcher_.Watch(data_.pinned && tab ? tab->GetContents()
+                                                  : nullptr);
 #endif
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
@@ -1215,6 +1222,57 @@ void BraveTab::EndOriginRename(bool keep) {
     space_controller->SetCustomTitle(tab->GetContents(), name);
   }
 #endif
+}
+
+std::optional<SkColor> BraveTab::GetOriginTileTint() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const ui::ImageModel& favicon = data().favicon;
+  if (favicon.IsEmpty() || !GetColorProvider()) {
+    return std::nullopt;
+  }
+  const gfx::ImageSkia image = favicon.Rasterize(GetColorProvider());
+  if (image.isNull()) {
+    return std::nullopt;
+  }
+  if (!origin_tint_ || !image.BackedBySameObjectAs(origin_tint_source_)) {
+    origin_tint_source_ = image;
+    origin_tint_ = color_utils::CalculateKMeanColorOfBitmap(*image.bitmap());
+  }
+  return origin_tint_;
+#else
+  return std::nullopt;
+#endif
+}
+
+int BraveTab::GetOriginUnreadCount() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  const tabs::TabInterface* tab = tab_handle().Get();
+  return tab && tab->GetContents() ? OriginSpaceController::GetUnreadCount(
+                                         tab->GetContents()->GetTitle())
+                                   : 0;
+#else
+  return 0;
+#endif
+}
+
+BraveTab::OriginTitleWatcher::OriginTitleWatcher(BraveTab* tab) : tab_(tab) {}
+
+BraveTab::OriginTitleWatcher::~OriginTitleWatcher() = default;
+
+void BraveTab::OriginTitleWatcher::Watch(content::WebContents* contents) {
+  if (web_contents() != contents) {
+    Observe(contents);
+  }
+  unread_count_ = tab_->GetOriginUnreadCount();
+}
+
+void BraveTab::OriginTitleWatcher::TitleWasSet(
+    content::NavigationEntry* entry) {
+  const int unread_count = tab_->GetOriginUnreadCount();
+  if (unread_count != unread_count_) {
+    unread_count_ = unread_count;
+    tab_->SchedulePaint();
+  }
 }
 
 bool BraveTab::IsOriginPinnedPageAway() const {
