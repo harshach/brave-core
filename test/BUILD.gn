@@ -1271,7 +1271,6 @@ test("brave_browser_tests") {
     deps += [
       "//brave/components/commands/common",
       "//chrome/browser/ui/browser_active_state_manager",
-      "//ui/base:test_support",
     ]
   }
 
