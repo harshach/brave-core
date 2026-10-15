@@ -243,7 +243,7 @@ void OriginAddressPill::OnHostPressed() {
 }
 
 void OriginAddressPill::Update() {
-  const LocationBarModel* model = browser_->GetFeatures().location_bar_model();
+  const LocationBarModel* model = LocationBarModel::From(browser_.get());
   if (!model) {
     return;
   }

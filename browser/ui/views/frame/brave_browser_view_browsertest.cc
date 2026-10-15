@@ -380,7 +380,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest, OriginTopBarStaysRetired) {
   ASSERT_TRUE(content::NavigateToURL(
       browser()->tab_strip_model()->GetActiveWebContents(),
       embedded_test_server()->GetURL("/title1.html")));
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
 
   auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
   ASSERT_TRUE(toolbar);
@@ -408,7 +408,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   content::WebContents* page = model->GetActiveWebContents();
   ASSERT_TRUE(content::NavigateToURL(
       page, embedded_test_server()->GetURL("/title1.html")));
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
   const int initial_count = model->count();
 
   chrome::ExecuteCommand(browser(), IDC_FOCUS_LOCATION);
@@ -418,8 +418,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   EXPECT_TRUE(field->HasFocus());
   // The address keeps its scheme, which the omnibox drops for http.
   EXPECT_EQ(
-      u"http://" +
-          browser()->GetFeatures().location_bar_model()->GetFormattedFullURL(),
+      u"http://" + LocationBarModel::From(browser())->GetFormattedFullURL(),
       field->GetText());
   EXPECT_EQ(field->GetText(), field->GetSelectedText());
   EXPECT_EQ(OriginQuickOpenDisposition::kReplace,
@@ -615,7 +614,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(content::NavigateToURL(
       browser()->tab_strip_model()->GetActiveWebContents(),
       embedded_test_server()->GetURL("/title1.html")));
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
 
   auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
   ASSERT_TRUE(toolbar);
@@ -656,7 +655,7 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserViewTest,
   ASSERT_TRUE(content::NavigateToURL(
       browser()->tab_strip_model()->GetActiveWebContents(),
       embedded_test_server()->GetURL("/title1.html")));
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
 
   auto* toolbar =
       views::AsViewClass<BraveToolbarView>(browser_view()->toolbar());

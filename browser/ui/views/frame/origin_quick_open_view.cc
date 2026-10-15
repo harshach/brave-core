@@ -1620,7 +1620,7 @@ void OriginQuickOpenView::RebuildResults() {
                             ? u"— search the web"
                             : u"— on " + match.description;
       result.badge = u"Search";
-      if (match.type == AutocompleteMatchType::SEARCH_WHAT_YOU_TYPED) {
+      if (match.type == omnibox::AutocompleteMatchType::kSearchWhatYouTyped) {
         exact_search_result = std::move(result);
       } else {
         std::string key = result.destination_url.spec();

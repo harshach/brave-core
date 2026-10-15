@@ -563,7 +563,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
       blink::WebInputEvent::kNoModifiers,
       blink::WebInputEvent::GetStaticTimeStampForTests());
   e_key.windows_key_code = ui::VKEY_E;
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
   EXPECT_EQ(content::KeyboardEventProcessingResult::HANDLED,
             browser_view()->PreHandleKeyboardEvent(e_key));
   ASSERT_TRUE(region->origin_space_card_);
@@ -800,7 +800,7 @@ IN_PROC_BROWSER_TEST_F(VerticalTabStripBrowserTest,
 
   // With the top bar scrolled away the page owns the strip above it.
   auto* toolbar = static_cast<BraveToolbarView*>(browser_view()->toolbar());
-  browser_view()->contents_web_view()->RequestFocus();
+  browser_view()->contents_web_view_for_testing()->RequestFocus();
   toolbar->OnOriginPageScrolled(/*scrolled_down=*/true);
   ASSERT_TRUE(base::test::RunUntil(
       [&] { return !toolbar->origin_page_chrome_revealed(); }));

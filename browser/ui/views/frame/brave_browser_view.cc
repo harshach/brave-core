@@ -1099,7 +1099,7 @@ void BraveBrowserView::ShowOriginQuickOpenForAddress() {
   std::u16string address;
   auto* controller = browser()->GetFeatures().origin_space_controller();
   content::WebContents* page = GetActiveWebContents();
-  const LocationBarModel* model = browser()->GetFeatures().location_bar_model();
+  const LocationBarModel* model = LocationBarModel::From(browser());
   if (page && model && model->ShouldDisplayURL() &&
       !(controller && controller->IsTabPlaceholder(page))) {
     address = model->GetFormattedFullURL();
@@ -2124,7 +2124,8 @@ void BraveBrowserView::FinalizeOriginContentsResize() {
   // page-coloured region where newly exposed renderer tiles should be. This is
   // the same final-layout step BrowserView performs after toolbar animation
   // and tab dragging.
-  multi_contents_view_->SetIsAnimatingContent(false);
+  multi_contents_view_->SetIsAnimatingContent(/*is_animating=*/false,
+                                              /*is_origin_changing=*/false);
   multi_contents_view_->ExecuteOnEachVisibleContentsView(
       base::BindRepeating([](ContentsWebView* contents_view) {
         contents_view->InvalidateLayout();
