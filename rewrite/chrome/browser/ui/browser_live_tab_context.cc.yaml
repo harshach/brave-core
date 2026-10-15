@@ -13,3 +13,16 @@ substitutions:
       re_flags: [DOTALL]
       replace: |-
         \1\n  MaybePopulateTreeTabExtraData(*browser_, index, extra_data);
+  - description: Finish restoring a reopened window's Spaces before it shows.
+    preempt_function_impl:
+      function_name: BrowserLiveTabContext::ShowBrowserWindow
+      code: BraveFinishOriginSpaceWindowRestore(*browser_);
+  - description: Save a window's Spaces with it when it closes.
+    add_before_line:
+      line: 'return data;'
+      code: |2
+          MaybePopulateOriginSpaceWindowExtraData(*browser_, data);
+  - description: Start restoring a reopened window's Spaces.
+    add_after_line:
+      line: 'CreateBrowserWindow(std::move(*create_params));'
+      code: '  BraveBeginOriginSpaceWindowRestore(*browser, extra_data);'

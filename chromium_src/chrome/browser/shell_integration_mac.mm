@@ -35,9 +35,14 @@ namespace shell_integration {
 
 namespace {
 
-// Returns true if |identifier| is a Brave Origin bundle ID
-// (com.brave.Browser.origin or com.brave.Browser.origin.<channel>).
-bool IsBraveOriginBundleId(NSString* identifier) {
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+bool IsSocketBundleId(NSString* identifier) {
+  return [identifier isEqualToString:@"com.harsha.Socket"] ||
+         [identifier hasPrefix:@"com.harsha.Socket."];
+}
+#else
+
+bool IsOriginBundleId(NSString* identifier) {
   return [identifier isEqualToString:@"com.brave.Browser.origin"] ||
          [identifier hasPrefix:@"com.brave.Browser.origin."];
 }
@@ -48,8 +53,9 @@ bool IsBraveOriginBundleId(NSString* identifier) {
 bool IsRegularBraveBundleId(NSString* identifier) {
   return ([identifier isEqualToString:@"com.brave.Browser"] ||
           [identifier hasPrefix:@"com.brave.Browser."]) &&
-         !IsBraveOriginBundleId(identifier);
+         !IsOriginBundleId(identifier);
 }
+#endif
 #endif
 
 // Returns true if |other_identifier| is another channel of the same Brave
@@ -59,9 +65,10 @@ bool IsRegularBraveBundleId(NSString* identifier) {
 // prefix.
 bool IsAnotherBraveChannel(NSString* my_identifier,
                            NSString* other_identifier) {
-#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
-  return IsBraveOriginBundleId(my_identifier) &&
-         IsBraveOriginBundleId(other_identifier);
+#if BUILDFLAG(IS_SOCKET_BRANDED)
+  return IsSocketBundleId(my_identifier) && IsSocketBundleId(other_identifier);
+#elif BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return IsOriginBundleId(my_identifier) && IsOriginBundleId(other_identifier);
 #else
   return IsRegularBraveBundleId(my_identifier) &&
          IsRegularBraveBundleId(other_identifier);

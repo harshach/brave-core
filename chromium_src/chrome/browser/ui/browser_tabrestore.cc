@@ -5,8 +5,10 @@
 
 #include "chrome/browser/ui/browser_tabrestore.h"
 
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_session_manager.h"
 #include "brave/components/containers/buildflags/buildflags.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
@@ -54,6 +56,11 @@ content::WebContents* MaybeRestoreTabTreeHierarchy(
     // browser.
     tree_tab_session_manager->MaybeRestoreTabTreeHierarchy(
         restored_web_contents, extra_data);
+  }
+  if (auto* origin_space_controller =
+          browser->GetFeatures().origin_space_controller()) {
+    origin_space_controller->MaybeRestoreTabSpace(restored_web_contents,
+                                                  extra_data);
   }
   return restored_web_contents;
 }

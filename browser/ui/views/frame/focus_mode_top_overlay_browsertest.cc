@@ -11,23 +11,24 @@
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/focus_mode/focus_mode_features.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
 #include "brave/browser/ui/views/toolbar/bookmark_button.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
 #include "build/build_config.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_commands.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/immersive/immersive_mode_controller.h"
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/browser_widget.h"
 #include "chrome/browser/ui/views/frame/top_container_view.h"
 #include "chrome/browser/ui/views/location_bar/location_bar_view.h"
+#include "chrome/browser/ui/views/omnibox/omnibox_view_views.h"
 #include "chrome/browser/ui/views/tabs/tab_strip.h"
 #include "chrome/browser/ui/views/toolbar/toolbar_view.h"
+#include "chrome/browser/ui/window_feature_controller/window_feature_controller.h"
 #include "chrome/test/base/chrome_test_path_utils.h"
 #include "chrome/test/base/chrome_test_utils.h"
 #include "chrome/test/base/in_process_browser_test.h"
@@ -93,7 +94,7 @@ class FocusModeTopOverlayBrowserTest : public InProcessBrowserTest {
   }
 
   FocusModeController* focus_mode_controller() {
-    return browser()->GetFeatures().focus_mode_controller();
+    return FocusModeController::From(browser());
   }
 
   content::WebContents* active_web_contents() {
@@ -147,9 +148,12 @@ IN_PROC_BROWSER_TEST_F(FocusModeTopOverlayBrowserTest,
   ASSERT_TRUE(WaitForOverlayHidden());
 
   // Verify that the top container and tabstrip are reparented correctly.
+  // Vertical tabs, which Origin always shows, stay in the sidebar instead.
   EXPECT_EQ(top_container->parent(), overlay);
-  EXPECT_TRUE(
-      overlay->Contains(browser_view()->horizontal_tab_strip_for_testing()));
+  if (!VerticalTabController::From(browser())->ShouldShowBraveVerticalTabs()) {
+    EXPECT_TRUE(
+        overlay->Contains(browser_view()->horizontal_tab_strip_for_testing()));
+  }
   EXPECT_TRUE(overlay->Contains(browser_view()->toolbar()));
 
   // Activating Focus Mode moves the overlay to the end of the child list so
@@ -196,8 +200,9 @@ IN_PROC_BROWSER_TEST_F(FocusModeTopOverlayBrowserTest,
   ASSERT_TRUE(ui_test_utils::NavigateToURL(
       browser(), https_server_.GetURL("/empty.html")));
 
-  // Focus the location bar (omnibox), which lives inside the top container.
-  chrome::FocusLocationBar(browser());
+  // Focus the omnibox, which lives inside the top container. Origin sends
+  // Command+L to Quick Open, so focus the field itself.
+  browser_view()->GetLocationBarView()->omnibox_view()->RequestFocus();
   views::View* focused = focus_manager->GetFocusedView();
   ASSERT_TRUE(focused);
   ASSERT_TRUE(top_container->Contains(focused));
@@ -415,11 +420,16 @@ IN_PROC_BROWSER_TEST_F(FocusModeTopOverlayBrowserTest,
   focus_mode_controller()->SetEnabled(true);
   ASSERT_FALSE(overlay->active());
 
+  // A window that opens with vertical tabs, as Origin's always do, goes
+  // fullscreen without immersive mode, so its top container stays put.
+  const bool immersive =
+      WindowFeatureController::From(browser())->UsesImmersiveFullscreenMode();
   ui_test_utils::ToggleFullscreenModeAndWait(browser());
   ASSERT_TRUE(browser_view()->IsFullscreen());
-  ASSERT_TRUE(immersive_controller->IsEnabled());
+  ASSERT_EQ(immersive, immersive_controller->IsEnabled());
   ASSERT_FALSE(focus_mode_controller()->IsEnabled());
-  ASSERT_EQ(top_container->parent(), browser_view()->overlay_view());
+  ASSERT_EQ(top_container->parent(),
+            immersive ? browser_view()->overlay_view() : browser_view());
 
   ui_test_utils::ToggleFullscreenModeAndWait(browser());
   ASSERT_FALSE(browser_view()->IsFullscreen());

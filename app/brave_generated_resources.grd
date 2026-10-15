@@ -1276,7 +1276,9 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
       <message name="IDS_DOWNLOADS_TITLE" desc="Title for the downloads page and navigation bar label.">
         Downloads
       </message>
-
+      <message name="IDS_BRAVE_DOWNLOAD_BUBBLE_STATUS_FINISHING" desc="Status shown while a fully received download is being finalized before it can be opened.">
+        Finishing…
+      </message>
       <!-- Bookmarks -->
       <message name="IDS_BRAVE_BOOKMARK_MANAGER_EMPTY_LIST" desc="">
         To add a bookmark, click the bookmark button next to the address bar
@@ -1655,6 +1657,30 @@ Or change later at <ph name="SETTINGS_EXTENIONS_LINK">$2<ex>brave://settings/ext
            string and swap the IDS in chromium_src overrides. -->
       <message name="IDS_BRAVE_HISTORY_EMBEDDINGS_DISCLAIMER" desc="Disclaimer shown on chrome://history and in the history search IPH promo, indicating that history semantic search runs entirely on-device.">
         Your searches and page contents are processed on this device. Nothing is sent to Brave or seen by human reviewers.
+      </message>
+
+      <message name="IDS_ORIGIN_TOGGLE_SIDEBAR" desc="View menu item that shows or hides Origin's left sidebar containing spaces and pages.">
+        Toggle Sidebar
+      </message>
+
+      <!-- Origin temporary external-link window -->
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_OPEN_IN" desc="Label before the destination space selector in an Origin temporary external-link window.">
+        Open in
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_KEEP" desc="Button label that keeps a temporary external page in the selected space.">
+        Keep
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_DISCARD" desc="Accessible name and tooltip for the button that discards a temporary external page.">
+        Discard temporary page
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_CHOOSE_SPACE" desc="Fallback label for the destination selector when an Origin temporary external-link window has no suggested space.">
+        Choose Space
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_DEFAULT_SPACE" desc="Label shown beside the currently suggested destination in the temporary-link space picker.">
+        default
+      </message>
+      <message name="IDS_ORIGIN_TEMPORARY_LINK_ALWAYS_OPEN_DOMAIN_HERE" desc="Switch label that remembers the selected destination space for a website domain.">
+        Always open <ph name="DOMAIN">$1<ex>example.com</ex></ph> here
       </message>
       <!--Add new items to the appropriate sections above -->
     </messages>

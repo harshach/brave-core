@@ -16,10 +16,13 @@
 #include "brave/browser/ui/page_info/features.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
 #include "brave/browser/ui/views/brave_actions/brave_actions_container.h"
+#include "brave/browser/ui/views/brave_actions/brave_shields_action_view.h"
+#include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_controller.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_view.h"
 #include "brave/browser/ui/views/location_bar/brave_shields_page_info_controller.h"
 #include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/commander/common/buildflags/buildflags.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "brave/grit/brave_theme_resources.h"
@@ -46,6 +49,8 @@
 #include "ui/gfx/geometry/skia_conversions.h"
 #include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/paint_vector_icon.h"
+#include "ui/views/background.h"
+#include "ui/views/border.h"
 #include "ui/views/controls/highlight_path_generator.h"
 
 #if BUILDFLAG(ENABLE_PLAYLIST_WEBUI)
@@ -131,6 +136,11 @@ void BraveLocationBarView::Init() {
   brave_actions_ = AddChildView(
       std::make_unique<BraveActionsContainer>(browser_, GetProfile()));
   brave_actions_->Init();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin presents Shields as a first-class titlebar control. Do not reserve
+  // a second action slot inside the compact URL capsule.
+  brave_actions_->SetShouldHide(true);
+#endif
   // Call Update again to cause a Layout
   Update(nullptr);
 
@@ -174,6 +184,7 @@ void BraveLocationBarView::Update(content::WebContents* contents) {
   }
 
   LocationBarView::Update(contents);
+  ApplyOriginPageChromeColors();
 }
 
 void BraveLocationBarView::OnOmniboxBlurred() {
@@ -187,6 +198,7 @@ void BraveLocationBarView::OnOmniboxBlurred() {
   }
 #endif
   LocationBarView::OnOmniboxBlurred();
+  RefreshBackground();
 }
 
 void BraveLocationBarView::Layout(PassKey) {
@@ -207,6 +219,9 @@ void BraveLocationBarView::OnVisibleBoundsChanged() {
 
 void BraveLocationBarView::OnChanged() {
   auto hide_page_actions = ShouldHidePageActionIcons();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  hide_page_actions = true;
+#endif
   if (brave_actions_) {
     brave_actions_->SetShouldHide(hide_page_actions);
   }
@@ -220,6 +235,7 @@ void BraveLocationBarView::OnChanged() {
 
   // OnChanged calls Layout
   LocationBarView::OnChanged();
+  ApplyOriginPageChromeColors();
 }
 
 std::vector<views::View*> BraveLocationBarView::GetRightMostTrailingViews() {
@@ -238,6 +254,10 @@ views::View* BraveLocationBarView::GetSearchPromotionButton() const {
 void BraveLocationBarView::RefreshBackground() {
   LocationBarView::RefreshBackground();
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  ApplyOriginPageChromeColors();
+#endif
+
   if (shadow_) {
     const bool show_shadow =
         IsMouseHovered() &&
@@ -245,6 +265,90 @@ void BraveLocationBarView::RefreshBackground() {
     shadow_->SetVisible(show_shadow);
     return;
   }
+}
+
+SkColor BraveLocationBarView::GetIconLabelBubbleSurroundingForegroundColor()
+    const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors()) {
+    return *origin_page_chrome_foreground_;
+  }
+#endif
+  return LocationBarView::GetIconLabelBubbleSurroundingForegroundColor();
+}
+
+SkColor BraveLocationBarView::GetIconLabelBubbleBackgroundColor() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors()) {
+    return *origin_page_chrome_background_;
+  }
+#endif
+  return LocationBarView::GetIconLabelBubbleBackgroundColor();
+}
+
+SkColor BraveLocationBarView::GetSecurityChipColor(
+    security_state::SecurityLevel security_level) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldUseOriginPageChromeColors() &&
+      security_level != security_state::DANGEROUS) {
+    return *origin_page_chrome_foreground_;
+  }
+#endif
+  return LocationBarView::GetSecurityChipColor(security_level);
+}
+
+void BraveLocationBarView::SetOriginPageChromeColors(SkColor background,
+                                                     SkColor ring,
+                                                     SkColor foreground) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (origin_page_chrome_background_ == background &&
+      origin_page_chrome_ring_ == ring &&
+      origin_page_chrome_foreground_ == foreground) {
+    return;
+  }
+  origin_page_chrome_background_ = background;
+  origin_page_chrome_ring_ = ring;
+  origin_page_chrome_foreground_ = foreground;
+  if (IsInitialized()) {
+    RefreshBackground();
+  }
+#endif
+}
+
+bool BraveLocationBarView::ShouldUseOriginPageChromeColors() const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return origin_page_chrome_background_ && origin_page_chrome_foreground_ &&
+         origin_page_chrome_ring_ && IsInitialized();
+#else
+  return false;
+#endif
+}
+
+void BraveLocationBarView::ApplyOriginPageChromeColors() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!IsInitialized() || !omnibox_view_) {
+    return;
+  }
+
+  const bool use_page_colors = ShouldUseOriginPageChromeColors();
+  if (use_page_colors) {
+    background_color_ = *origin_page_chrome_background_;
+    SetBackground(views::CreateRoundedRectBackground(background_color_,
+                                                     GetBorderRadius()));
+    SetBorder(views::CreateRoundedRectBorder(1, GetBorderRadius(),
+                                             *origin_page_chrome_ring_));
+    omnibox_view_->SetBackgroundColor(background_color_);
+    omnibox_view_->SetColor(*origin_page_chrome_foreground_);
+  } else if (const ui::ColorProvider* colors = GetColorProvider()) {
+    SetBorder(nullptr);
+    omnibox_view_->SetColor(colors->GetColor(kColorOmniboxText));
+  }
+
+  if (brave_actions_ && brave_actions_->GetShieldsActionView()) {
+    brave_actions_->GetShieldsActionView()->SetOriginForegroundColor(
+        use_page_colors ? origin_page_chrome_foreground_ : std::nullopt);
+  }
+#endif
 }
 
 int BraveLocationBarView::GetMinimumTrailingWidth() const {
@@ -344,6 +448,15 @@ int BraveLocationBarView::GetBorderRadius() const {
 
 void BraveLocationBarView::FocusLocation(bool is_user_initiated,
                                          bool clear_focus_if_failed) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (auto* browser_view =
+          browser_ ? BraveBrowserView::GetBrowserViewForBrowser(browser_)
+                   : nullptr;
+      browser_view && browser_view->RouteOriginAddressFocus(
+                          /*search=*/false, is_user_initiated)) {
+    return;
+  }
+#endif
   if (base::FeatureList::IsEnabled(tabs::kBraveSharedPinnedTabs) &&
       browser_->GetProfile()->GetPrefs()->GetBoolean(
           brave_tabs::kSharedPinnedTab)) {
@@ -355,6 +468,21 @@ void BraveLocationBarView::FocusLocation(bool is_user_initiated,
   }
 
   omnibox_view_->SetFocus(is_user_initiated);
+}
+
+void BraveLocationBarView::FocusSearch() {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Search the Web… (Command+Option+F) and Ctrl+K would otherwise type into
+  // the hidden field in keyword mode.
+  if (auto* browser_view =
+          browser_ ? BraveBrowserView::GetBrowserViewForBrowser(browser_)
+                   : nullptr;
+      browser_view && browser_view->RouteOriginAddressFocus(
+                          /*search=*/true, /*is_user_initiated=*/true)) {
+    return;
+  }
+#endif
+  LocationBarView::FocusSearch();
 }
 
 SkPath BraveLocationBarView::GetFocusRingHighlightPath() const {

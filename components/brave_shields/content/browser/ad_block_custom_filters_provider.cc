@@ -7,6 +7,7 @@
 
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -14,6 +15,7 @@
 #include "base/strings/strcat.h"
 #include "base/task/single_thread_task_runner.h"
 #include "base/trace_event/trace_event.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_shields/content/browser/ad_block_custom_filter_reset_util.h"
 #include "brave/components/brave_shields/core/browser/ad_block_filters_provider_manager.h"
 #include "brave/components/brave_shields/core/browser/brave_shields_utils.h"
@@ -36,6 +38,18 @@ void AddDATBufferToFilterSet(uint8_t permission_mask,
 // Custom filters get all permissions granted, i.e. all bits of the mask set,
 // i.e. the maximum possible uint8_t.
 constexpr uint8_t kCustomFiltersPermissionLevel = UINT8_MAX;
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+// Origin's persistent workspace rail changes responsive breakpoints. These
+// rules collapse otherwise empty ad rows and let extra-wide YouTube theater
+// players shrink to the available viewport instead of clipping both columns.
+constexpr std::string_view kOriginSupplementalCosmeticFilters = R"(
+! Title: Origin supplemental cosmetic filters
+gearpatrol.com##.wp-block-gearpatrol-sidebar:has(> .wp-block-gearpatrol-ad-slot)
+gearpatrol.com##.wp-block-gearpatrol-from-our-partners
+youtube.com##ytd-watch-flexy[theater][full-bleed-player][is-extra-wide-video_][is-two-columns_][flexy-small-window_] #primary:style(min-width: 0 !important)
+)";
+#endif
 
 }  // namespace
 
@@ -126,6 +140,9 @@ void AdBlockCustomFiltersProvider::LoadFilterSet(
   DCHECK_CALLED_ON_VALID_SEQUENCE(sequence_checker_);
   std::string custom_filters = "! Title: User-defined custom filters\n";
   custom_filters += GetCustomFilters();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  custom_filters += kOriginSupplementalCosmeticFilters;
+#endif
 
   auto buffer =
       std::vector<unsigned char>(custom_filters.begin(), custom_filters.end());

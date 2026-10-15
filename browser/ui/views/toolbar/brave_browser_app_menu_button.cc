@@ -10,7 +10,7 @@
 #include "brave/common/pref_names.h"
 #include "brave/components/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/toolbar/app_menu_icon_controller.h"
@@ -79,8 +79,13 @@ std::optional<SkColor> BraveBrowserAppMenuButton::GetHighlightColor() const {
 
 SkColor BraveBrowserAppMenuButton::GetForegroundColor(ButtonState state) const {
   std::optional<SkColor> color = GetColorForSeverity();
-  return color.has_value() ? color.value()
-                           : BrowserAppMenuButton::GetForegroundColor(state);
+  if (color) {
+    return *color;
+  }
+  if (icon_enabled_colors_override()) {
+    return *icon_enabled_colors_override();
+  }
+  return BrowserAppMenuButton::GetForegroundColor(state);
 }
 
 bool BraveBrowserAppMenuButton::ShouldPaintBorder() const {

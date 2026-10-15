@@ -17,6 +17,7 @@
 #include "base/test/values_test_util.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_news/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_talk/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
@@ -400,7 +401,8 @@ TEST(SidebarItemTest, SidebarItemValidation) {
 }
 
 TEST(SidebarFeaturesTest, DefaultTest) {
-  EXPECT_FALSE(base::FeatureList::IsEnabled(features::kSidebarWebPanel));
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            base::FeatureList::IsEnabled(features::kSidebarWebPanel));
 }
 
 TEST_F(SidebarServiceTest, UpdateItem) {

@@ -18,7 +18,6 @@
 #include "base/strings/utf_string_conversions.h"
 #include "brave/app/vector_icons/vector_icons.h"
 #include "brave/browser/profiles/profile_util.h"
-#include "brave/browser/ui/brave_browser.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/color/color_palette.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
@@ -39,6 +38,8 @@
 #include "brave/grit/brave_generated_resources.h"
 #include "chrome/app/vector_icons/vector_icons.h"
 #include "chrome/browser/profiles/profile.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
+#include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/color/chrome_color_id.h"
 #include "chrome/browser/ui/views/event_utils.h"
@@ -80,14 +81,14 @@ std::string GetFirstCharFromURL(const GURL& url) {
   return std::string(target);
 }
 
-sidebar::SidebarService* GetSidebarService(Browser* browser) {
+sidebar::SidebarService* GetSidebarService(BrowserWindowInterface* browser) {
   return sidebar::SidebarServiceFactory::GetForProfile(browser->GetProfile());
 }
 
 }  // namespace
 
 SidebarItemsContentsView::SidebarItemsContentsView(
-    BraveBrowser* browser,
+    BrowserWindowInterface* browser,
     views::DragController* drag_controller)
     : browser_(browser),
       drag_controller_(drag_controller),
@@ -135,10 +136,10 @@ void SidebarItemsContentsView::OnThemeChanged() {
 }
 
 void SidebarItemsContentsView::Update() {
-  UpdateAllBuiltInItemsViewState();
+  UpdateAllItemsViewState();
 }
 
-void SidebarItemsContentsView::UpdateAllBuiltInItemsViewState() {
+void SidebarItemsContentsView::UpdateAllItemsViewState() {
   const auto& items = sidebar_model_->GetAllSidebarItems();
   // It's not initialized yet if child view count and items size are different.
   if (children().size() != items.size()) {
@@ -149,10 +150,6 @@ void SidebarItemsContentsView::UpdateAllBuiltInItemsViewState() {
   const size_t items_num = items.size();
   for (size_t item_index = 0; item_index < items_num; ++item_index) {
     const auto item = items[item_index];
-    if (!item.is_built_in_type()) {
-      continue;
-    }
-
 #if BUILDFLAG(ENABLE_BRAVE_TALK)
     // If browser window has tab that loads brave talk, brave talk panel icon
     // will use colored one for normal state also.
@@ -165,7 +162,10 @@ void SidebarItemsContentsView::UpdateAllBuiltInItemsViewState() {
     }
 #endif
 
-    UpdateItemViewStateAt(item_index, item_index == active_index);
+    // Items that opens in panel can have active state.
+    if (item.open_in_panel) {
+      UpdateItemViewStateAt(item_index, item_index == active_index);
+    }
   }
 }
 

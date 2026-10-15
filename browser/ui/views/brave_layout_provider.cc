@@ -5,6 +5,8 @@
 
 #include "brave/browser/ui/views/brave_layout_provider.h"
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+
 // static
 std::unique_ptr<views::LayoutProvider>
 ChromeLayoutProvider::CreateLayoutProvider() {
@@ -28,6 +30,11 @@ int BraveLayoutProvider::GetCornerRadiusMetric(views::Emphasis emphasis,
 
 int BraveLayoutProvider::GetCornerRadiusMetric(
     views::ShapeContextTokensOverride token) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (token == views::ShapeContextTokensOverride::kRoundedCornersBorderRadius) {
+    return 10;
+  }
+#endif
   return LayoutProvider::GetCornerRadiusMetric(token);
 }
 

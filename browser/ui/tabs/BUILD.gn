@@ -54,9 +54,11 @@ if (!is_android) {
       ":tabs_public",
       "//brave/browser/drag_drop",
       "//brave/browser/misc_metrics:misc_metrics_impl",
+      "//brave/browser/new_tab",
       "//brave/browser/ui:ui_features",
       "//brave/browser/ui/focus_mode",
       "//brave/browser/ui/side_panel",
+      "//brave/browser/ui/sidebar",
       "//brave/browser/ui/views/page_action",
       "//brave/components/image_metadata_stripper/common",
       "//brave/components/misc_metrics",
@@ -71,17 +73,13 @@ if (!is_android) {
       "//chrome/browser/ui/thumbnails",
     ]
 
-    if (is_win) {
-      deps += [ "//brave/browser/new_tab:background_color_tab_helper" ]
-    }
-
     if (enable_ai_chat) {
       deps += [ "//brave/browser/ai_chat" ]
     }
 
     if (enable_request_otr) {
       deps += [
-        "//brave/browser/request_otr:tab_helper",
+        "//brave/browser/request_otr",
         "//brave/components/request_otr/common",
       ]
     }
@@ -128,6 +126,7 @@ if (!is_android) {
 
     deps = [
       "//brave/components/tabs",
+      "//chrome/browser/ui:browser_window_header",
       "//chrome/browser/ui/tabs:features",
       "//chrome/browser/ui/tabs:tab_strip",
     ]
@@ -161,6 +160,7 @@ if (!is_android) {
         "//brave/components/containers/content/browser",
         "//brave/components/containers/core/browser",
         "//brave/components/containers/core/common",
+        "//chrome/browser/ui/views/frame:browser_view_header",
         "//components/tabs:public",
       ]
     }
@@ -222,6 +222,175 @@ if (!is_android) {
       "//content/public/browser",
     ]
   }
+
+  source_set("origin_space_controller") {
+    sources = [
+      "origin_space_controller.cc",
+      "origin_space_controller.h",
+    ]
+
+    public_deps = [ "//url" ]
+
+    deps = [
+      "//base",
+      "//brave/browser/sessions",
+      "//brave/browser/workspaces",
+      "//chrome/browser/profiles:profile",
+      "//chrome/browser/sessions",
+      "//chrome/browser/ui:tab_ui_helper",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/prefs",
+      "//components/sessions",
+      "//components/sessions:session_id",
+      "//components/tabs:public",
+      "//content/public/browser",
+      "//content/public/common",
+      "//services/network/public/cpp",
+      "//ui/base",
+    ]
+  }
+
+  source_set("origin_audio_bars") {
+    sources = [
+      "origin_audio_bars.cc",
+      "origin_audio_bars.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//skia",
+    ]
+
+    deps = [
+      "//cc/paint",
+      "//ui/gfx",
+      "//ui/gfx/geometry",
+    ]
+  }
+
+  source_set("origin_space_theme") {
+    sources = [
+      "origin_space_theme.cc",
+      "origin_space_theme.h",
+    ]
+
+    public_deps = [
+      "//brave/browser/workspaces",
+      "//skia",
+      "//ui/color",
+    ]
+
+    deps = [
+      "//base",
+      "//chrome/browser/ui/color:color_headers",
+    ]
+  }
+
+  source_set("origin_later_service") {
+    sources = [
+      "origin_later_service.cc",
+      "origin_later_service.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//chrome/browser/profiles:profile",
+      "//components/keyed_service/core",
+      "//url",
+    ]
+
+    deps = [
+      ":origin_space_controller",
+      "//chrome/browser/ui/browser_window",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/pref_registry",
+      "//components/prefs",
+      "//content/public/browser",
+    ]
+  }
+
+  source_set("origin_copy_link") {
+    sources = [
+      "origin_copy_link.cc",
+      "origin_copy_link.h",
+    ]
+
+    public_deps = [ "//url" ]
+
+    deps = [
+      "//base",
+      "//base:i18n",
+      "//brave/components/url_sanitizer/core/browser",
+    ]
+  }
+
+  source_set("origin_tags") {
+    sources = [
+      "origin_tags.cc",
+      "origin_tags.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//url",
+    ]
+
+    deps = [
+      "//base:i18n",
+      "//components/bookmarks/browser",
+    ]
+  }
+
+  source_set("origin_time_parser") {
+    sources = [
+      "origin_time_parser.cc",
+      "origin_time_parser.h",
+    ]
+
+    public_deps = [ "//base" ]
+
+    deps = [ "//base:i18n" ]
+  }
+
+  source_set("origin_download_summary") {
+    sources = [
+      "origin_download_summary.cc",
+      "origin_download_summary.h",
+    ]
+
+    public_deps = [
+      "//base",
+      "//components/download/content/public",
+    ]
+
+    deps = [
+      "//chrome/browser/profiles:profile",
+      "//components/download/public/common:public",
+      "//content/public/browser",
+    ]
+  }
+
+  source_set("origin_media_monitor") {
+    sources = [
+      "origin_media_monitor.cc",
+      "origin_media_monitor.h",
+    ]
+
+    public_deps = [ "//brave/browser/ui/tabs:origin_space_controller" ]
+
+    deps = [
+      "//base",
+      "//brave/browser/workspaces",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//components/sessions",
+      "//components/sessions:session_id",
+      "//content/public/browser",
+      "//mojo/public/cpp/bindings",
+      "//services/media_session/public/cpp",
+      "//services/media_session/public/mojom",
+      "//url",
+    ]
+  }
 }
 
 source_set("browser_tests") {
@@ -252,10 +421,18 @@ source_set("browser_tests") {
   }
 
   if (!is_android) {
+    sources += [ "origin_pinned_link_throttle_browsertest.cc" ]
     deps += [
+      ":origin_space_controller",
       ":tab_menu",
       ":tab_model",
+      "//brave/components/brave_origin/buildflags",
+      "//chrome/browser/profiles:profile",
+      "//chrome/browser/ui/browser_window",
       "//chrome/browser/ui/tabs:tab_menu",
+      "//chrome/browser/ui/tabs:tab_strip",
+      "//chrome/browser/ui/views/frame:browser_view_header",
+      "//net:test_support",
     ]
   }
 

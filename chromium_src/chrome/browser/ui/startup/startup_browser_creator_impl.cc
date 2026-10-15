@@ -5,23 +5,37 @@
 
 #include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
 
+#include <algorithm>
+
 #include "brave/browser/ui/startup/brave_startup_tab_provider_impl.h"
+#include "brave/browser/ui/startup/origin_external_link_router.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
+#include "chrome/browser/ui/navigator/browser_navigator.h"
 #include "chrome/browser/ui/navigator/browser_navigator_params.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/startup/startup_tab_provider.h"
+#include "ui/base/base_window.h"
+#include "url/gurl.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 #include "brave/browser/containers/container_specifier_utils.h"
 #endif  // BUILDFLAG(ENABLE_CONTAINERS)
 
+// Returns true if the ephemeral storage for |url|'s domain is scheduled for
+// cleanup, in which case the tab should not be restored.
+// Implemented in
+// browser/ephemeral_storage/ephemeral_storage_session_restore_helpers.cc so
+// that the upstream sessions target does not depend on Brave ephemeral storage.
+bool BraveIsScheduledForCleanup(const GURL& url, Profile* profile);
+
 namespace {
 
-void BraveModifyStartupTabNavigationParams(const StartupTab& tab,
-                                           BrowserWindowInterface* browser,
-                                           NavigateParams& params) {
+void BraveNavigateStartupTab(const StartupTab& tab,
+                             BrowserWindowInterface* browser,
+                             NavigateParams& params) {
 #if BUILDFLAG(ENABLE_CONTAINERS)
   if (!params.storage_partition_config) {
     params.storage_partition_config =
@@ -29,6 +43,27 @@ void BraveModifyStartupTabNavigationParams(const StartupTab& tab,
             browser->GetProfile(), tab.container);
   }
 #endif
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (tab.is_origin_external_link) {
+    origin_external_link::ConfigureNavigation(tab.url, browser, &params);
+  }
+#endif
+  Navigate(&params);
+}
+
+void BraveShowStartupBrowser(BrowserWindowInterface* browser,
+                             const StartupTabs& tabs) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin shows the window it routed OS links to. Showing this one as well
+  // would pull the user over to whichever macOS Space it sits on.
+  if (std::ranges::all_of(tabs, [browser](const StartupTab& tab) {
+        return tab.is_origin_external_link &&
+               origin_external_link::RoutesNavigation(tab.url, browser);
+      })) {
+    return;
+  }
+#endif
+  browser->GetWindow()->Show();
 }
 
 }  // namespace

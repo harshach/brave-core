@@ -9,14 +9,21 @@
 #include "base/dcheck_is_on.h"
 #include "base/logging.h"
 #include "base/memory/raw_ptr.h"
+#include "base/numerics/safe_conversions.h"
+#include "base/strings/string_number_conversions.h"
 #include "brave/browser/ui/color/brave_color_id.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/views/tabs/brave_tab.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/layout_constants.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/tabs/tab_container.h"
 #include "chrome/browser/ui/views/tabs/tab_slot_controller.h"
+#include "ui/base/models/image_model.h"
+#include "ui/gfx/image/image_skia.h"
 #include "ui/gfx/color_utils.h"
+#include "ui/gfx/font_list.h"
+#include "ui/gfx/text_utils.h"
 #include "ui/views/view_utils.h"
 
 #include <chrome/browser/ui/views/tabs/common/horizontal_tab_style_views.cc>
@@ -452,6 +459,93 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     return;
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin's pinned pages are favicon tiles. Nothing else identifies them, so
+  // give the tile a surface and draw the icon well above its 16dp default.
+  if (ShouldShowVerticalTabs() && tab()->data().pinned) {
+    const SkRect tile = GetPath(TabStyle::PathType::kBorder, 1, /*flags=*/{},
+                                /*inset_tab_accent_area=*/false)
+                            .getBounds();
+    {
+      gfx::ScopedCanvas scoped_canvas(canvas);
+      const float scale = canvas->UndoDeviceScaleFactor();
+      const SkPath surface =
+          GetPath(TabStyle::PathType::kHighlight, scale, /*flags=*/{});
+      cc::PaintFlags flags;
+      flags.setAntiAlias(true);
+      flags.setColor(SkColorSetARGB(0x1A, 0xFF, 0xFF, 0xFF));
+      flags.setStyle(cc::PaintFlags::kFill_Style);
+      canvas->DrawPath(surface, flags);
+      // Each tile takes a wash of its icon's colour, as Arc's Favorites do.
+      // The selected tile keeps the plain selected fill so it still stands
+      // out.
+      if (const std::optional<SkColor> tint = brave_tab->GetOriginTileTint();
+          tint && !tab()->IsActive()) {
+        flags.setColor(SkColorSetA(*tint, 0x2E));
+        canvas->DrawPath(surface, flags);
+      }
+    }
+
+    const ui::ImageModel& favicon = tab()->data().favicon;
+    if (!favicon.IsEmpty()) {
+      constexpr int kOriginPinnedFaviconSize = 26;
+      const gfx::ImageSkia image =
+          favicon.Rasterize(tab()->GetColorProvider());
+      // An unloaded page keeps its tile but looks asleep until it is opened.
+      const bool asleep = tab()->data().is_tab_discarded;
+      if (asleep) {
+        canvas->SaveLayerAlpha(0x73);
+      }
+      canvas->DrawImageInt(
+          image, 0, 0, image.width(), image.height(),
+          tile.x() + (tile.width() - kOriginPinnedFaviconSize) / 2,
+          tile.y() + (tile.height() - kOriginPinnedFaviconSize) / 2,
+          kOriginPinnedFaviconSize, kOriginPinnedFaviconSize,
+          /*filter=*/true);
+      if (asleep) {
+        canvas->Restore();
+      }
+    }
+
+    constexpr SkColor kOriginAccent = SkColorSetRGB(0xFB, 0x54, 0x2B);
+    // An unread count from the page's title sits on the corner, as mail and
+    // chat show it in Arc.
+    const int unread = brave_tab->GetOriginUnreadCount();
+    if (unread > 0) {
+      const std::u16string text =
+          unread > 99 ? u"99+" : base::NumberToString16(unread);
+      const gfx::FontList font =
+          gfx::FontList().DeriveWithSizeDelta(-3).DeriveWithWeight(
+              gfx::Font::Weight::BOLD);
+      constexpr int kBadgeHeight = 14;
+      const int badge_width =
+          std::max(kBadgeHeight, gfx::GetStringWidth(text, font) + 8);
+      const gfx::Rect badge(base::ClampFloor(tile.right()) - badge_width - 3,
+                            base::ClampFloor(tile.y()) + 3, badge_width,
+                            kBadgeHeight);
+      cc::PaintFlags pill;
+      pill.setAntiAlias(true);
+      pill.setColor(kOriginAccent);
+      pill.setStyle(cc::PaintFlags::kFill_Style);
+      canvas->DrawRoundRect(badge, kBadgeHeight / 2, pill);
+      canvas->DrawStringRectWithFlags(text, font, SK_ColorWHITE, badge,
+                                      gfx::Canvas::TEXT_ALIGN_CENTER);
+    }
+
+    // A dot in the corner says the page has left the address it was pinned
+    // at; h takes it back. It gives the badge its corner.
+    if (brave_tab->IsOriginPinnedPageAway()) {
+      cc::PaintFlags dot;
+      dot.setAntiAlias(true);
+      dot.setColor(kOriginAccent);
+      dot.setStyle(cc::PaintFlags::kFill_Style);
+      constexpr float kDotRadius = 3.0f;
+      const float dot_x = unread > 0 ? tile.x() + 7.0f : tile.right() - 7.0f;
+      canvas->DrawCircle(gfx::PointF(dot_x, tile.y() + 7.0f), kDotRadius, dot);
+    }
+  }
+#endif
+
   // Paint a stroke for pinned tabs.
   if (tab()->data().pinned) {
     const auto* widget = tab()->GetWidget();
@@ -477,6 +571,22 @@ void BraveVerticalTabStyle::PaintTab(gfx::Canvas* canvas) const {
     flags.setStrokeWidth(scale);
     canvas->DrawPath(stroke_path, flags);
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (ShouldShowVerticalTabs() && tab()->IsActive()) {
+    gfx::ScopedCanvas scoped_canvas(canvas);
+    const float scale = canvas->UndoDeviceScaleFactor();
+    const SkPath stroke_path =
+        GetPath(TabStyle::PathType::kBorder, scale, /*flags=*/{});
+
+    cc::PaintFlags flags;
+    flags.setAntiAlias(true);
+    flags.setColor(SkColorSetARGB(0x57, 0xFB, 0x54, 0x2B));
+    flags.setStyle(cc::PaintFlags::kStroke_Style);
+    flags.setStrokeWidth(scale);
+    canvas->DrawPath(stroke_path, flags);
+  }
+#endif
 
   // Paint tab accent if needed.
   if (should_paint_tab_accent) {

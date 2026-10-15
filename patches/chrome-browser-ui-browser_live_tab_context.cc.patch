@@ -1,8 +1,16 @@
 diff --git a/chrome/browser/ui/browser_live_tab_context.cc b/chrome/browser/ui/browser_live_tab_context.cc
-index b220ba6c8f4390cd0d770d6c4ff8175403825014..555243e554738a3f7020e6f2214bdc416483a25b 100644
+index d48ee3c659d7e03939882b28ae5c1f74be5c92dc..a34d2d225995795c2afb8f69a89ae541283ae901 100644
 --- a/chrome/browser/ui/browser_live_tab_context.cc
 +++ b/chrome/browser/ui/browser_live_tab_context.cc
-@@ -169,6 +169,7 @@ sessions::LiveTab* BrowserLiveTabContext::GetActiveLiveTab() const {
+@@ -156,6 +156,7 @@ BrowserLiveTabContext::~BrowserLiveTabContext() {
+ }
+ 
+ void BrowserLiveTabContext::ShowBrowserWindow() {
++  BraveFinishOriginSpaceWindowRestore(*browser_);
+   base_window_->Show();
+ }
+ 
+@@ -197,6 +198,7 @@ sessions::LiveTab* BrowserLiveTabContext::GetActiveLiveTab() const {
  std::map<std::string, std::string> BrowserLiveTabContext::GetExtraDataForTab(
      int index) const {
    std::map<std::string, std::string> extra_data;
@@ -10,3 +18,20 @@ index b220ba6c8f4390cd0d770d6c4ff8175403825014..555243e554738a3f7020e6f2214bdc41
  
    glic::PopulateGlicExtraData(tab_strip_model_->GetTabAtIndex(index),
                                &extra_data);
+@@ -225,6 +227,8 @@ BrowserLiveTabContext::GetExtraDataForWindow() const {
+     }
+   }
+ 
++  MaybePopulateOriginSpaceWindowExtraData(*browser_, data);
++
+   return data;
+ }
+ 
+@@ -563,6 +567,7 @@ sessions::LiveTabContext* BrowserLiveTabContext::Create(
+ 
+   BrowserWindowInterface* browser =
+       CreateBrowserWindow(std::move(*create_params));
++  BraveBeginOriginSpaceWindowRestore(*browser, extra_data);
+ 
+   return BrowserLiveTabContext::From(browser);
+ }

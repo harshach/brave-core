@@ -28,6 +28,7 @@ class BraveTabDragController : public TabDragController {
                                 gfx::Point start_point_in_screen) override;
   void DetachAndAttachToNewContext(ReleaseCapture release_capture,
                                    TabDragContext* target_context) override;
+  void CompleteDrag() override;
 
  private:
   gfx::Point offset_from_first_dragged_view_;

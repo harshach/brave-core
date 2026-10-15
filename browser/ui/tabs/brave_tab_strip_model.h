@@ -20,6 +20,10 @@
 
 class TreeTabModel;
 
+namespace content {
+class WebContents;
+}
+
 class BraveTabStripModel : public TabStripModel {
  public:
   explicit BraveTabStripModel(TabStripModelDelegate* delegate,
@@ -72,6 +76,16 @@ class BraveTabStripModel : public TabStripModel {
   // a tree-tab parent to select its whole subtree.
   std::vector<int> GetTreeTabDescendantIndices(int index);
 
+  // Moves the complete subtree containing `child` beneath `parent`. This is
+  // used by Origin's explicit drop-on-page gesture. Returns false for invalid
+  // or cyclic drops.
+  bool NestTabUnder(content::WebContents* child, content::WebContents* parent);
+
+  // Promotes the selected tree subtree(s) to the unpinned root. Used before a
+  // page is moved to another Origin Space so it cannot retain an invisible
+  // parent from the source Space.
+  bool PromoteSelectedTreeTabsToRoot();
+
   // Returns true iff the current selection consists of exactly the active
   // tab and the tree tab descendants returned by
   // GetTreeTabDescendantIndices() for it (no more, no fewer, no other
@@ -101,6 +115,7 @@ class BraveTabStripModel : public TabStripModel {
   void NotifyTreeTabNodeCreated(const tabs::TreeTabNode& node);
   void NotifyTreeTabNodeWillBeDestroyed(const tree_tab::TreeTabNodeId& id);
   void NotifyTreeTabNodeReparented(const tree_tab::TreeTabNodeId& id);
+  void NotifyTreeTabNodeChildrenChanged(const tree_tab::TreeTabNodeId& id);
 
   tabs::BraveTabStripCollection* contents_data() {
     return static_cast<tabs::BraveTabStripCollection*>(contents_data_.get());
@@ -129,6 +144,8 @@ class BraveTabStripModel : public TabStripModel {
       tree_tab_node_will_be_destroyed_subscription_;
   std::unique_ptr<base::CallbackListSubscription>
       tree_tab_node_moved_subscription_;
+  std::unique_ptr<base::CallbackListSubscription>
+      tree_tab_node_children_changed_subscription_;
 };
 
 #endif  // BRAVE_BROWSER_UI_TABS_BRAVE_TAB_STRIP_MODEL_H_

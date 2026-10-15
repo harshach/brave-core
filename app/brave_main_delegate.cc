@@ -8,6 +8,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <variant>
 
 #include "base/base_switches.h"
 #include "base/lazy_instance.h"
@@ -18,6 +19,7 @@
 #include "brave/common/resource_bundle_helper.h"
 #include "brave/components/brave_component_updater/browser/features.h"
 #include "brave/components/brave_component_updater/browser/switches.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_sync/buildflags.h"
 #include "brave/components/constants/brave_switches.h"
 #include "brave/components/speedreader/common/buildflags/buildflags.h"
@@ -37,6 +39,11 @@
 #include "components/sync/base/command_line_switches.h"
 #include "google_apis/gaia/gaia_switches.h"
 #include "services/network/public/cpp/is_potentially_trustworthy.h"
+
+#if BUILDFLAG(IS_MAC) && BUILDFLAG(IS_SOCKET_BRANDED)
+#include "brave/app/socket_profile_migration.h"
+#include "content/public/common/result_codes.h"
+#endif
 
 #if BUILDFLAG(IS_LINUX)
 #include "base/linux_util.h"
@@ -182,6 +189,16 @@ void BraveMainDelegate::PreSandboxStartup() {
 
 std::optional<int> BraveMainDelegate::PostEarlyInitialization(
     ChromeMainDelegate::InvokedIn invoked_in) {
+#if BUILDFLAG(IS_MAC) && BUILDFLAG(IS_SOCKET_BRANDED)
+  const auto* invoked_in_browser =
+      std::get_if<InvokedInBrowserProcess>(&invoked_in);
+  if (invoked_in_browser && !invoked_in_browser->is_running_test &&
+      socket_profile::MaybeMigrateBraveProfile() ==
+          socket_profile::StartupDisposition::kExit) {
+    return content::RESULT_CODE_NORMAL_EXIT;
+  }
+#endif
+
   auto result = ChromeMainDelegate::PostEarlyInitialization(invoked_in);
   if (result.has_value()) {
     // An exit code is set. Stop initialization.

@@ -10,6 +10,7 @@
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/focus_mode/focus_mode_controller.h"
 #include "brave/browser/ui/tabs/brave_tab_prefs.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/tabs/tab_strip_prefs.h"
@@ -33,7 +34,8 @@ class VerticalTabControllerUnitTest : public testing::Test {
   }
 
   sync_preferences::TestingPrefServiceSyncable pref_service_;
-  // Each test creates at most one controller, which registers itself here.
+  // Each test creates at most one controller of each type, which registers
+  // itself here.
   ui::UnownedUserDataHost user_data_host_;
 };
 
@@ -49,7 +51,8 @@ TEST_F(VerticalTabControllerUnitTest, SupportsBraveVerticalTabsPopupWindow) {
 
 TEST_F(VerticalTabControllerUnitTest, ShouldShowBraveVerticalTabsDefaultOff) {
   auto controller = MakeController();
-  EXPECT_FALSE(controller->ShouldShowBraveVerticalTabs());
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowBraveVerticalTabs());
 }
 
 TEST_F(VerticalTabControllerUnitTest, ShouldShowBraveVerticalTabsWhenEnabled) {
@@ -69,7 +72,8 @@ TEST_F(VerticalTabControllerUnitTest, ShouldShowWindowTitleWhenEnabled) {
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsShowTitleOnWindow, true);
   auto controller = MakeController();
-  EXPECT_TRUE(controller->ShouldShowWindowTitleForVerticalTabs());
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowWindowTitleForVerticalTabs());
 }
 
 TEST_F(VerticalTabControllerUnitTest,
@@ -84,23 +88,26 @@ TEST_F(VerticalTabControllerUnitTest, ShouldShowWindowTitleFalseInFocusMode) {
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsShowTitleOnWindow, true);
 
-  FocusModeController focus_mode_controller;
+  FocusModeController focus_mode_controller(user_data_host_);
   auto controller = MakeController(BrowserWindowInterface::TYPE_NORMAL,
                                    &focus_mode_controller);
-  EXPECT_TRUE(controller->ShouldShowWindowTitleForVerticalTabs());
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowWindowTitleForVerticalTabs());
 
   focus_mode_controller.SetEnabled(true);
   EXPECT_FALSE(controller->ShouldShowWindowTitleForVerticalTabs());
 
   focus_mode_controller.SetEnabled(false);
-  EXPECT_TRUE(controller->ShouldShowWindowTitleForVerticalTabs());
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowWindowTitleForVerticalTabs());
 }
 
 TEST_F(VerticalTabControllerUnitTest, IsFloatingVerticalTabsEnabledDefault) {
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
   // kVerticalTabsFloatingEnabled defaults to true
   auto controller = MakeController();
-  EXPECT_TRUE(controller->IsFloatingVerticalTabsEnabled());
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->IsFloatingVerticalTabsEnabled());
 }
 
 TEST_F(VerticalTabControllerUnitTest,
@@ -129,10 +136,21 @@ TEST_F(VerticalTabControllerUnitTest,
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsFloatingEnabled, false);
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsShowToggleButton, false);
   auto controller = MakeController();
-  EXPECT_FALSE(controller->ShouldShowVerticalTabToggleButton());
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldShowVerticalTabToggleButton());
   // Floating mode is forced on when there is no toggle button to expand
-  // collapsed tabs, regardless of kVerticalTabsFloatingEnabled.
-  EXPECT_TRUE(controller->IsFloatingVerticalTabsEnabled());
+  // collapsed tabs, regardless of kVerticalTabsFloatingEnabled. Origin keeps
+  // its panel control available and therefore remains non-floating.
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->IsFloatingVerticalTabsEnabled());
+}
+
+TEST_F(VerticalTabControllerUnitTest,
+       OriginHidesWorkspaceCompletelyWhenCollapsed) {
+  pref_service_.SetBoolean(brave_tabs::kVerticalTabsEnabled, true);
+  auto controller = MakeController();
+  EXPECT_EQ(BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->ShouldHideVerticalTabsCompletelyWhenCollapsed());
 }
 
 TEST_F(VerticalTabControllerUnitTest, IsVerticalTabOnRightDefault) {
@@ -143,5 +161,6 @@ TEST_F(VerticalTabControllerUnitTest, IsVerticalTabOnRightDefault) {
 TEST_F(VerticalTabControllerUnitTest, IsVerticalTabOnRightWhenSet) {
   pref_service_.SetBoolean(brave_tabs::kVerticalTabsOnRight, true);
   auto controller = MakeController();
-  EXPECT_TRUE(controller->IsVerticalTabOnRight());
+  EXPECT_EQ(!BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED),
+            controller->IsVerticalTabOnRight());
 }

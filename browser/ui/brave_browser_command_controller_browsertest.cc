@@ -20,6 +20,7 @@
 #include "brave/browser/ui/views/tabs/vertical_tab_utils.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
 #include "brave/components/brave_account/features.h"
+#include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_shields/core/common/features.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/brave_wallet/common/buildflags/buildflags.h"
@@ -35,7 +36,6 @@
 #include "chrome/browser/ui/browser_commands.h"
 #include "chrome/browser/ui/browser_tabstrip.h"
 #include "chrome/browser/ui/browser_window.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/browser_window/public/create_browser_window.h"
 #include "chrome/browser/ui/ui_features.h"
 #include "chrome/test/base/in_process_browser_test.h"
@@ -812,6 +812,19 @@ IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
 #endif
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
+                       SidebarToggleDisabledForPopupWindow) {
+  EXPECT_TRUE(
+      chrome::BrowserCommandController::From(browser())->IsCommandEnabled(
+          IDC_TOGGLE_VERTICAL_TABS_EXPANDED));
+  auto* popup = CreateBrowserWindow(BrowserWindowCreateParams(
+      BrowserWindowInterface::TYPE_POPUP, browser()->GetProfile(), true));
+  chrome::AddTabAt(popup, GURL("about:blank"), -1, true);
+  BrowserWindow::FromBrowser(popup)->Show();
+  EXPECT_FALSE(chrome::BrowserCommandController::From(popup)->IsCommandEnabled(
+      IDC_TOGGLE_VERTICAL_TABS_EXPANDED));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerTest,
                        BraveCommandsToggleVerticalTabs) {
   auto* command_controller = chrome::BrowserCommandController::From(browser());
   EXPECT_TRUE(command_controller->IsCommandEnabled(IDC_TOGGLE_VERTICAL_TABS));
@@ -945,7 +958,7 @@ class BraveBrowserCommandControllerFocusModeTest
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserCommandControllerFocusModeTest,
                        FocusModeToggle) {
-  auto* controller = browser()->GetFeatures().focus_mode_controller();
+  auto* controller = FocusModeController::From(browser());
   ASSERT_TRUE(controller);
 
   EXPECT_FALSE(controller->IsEnabled());

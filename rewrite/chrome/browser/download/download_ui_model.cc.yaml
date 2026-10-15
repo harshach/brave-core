@@ -4,6 +4,11 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
 substitutions:
+  - description: Include Brave download-bubble strings used by this override.
+    regex:
+      pattern: '#include "chrome/grit/generated_resources.h"'
+      replace: '#include "chrome/grit/generated_resources.h"\n#include "brave/grit/brave_generated_resources.h"'
+
   - description: |
       Add fall-through case handling for Brave-specific download commands.
 
@@ -26,3 +31,15 @@ substitutions:
     regex:
       pattern: 'IDS_DOWNLOAD_STATUS_REMOVED'
       replace: 'IDS_DOWNLOAD_FILE_REMOVED'
+
+  - description: |
+      Keep fully received downloads in a finalizing state until Chromium marks
+      them complete instead of showing the completed "Done" status early.
+    regex:
+      pattern: '// "120 MB • Done"'
+      replace: '// "120 MB • Finishing…"'
+
+  - description: Use the finalizing status for a fully received download.
+    regex:
+      pattern: 'return StatusTextBuilderUtils::GetCompletedTotalSizeString(total_bytes);'
+      replace: 'return get_total_string(l10n_util::GetStringUTF16(IDS_BRAVE_DOWNLOAD_BUBBLE_STATUS_FINISHING));'

@@ -11,12 +11,17 @@
 #include "brave/browser/ui/brave_browser.h"
 #include "brave/browser/ui/brave_file_select_utils.h"
 #include "brave/browser/ui/split_view/split_view_link_redirect_utils.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/unload_controller.h"
+#include "components/input/native_web_keyboard_event.h"
 #include "components/tabs/public/tab_interface.h"
+#include "content/public/browser/navigation_entry.h"
+#include "content/public/browser/page_navigator.h"
 #include "content/public/browser/render_frame_host.h"
 #include "content/public/browser/web_contents.h"
 #include "content/public/common/url_constants.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
 #include "third_party/blink/public/mojom/choosers/file_chooser.mojom.h"
 #include "ui/base/window_open_disposition.h"
 #include "url/gurl.h"
@@ -44,6 +49,36 @@ BraveBrowserWebContentsDelegate::BraveBrowserWebContentsDelegate(
 
 BraveBrowserWebContentsDelegate::~BraveBrowserWebContentsDelegate() = default;
 
+bool BraveBrowserWebContentsDelegate::ShouldFocusLocationBarByDefault(
+    content::WebContents* source) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Socket starts in navigation mode. Keep automatic new-tab focus in the
+  // page so single-key commands reach the browser view; explicit location-bar
+  // actions such as Command+L still focus the omnibox normally.
+  return false;
+#else
+  return BrowserWebContentsDelegate::ShouldFocusLocationBarByDefault(source);
+#endif
+}
+
+content::KeyboardEventProcessingResult
+BraveBrowserWebContentsDelegate::PreHandleKeyboardEvent(
+    content::WebContents* source,
+    const input::NativeWebKeyboardEvent& event) {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Extension popups share the browser window's keyboard pre-handler while
+  // their editable focus lives in a separate WebContents.
+  if (event.GetType() == blink::WebInputEvent::Type::kRawKeyDown &&
+      event.GetModifiers() == blink::WebInputEvent::kNoModifiers && source &&
+      source != browser_->GetTabStripModel()->GetActiveWebContents() &&
+      source->IsFocusedElementEditable()) {
+    return content::KeyboardEventProcessingResult::NOT_HANDLED;
+  }
+#endif
+
+  return BrowserWebContentsDelegate::PreHandleKeyboardEvent(source, event);
+}
+
 content::WebContents* BraveBrowserWebContentsDelegate::AddNewContents(
     content::WebContents* source,
     std::unique_ptr<content::WebContents> new_contents,
@@ -66,6 +101,30 @@ content::WebContents* BraveBrowserWebContentsDelegate::AddNewContents(
       disposition = WindowOpenDisposition::NEW_BACKGROUND_TAB;
     }
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Socket treats a page as the unit of navigation. A plain click therefore
+  // replaces the current page even when the site asks for target="_blank" or
+  // uses window.open(). Modified clicks arrive with a different disposition
+  // and continue through the normal new-tab path.
+  if (disposition == WindowOpenDisposition::NEW_FOREGROUND_TAB && source &&
+      user_gesture && new_contents && !target_url.is_empty()) {
+    content::Referrer referrer;
+    if (const content::NavigationEntry* pending_entry =
+            new_contents->GetController().GetPendingEntry()) {
+      referrer = pending_entry->GetReferrer();
+    }
+
+    content::OpenURLParams params(
+        target_url, referrer, WindowOpenDisposition::CURRENT_TAB,
+        ui::PAGE_TRANSITION_LINK, /*is_renderer_initiated=*/false);
+    params.user_gesture = true;
+    if (was_blocked) {
+      *was_blocked = false;
+    }
+    return BrowserWebContentsDelegate::OpenURLFromTab(source, params, {});
+  }
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
   return BrowserWebContentsDelegate::AddNewContents(
       source, std::move(new_contents), target_url, disposition, window_features,

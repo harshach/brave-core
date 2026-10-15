@@ -6,6 +6,8 @@
 #ifndef BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_LAYOUT_CONSTANTS_H_
 #define BRAVE_CHROMIUM_SRC_CHROME_BROWSER_UI_LAYOUT_CONSTANTS_H_
 
+#include "brave/components/brave_origin/buildflags/buildflags.h"
+
 // Use our own version of GetLayoutConstant to include Brave values.
 #define GetLayoutConstant GetLayoutConstant_ChromiumImpl
 #include <chrome/browser/ui/layout_constants.h>  // IWYU pragma: export
@@ -16,7 +18,8 @@ int GetLayoutConstant(LayoutConstant constant);
 // Rounded corners.
 // The padding between the main content area and the window edges (and other
 // surrounding chrome such as vertical tabs and the sidebar control).
-inline constexpr int kRoundedCornersContentsViewMargin = 4;
+inline constexpr int kRoundedCornersContentsViewMargin =
+    BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED) ? 8 : 4;
 
 // Thickness of the 1px outline drawn around the web contents pane.
 inline constexpr int kRoundedCornersContentsOutlineThickness = 1;

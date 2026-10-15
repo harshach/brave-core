@@ -20,18 +20,22 @@
 #include "base/test/test_future.h"
 #include "base/time/time.h"
 #include "brave/browser/workspaces/features.h"
+#include "brave/browser/workspaces/pref_names.h"
 #include "brave/browser/workspaces/workspace_metadata.h"
 #include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/browser/workspaces/workspace_utils.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/test/base/testing_browser_process.h"
 #include "chrome/test/base/testing_profile_manager.h"
+#include "components/prefs/pref_service.h"
 #include "components/sessions/core/command_storage_backend.h"
 #include "components/sessions/core/session_id.h"
 #include "components/sessions/core/session_service_commands.h"
 #include "components/sessions/core/session_types.h"
 #include "content/public/test/browser_task_environment.h"
 #include "testing/gtest/include/gtest/gtest.h"
+#include "url/gurl.h"
 
 namespace {
 WorkspaceMetadata MakeMeta(const std::string& name,
@@ -69,6 +73,170 @@ class WorkspaceServiceTest : public ::testing::Test {
 // No workspaces listed w/ empty profile
 TEST_F(WorkspaceServiceTest, ListWorkspaces_InitiallyEmpty) {
   EXPECT_TRUE(service_->ListWorkspaces().empty());
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_StartWithPersistentDefaults) {
+  const auto& spaces = service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 5u);
+  EXPECT_EQ(spaces[0].name, "Home");
+  EXPECT_EQ(spaces[0].icon, kOriginSpaceIconHome);
+  EXPECT_EQ(spaces[1].name, "Work");
+  EXPECT_EQ(spaces[1].icon, kOriginSpaceIconWork);
+  EXPECT_EQ(spaces[2].name, "Playground");
+  EXPECT_EQ(spaces[2].icon, kOriginSpaceIconPlayground);
+  EXPECT_EQ(spaces[3].name, "Reading");
+  EXPECT_EQ(spaces[3].icon, kOriginSpaceIconReading);
+  EXPECT_EQ(spaces[4].name, "Dev");
+  EXPECT_EQ(spaces[4].icon, kOriginSpaceIconTerminal);
+
+  const std::string home_id = spaces[0].id;
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 5u);
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_CRUDAndOrdering) {
+  const std::string home_id = service_->GetOriginSpaces()[0].id;
+  const std::string work_id =
+      service_->CreateOriginSpace("Work", kOriginSpaceIconWork);
+  const std::string play_id =
+      service_->CreateOriginSpace("Play", kOriginSpaceIconPlayground);
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 7u);
+
+  OriginSpaceMetadata work = *service_->GetOriginSpace(work_id);
+  work.name = "Design";
+  work.icon = kOriginSpaceIconIdeas;
+  EXPECT_TRUE(service_->UpdateOriginSpace(work));
+  EXPECT_EQ(service_->GetOriginSpace(work_id)->name, "Design");
+
+  EXPECT_TRUE(service_->ReorderOriginSpace(play_id, 0));
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, play_id);
+  EXPECT_TRUE(service_->DeleteOriginSpace(work_id));
+  EXPECT_EQ(service_->GetOriginSpaces().size(), 6u);
+  EXPECT_NE(service_->GetOriginSpace(home_id), nullptr);
+  EXPECT_EQ(service_->GetOriginSpace(work_id), nullptr);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemesDefaultByIconAndPersist) {
+  const auto& spaces = service_->GetOriginSpaces();
+  ASSERT_EQ(spaces.size(), 5u);
+  EXPECT_EQ(spaces[0].theme, kOriginSpaceThemeEmber);
+  EXPECT_EQ(spaces[1].theme, kOriginSpaceThemeOcean);
+  EXPECT_EQ(spaces[2].theme, kOriginSpaceThemeViolet);
+  EXPECT_EQ(spaces[3].theme, kOriginSpaceThemeForest);
+  EXPECT_EQ(spaces[4].theme, kOriginSpaceThemeTeal);
+
+  OriginSpaceMetadata home = spaces[0];
+  home.theme = kOriginSpaceThemeRose;
+  ASSERT_TRUE(service_->UpdateOriginSpace(home));
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpace(home.id)->theme, kOriginSpaceThemeRose);
+
+  // An unknown theme falls back to the one that suits the icon.
+  home.theme = "neon";
+  ASSERT_TRUE(service_->UpdateOriginSpace(home));
+  EXPECT_EQ(service_->GetOriginSpace(home.id)->theme, kOriginSpaceThemeEmber);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemeFilledInForOlderEntries) {
+  base::ListValue spaces;
+  spaces.Append(base::DictValue()
+                    .Set("id", "older")
+                    .Set("name", "Reading")
+                    .Set("icon", kOriginSpaceIconReading));
+  spaces.Append(base::DictValue()
+                    .Set("id", "custom")
+                    .Set("name", "Mine")
+                    .Set("icon", kOriginSpaceIconHome));
+  profile_->GetPrefs()->SetList(kOriginSpacesPref, std::move(spaces));
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpace("older")->theme, kOriginSpaceThemeForest);
+  // The filled-in theme is written back so it no longer follows the icon.
+  const base::ListValue& saved =
+      profile_->GetPrefs()->GetList(kOriginSpacesPref);
+  ASSERT_EQ(saved.size(), 2u);
+  EXPECT_EQ(*saved[0].GetDict().FindString("theme"), kOriginSpaceThemeForest);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_ThemeIntensityIsSharedAndClamped) {
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kRich);
+
+  class CountingObserver : public WorkspaceService::Observer {
+   public:
+    void OnOriginSpacesChanged() override { ++changes; }
+    int changes = 0;
+  } observer;
+  service_->AddObserver(&observer);
+  service_->SetOriginSpaceThemeIntensity(OriginSpaceThemeIntensity::kVivid);
+  service_->SetOriginSpaceThemeIntensity(OriginSpaceThemeIntensity::kVivid);
+  EXPECT_EQ(observer.changes, 1);
+  service_->RemoveObserver(&observer);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kVivid);
+
+  profile_->GetPrefs()->SetInteger(kOriginSpaceThemeIntensityPref, 9);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kVivid);
+  profile_->GetPrefs()->SetInteger(kOriginSpaceThemeIntensityPref, -2);
+  EXPECT_EQ(service_->GetOriginSpaceThemeIntensity(),
+            OriginSpaceThemeIntensity::kSubtle);
+}
+
+TEST_F(WorkspaceServiceTest, OriginSpaces_NeverDeleteLastSpace) {
+  const std::string home_id = service_->GetOriginSpaces()[0].id;
+  while (service_->GetOriginSpaces().size() > 1u) {
+    ASSERT_TRUE(
+        service_->DeleteOriginSpace(service_->GetOriginSpaces().back().id));
+  }
+  EXPECT_FALSE(service_->DeleteOriginSpace(home_id));
+  ASSERT_EQ(service_->GetOriginSpaces().size(), 1u);
+  EXPECT_EQ(service_->GetOriginSpaces()[0].id, home_id);
+}
+
+TEST_F(WorkspaceServiceTest, OriginDomainRules_NormalizeAndPersist) {
+  const std::string space_id = service_->GetOriginSpaces()[1].id;
+  const GURL nested_url("https://news.example.co.uk/story");
+  EXPECT_EQ(WorkspaceService::GetOriginDomainKey(nested_url), "example.co.uk");
+  EXPECT_EQ(
+      WorkspaceService::GetOriginDomainKey(GURL("http://LOCALHOST:8080/path")),
+      "localhost");
+  EXPECT_TRUE(
+      WorkspaceService::GetOriginDomainKey(GURL("about:blank")).empty());
+  EXPECT_TRUE(service_->SetOriginSpaceForDomain(nested_url, space_id));
+  EXPECT_EQ(service_->GetOriginSpaceForDomain(
+                GURL("https://shop.example.co.uk/another")),
+            space_id);
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetOriginSpaceForDomain(nested_url), space_id);
+  EXPECT_TRUE(service_->ClearOriginSpaceForDomain(nested_url));
+  EXPECT_FALSE(service_->GetOriginSpaceForDomain(nested_url));
+}
+
+TEST_F(WorkspaceServiceTest, OriginDomainRules_RemoveDeletedSpace) {
+  const std::string space_id =
+      service_->CreateOriginSpace("External", kOriginSpaceIconTravel);
+  const GURL url("https://www.example.com/page");
+  ASSERT_TRUE(service_->SetOriginSpaceForDomain(url, space_id));
+  ASSERT_TRUE(service_->GetOriginSpaceForDomain(url));
+
+  EXPECT_TRUE(service_->DeleteOriginSpace(space_id));
+  EXPECT_FALSE(service_->GetOriginSpaceForDomain(url));
+}
+
+TEST_F(WorkspaceServiceTest, OriginLastTemporaryLinkSpacePersistsAndClears) {
+  const std::string space_id = service_->GetOriginSpaces()[1].id;
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
+  EXPECT_FALSE(service_->SetLastOriginTemporaryLinkSpace("missing-space"));
+  ASSERT_TRUE(service_->SetLastOriginTemporaryLinkSpace(space_id));
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+
+  service_ = std::make_unique<WorkspaceService>(*profile_);
+  EXPECT_EQ(service_->GetLastOriginTemporaryLinkSpace(), space_id);
+  ASSERT_TRUE(service_->DeleteOriginSpace(space_id));
+  EXPECT_FALSE(service_->GetLastOriginTemporaryLinkSpace());
 }
 
 // Verify saving preference adds workspace to list
@@ -252,11 +420,31 @@ class WorkspaceServiceFactoryTest : public ::testing::Test {
   TestingProfileManager profile_manager_{TestingBrowserProcess::GetGlobal()};
 };
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+TEST_F(WorkspaceServiceFactoryTest,
+       FeatureDisabled_OriginStillCreatesRequiredService) {
+  feature_list_.InitAndDisableFeature(features::kWorkspaces);
+  auto* profile = profile_manager_.CreateTestingProfile("test");
+  EXPECT_NE(WorkspaceServiceFactory::GetForProfile(profile), nullptr);
+}
+
+TEST_F(WorkspaceServiceFactoryTest, OriginIncognitoUsesRegularProfileService) {
+  feature_list_.InitAndDisableFeature(features::kWorkspaces);
+  auto* profile = profile_manager_.CreateTestingProfile("test");
+  auto* incognito = profile->GetPrimaryOTRProfile(/*create_if_needed=*/true);
+
+  WorkspaceService* regular_service =
+      WorkspaceServiceFactory::GetForProfile(profile);
+  ASSERT_TRUE(regular_service);
+  EXPECT_EQ(WorkspaceServiceFactory::GetForProfile(incognito), regular_service);
+}
+#else
 TEST_F(WorkspaceServiceFactoryTest, FeatureDisabled_GetForProfileReturnsNull) {
   feature_list_.InitAndDisableFeature(features::kWorkspaces);
   auto* profile = profile_manager_.CreateTestingProfile("test");
   EXPECT_EQ(WorkspaceServiceFactory::GetForProfile(profile), nullptr);
 }
+#endif
 
 TEST_F(WorkspaceServiceFactoryTest,
        FeatureEnabled_GetForProfileReturnsNonNull) {

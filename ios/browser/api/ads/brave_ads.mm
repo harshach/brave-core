@@ -5,7 +5,6 @@
 
 #import "brave/ios/browser/api/ads/brave_ads.h"
 
-#import <Network/Network.h>
 #import <UIKit/UIKit.h>
 
 #include <memory>
@@ -71,6 +70,8 @@
 
 NSString* const kBraveAdsFirstRunAtPrefName =
     base::SysUTF8ToNSString(brave_ads::prefs::kFirstRunAt);
+NSString* const kBraveAdsSponsoredEnabledPrefName =
+    base::SysUTF8ToNSString(brave_ads::prefs::kSponsoredEnabled);
 
 #define BLOG(verbose_level, format, ...)                  \
   [self log:(__FILE__)                                    \
@@ -99,8 +100,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   std::unique_ptr<brave_ads::VirtualPrefProvider> virtualPrefProvider;
   std::unique_ptr<brave_ads::HttpClient> httpClient;
   raw_ptr<brave_ads::AdsServiceImplIOS> adsService;
-  nw_path_monitor_t networkMonitor;
-  dispatch_queue_t monitorQueue;
 }
 
 // TODO(https://github.com/brave/brave-browser/issues/33730): Unify Brave Ads
@@ -117,7 +116,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
 @property(nonatomic) int64_t componentUpdaterRetryCount;
 @property(nonatomic, readonly) NSDictionary* componentPaths;
 
-@property(nonatomic) BOOL networkConnectivityAvailable;
 @property(nonatomic, copy) NSString* storagePath;
 @property(nonatomic) PrefService* profilePrefService;
 @property(nonatomic) PrefService* localStatePrefService;
@@ -129,8 +127,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   if ((self = [super init])) {
     self.storagePath = path;
     self.commonOps = [[BraveCommonOperations alloc] initWithStoragePath:path];
-
-    [self startNetworkMonitoring];
 
     [self initComponentUpdater];
 
@@ -161,8 +157,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   [self removeObservers];
 
   [self stopComponentUpdaterTimer];
-
-  [self stopNetworkMonitor];
 
   virtualPrefProvider.reset();
 
@@ -208,14 +202,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   [self setProfilePref:brave_news::prefs::kBraveNewsOptedIn
                  value:base::Value(isEnabled)];
   [self setProfilePref:brave_news::prefs::kNewTabPageShowToday
-                 value:base::Value(isEnabled)];
-}
-
-- (void)notifySponsoredImagesIsEnabledPreferenceDidChange:(BOOL)isEnabled {
-  [self setProfilePref:ntp_background_images::prefs::
-                           kNewTabPageShowBackgroundImage
-                 value:base::Value(isEnabled)];
-  [self setProfilePref:brave_ads::prefs::kSponsoredEnabled
                  value:base::Value(isEnabled)];
 }
 
@@ -319,38 +305,6 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
   [self notifyBrowserDidEnterBackground];
 }
 
-#pragma mark - Network
-
-- (void)startNetworkMonitoring {
-  auto const __weak weakSelf = self;
-  monitorQueue = dispatch_queue_create("bat.nw.monitor", DISPATCH_QUEUE_SERIAL);
-  networkMonitor = nw_path_monitor_create();
-  nw_path_monitor_set_queue(networkMonitor, monitorQueue);
-  nw_path_monitor_set_update_handler(
-      networkMonitor, ^(nw_path_t _Nonnull path) {
-        const BOOL networkConnectivityAvailable =
-            (nw_path_get_status(path) == nw_path_status_satisfied ||
-             nw_path_get_status(path) == nw_path_status_satisfiable);
-        // Ensure `dealloc`, which destroys sequence-checked members, can
-        // only run on the main sequence.
-        dispatch_async(dispatch_get_main_queue(), ^{
-          const auto strongSelf = weakSelf;
-          if (!strongSelf) {
-            return;
-          }
-          strongSelf.networkConnectivityAvailable =
-              networkConnectivityAvailable;
-        });
-      });
-  nw_path_monitor_start(networkMonitor);
-}
-
-- (void)stopNetworkMonitor {
-  if (networkMonitor) {
-    nw_path_monitor_cancel(networkMonitor);
-  }
-}
-
 #pragma mark - URLs
 
 - (std::vector<GURL>)GURLsWithNSURLs:(NSArray<NSURL*>*)redirectChain {
@@ -379,6 +333,16 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
 
   _profilePrefService = last_used_profile->GetPrefs();
   CHECK(_profilePrefService);
+
+  // iOS used to incorrectly set kNewTabPageShowBackgroundImage alongside
+  // kSponsoredEnabled, even though iOS doesn't use or expose this pref
+  // separately. Reset it back to its default (true) so it can't override
+  // kSponsoredEnabled in IsNewTabPageAdsEnabled.
+  if (_profilePrefService->HasPrefPath(
+          ntp_background_images::prefs::kNewTabPageShowBackgroundImage)) {
+    _profilePrefService->ClearPref(
+        ntp_background_images::prefs::kNewTabPageShowBackgroundImage);
+  }
 }
 
 #pragma mark - Local state prefs
@@ -1251,7 +1215,10 @@ constexpr NSString* kAdsResourceComponentMetadataVersion = @".v1";
 #pragma mark - Ads client
 
 - (bool)isNetworkConnectionAvailable {
-  return self.networkConnectivityAvailable;
+  if (!adsService) {
+    return false;
+  }
+  return adsService->IsNetworkConnectionAvailable();
 }
 
 - (bool)isBrowserActive {

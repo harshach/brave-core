@@ -6,6 +6,7 @@
 #include "brave/browser/ui/startup/brave_startup_tab_provider_impl.h"
 
 #include "base/command_line.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/webui_url_constants.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/first_run/first_run.h"
@@ -33,6 +34,12 @@ StartupTabs BraveStartupTabProviderImpl::GetCommandLineTabs(
     Profile* profile) const {
   StartupTabs tabs = StartupTabProviderImpl::GetCommandLineTabs(
       command_line, cur_dir, profile);
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  for (auto& tab : tabs) {
+    tab.is_origin_external_link = tab.url.SchemeIsHTTPOrHTTPS();
+  }
+#endif
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
   // Don't create a temporary container when there's nothing to open in it. The

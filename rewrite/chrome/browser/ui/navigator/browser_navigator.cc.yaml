@@ -4,6 +4,11 @@
 # You can obtain one at https://mozilla.org/MPL/2.0/.
 
 substitutions:
+  - description: Let Brave open tabs in windows that otherwise can't.
+    preempt_function_impl:
+      function_name: WindowCanOpenTabs
+      code: BRAVE_WINDOW_CAN_OPEN_TABS
+
   - description: |
       Call UpdateParams to adjust the navigation parameters for the given URL.
     preempt_function_impl:
@@ -26,8 +31,12 @@ substitutions:
       re_flags: [DOTALL]
       replace: |-
         \1
-              if (params->navigation_initiated_from_sync) {            
-                tab_to_insert->set_opener_was_set_for_empty_new_tab(); 
+              // Socket: browser commands such as Ctrl+T and Quick Open, and
+              // typed addresses, get the active tab as source context too,
+              // which isn't a parent either. Web-triggerable link opens keep
+              // their opener and stay nested under their source.
+              if (params->navigation_initiated_from_sync || user_initiated) {
+                tab_to_insert->set_opener_was_set_for_empty_new_tab();
               }
 
   - description: |

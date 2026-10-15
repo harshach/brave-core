@@ -20,10 +20,9 @@
 #include "brave/browser/ui/views/frame/brave_non_client_hit_test_helper.h"
 #include "brave/browser/ui/views/frame/brave_window_frame_graphic.h"
 #include "brave/browser/ui/views/frame/focus_mode_top_overlay.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "chrome/browser/browser_process.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser.h"
-#include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/fullscreen_util_mac.h"
 #include "chrome/browser/ui/immersive/immersive_mode_controller.h"
 #include "chrome/browser/ui/layout_constants.h"
@@ -78,7 +77,7 @@ BraveBrowserFrameViewMac::BraveBrowserFrameViewMac(
             base::Unretained(this)));
   }
 
-  if (auto* controller = browser->GetFeatures().focus_mode_controller()) {
+  if (auto* controller = FocusModeController::From(browser)) {
     focus_mode_observation_.Observe(controller);
     if (auto* overlay =
             BraveBrowserView::From(browser_view)->focus_mode_top_overlay()) {
@@ -152,6 +151,27 @@ int BraveBrowserFrameViewMac::GetTopInset(bool restored) const {
 BrowserFrameViewMac::BoundsAndMargins
 BraveBrowserFrameViewMac::GetCaptionButtonBounds() const {
   auto bounds_and_margins = BrowserFrameViewMac::GetCaptionButtonBounds();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!bounds_and_margins.bounds.IsEmpty() &&
+      GetBrowserView()->browser()->GetType() ==
+          BrowserWindowInterface::Type::TYPE_NORMAL) {
+    constexpr float kOriginTitlebarHeight = 44.0f;
+    constexpr float kOriginTrafficLightInset = 20.0f;
+    const bool on_leading_edge =
+        bounds_and_margins.bounds.CenterPoint().x() < width() / 2.0f;
+    bounds_and_margins.bounds.set_x(
+        on_leading_edge
+            ? kOriginTrafficLightInset
+            : width() - kOriginTrafficLightInset -
+                  bounds_and_margins.bounds.width());
+    bounds_and_margins.bounds.set_y(
+        (kOriginTitlebarHeight - bounds_and_margins.bounds.height()) / 2.0f);
+    bounds_and_margins.margins = gfx::OutsetsF::TLBR(
+        bounds_and_margins.bounds.y(), kOriginTrafficLightInset,
+        kOriginTitlebarHeight - bounds_and_margins.bounds.bottom(),
+        kOriginTrafficLightInset);
+  }
+#endif
   // Compact: zero the caption button vertical margins so the leading
   // exclusion collapses around the buttons themselves, letting the shorter
   // tab strip sit centred against the traffic lights.
@@ -299,7 +319,7 @@ void BraveBrowserFrameViewMac::OnFullscreenStateChanged() {
   if (GetBrowserView()->IsFullscreen()) {
     if (!scoped_focus_mode_disable_) {
       auto* browser = GetBrowserView()->browser();
-      if (auto* controller = browser->GetFeatures().focus_mode_controller()) {
+      if (auto* controller = FocusModeController::From(browser)) {
         scoped_focus_mode_disable_ =
             std::make_unique<ScopedFocusModeDisable>(controller);
       }

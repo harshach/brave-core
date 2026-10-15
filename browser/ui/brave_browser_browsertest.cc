@@ -3,11 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "brave/browser/ui/brave_browser.h"
-
 #include "base/test/run_until.h"
 #include "base/test/scoped_feature_list.h"
+#include "brave/browser/ui/brave_browser_web_contents_delegate.h"
+#include "brave/browser/ui/brave_browser_window.h"
 #include "brave/browser/ui/browser_commands.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/pref_names.h"
 #include "chrome/browser/devtools/devtools_window_testing.h"
 #include "chrome/browser/profiles/profile.h"
@@ -19,6 +20,7 @@
 #include "chrome/browser/ui/browser_window/public/browser_window_interface_iterator.h"
 #include "chrome/browser/ui/browser_window/public/global_browser_collection.h"
 #include "chrome/browser/ui/browser_window/public/profile_browser_collection.h"
+#include "chrome/browser/ui/omnibox/omnibox_next_features.h"
 #include "chrome/browser/ui/startup/launch_mode_recorder.h"
 #include "chrome/browser/ui/startup/startup_browser_creator.h"
 #include "chrome/browser/ui/startup/startup_browser_creator_impl.h"
@@ -27,6 +29,8 @@
 #include "chrome/browser/ui/tabs/tab_strip_model.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/webui/ntp/new_tab_ui.h"
+#include "chrome/browser/ui/webui_browser/webui_browser_window.h"
+#include "chrome/common/chrome_features.h"
 #include "chrome/test/base/in_process_browser_test.h"
 #include "chrome/test/base/ui_test_utils.h"
 #include "components/optimization_guide/optimization_guide_internals/webui/url_constants.h"
@@ -36,6 +40,8 @@
 #include "content/public/test/browser_test_utils.h"
 #include "content/public/test/test_navigation_observer.h"
 #include "content/public/test/test_utils.h"
+#include "third_party/blink/public/common/input/web_input_event.h"
+#include "third_party/blink/public/common/input/web_mouse_event.h"
 
 using BraveBrowserBrowserTest = InProcessBrowserTest;
 
@@ -50,7 +56,131 @@ BrowserWindowInterface* OpenNewBrowser(Profile* profile) {
   return ProfileBrowserCollection::GetForProfile(profile)->FindTabbedBrowser();
 }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+void InstallFullViewportLink(content::WebContents* contents,
+                             const GURL& target_url,
+                             bool target_blank) {
+  ASSERT_TRUE(content::ExecJs(contents, content::JsReplace(
+                                            R"(
+      document.body.innerHTML = '';
+      const link = document.createElement('a');
+      link.href = $1;
+      if ($2) {
+        link.target = '_blank';
+      }
+      link.style.cssText =
+          'position:fixed;inset:0;display:block;background:white';
+      link.textContent = 'open target';
+      document.body.appendChild(link);
+    )",
+                                            target_url, target_blank)));
+  content::SimulateEndOfPaintHoldingOnPrimaryMainFrame(contents);
+}
+
+int NewTabModifier() {
+#if BUILDFLAG(IS_MAC)
+  return blink::WebInputEvent::kMetaKey;
+#else
+  return blink::WebInputEvent::kControlKey;
+#endif
+}
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+
 }  // namespace
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       NewTabKeepsNavigationModeFocus) {
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));
+  content::WebContents* const contents =
+      browser()->tab_strip_model()->GetActiveWebContents();
+  ASSERT_TRUE(contents);
+  EXPECT_FALSE(BrowserWebContentsDelegate::From(browser())
+                   ->ShouldFocusLocationBarByDefault(contents));
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       PlainTargetBlankClickReusesCurrentPage) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL source_url = embedded_test_server()->GetURL("/empty.html");
+  const GURL target_url = embedded_test_server()->GetURL("/title1.html");
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), source_url));
+
+  TabStripModel* const model = browser()->tab_strip_model();
+  content::WebContents* const source = model->GetActiveWebContents();
+  ASSERT_EQ(1, model->count());
+  InstallFullViewportLink(source, target_url, /*target_blank=*/true);
+
+  content::TestNavigationObserver navigation_observer(source);
+  content::SimulateMouseClick(source, /*modifiers=*/0,
+                              blink::WebMouseEvent::Button::kLeft);
+  navigation_observer.Wait();
+
+  EXPECT_EQ(1, model->count());
+  EXPECT_EQ(source, model->GetActiveWebContents());
+  EXPECT_EQ(target_url, source->GetLastCommittedURL());
+}
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest,
+                       ControlClickCreatesBackgroundTab) {
+  ASSERT_TRUE(embedded_test_server()->Start());
+  const GURL source_url = embedded_test_server()->GetURL("/empty.html");
+  const GURL target_url = embedded_test_server()->GetURL("/title1.html");
+  ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), source_url));
+
+  TabStripModel* const model = browser()->tab_strip_model();
+  content::WebContents* const source = model->GetActiveWebContents();
+  ASSERT_EQ(1, model->count());
+  InstallFullViewportLink(source, target_url, /*target_blank=*/false);
+
+  content::TestNavigationObserver navigation_observer(target_url);
+  navigation_observer.StartWatchingNewWebContents();
+  content::SimulateMouseClick(source, NewTabModifier(),
+                              blink::WebMouseEvent::Button::kLeft);
+  navigation_observer.Wait();
+
+  ASSERT_EQ(2, model->count());
+  EXPECT_EQ(source, model->GetActiveWebContents());
+  EXPECT_EQ(source_url, source->GetLastCommittedURL());
+  EXPECT_EQ(target_url, model->GetWebContentsAt(1)->GetLastCommittedURL());
+}
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest, BraveBrowserWindowFromBrowser) {
+  EXPECT_TRUE(BraveBrowserWindow::FromBrowser(browser()));
+}
+
+// Runs with the WebUI browser, whose window is a WebUIBrowserWindow rather
+// than a BrowserView.
+class BraveBrowserWebUIBrowserTest : public InProcessBrowserTest {
+ public:
+  void SetUp() override {
+    // Matches upstream's WebUIBrowserTest, which turns off the WebUI omnibox
+    // popups its tests do not support.
+    scoped_feature_list_.InitWithFeatures(
+        /*enabled_features=*/{features::kWebium},
+        /*disabled_features=*/{omnibox::internal::kWebUIOmniboxPopup,
+                               omnibox::internal::kWebUIOmniboxAimPopup});
+    InProcessBrowserTest::SetUp();
+  }
+
+ private:
+  base::test::ScopedFeatureList scoped_feature_list_;
+};
+
+IN_PROC_BROWSER_TEST_F(BraveBrowserWebUIBrowserTest,
+                       BraveBrowserWindowFromWebUIBrowserWindow) {
+  ASSERT_TRUE(WebUIBrowserWindow::FromBrowser(browser()));
+  EXPECT_FALSE(BraveBrowserWindow::FromBrowser(browser()));
+
+  // Commands that go through BraveBrowserWindow do nothing for this window.
+  EXPECT_FALSE(brave::HasSelectedURL(browser()));
+  brave::CleanAndCopySelectedURL(browser());
+  brave::ToggleSidebar(browser());
+#if BUILDFLAG(ENABLE_PLAYLIST_WEBUI)
+  brave::ShowPlaylistBubble(browser());
+#endif
+}
 
 IN_PROC_BROWSER_TEST_F(BraveBrowserBrowserTest, NTPFaviconTest) {
   ASSERT_TRUE(ui_test_utils::NavigateToURL(browser(), GURL("brave://newtab/")));

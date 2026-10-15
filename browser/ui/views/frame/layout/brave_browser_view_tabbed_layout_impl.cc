@@ -12,8 +12,11 @@
 #include "base/check.h"
 #include "base/check_is_test.h"
 #include "base/i18n/rtl.h"
+#include "base/numerics/safe_conversions.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "brave/browser/ui/views/sidebar/sidebar_container_view.h"
+#include "brave/browser/ui/views/toolbar/brave_toolbar_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "build/build_config.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_features.h"
 #include "chrome/browser/ui/exclusive_access/exclusive_access_manager.h"
@@ -24,6 +27,7 @@
 #include "chrome/browser/ui/views/bookmarks/bookmark_bar_view.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/custom_corners_background.h"
+#include "ui/views/view_utils.h"
 #include "chrome/browser/ui/views/frame/layout/browser_view_layout_delegate.h"
 #include "chrome/browser/ui/views/frame/multi_contents_view.h"
 #include "chrome/browser/ui/views/infobars/infobar_container_view.h"
@@ -235,7 +239,66 @@ BraveBrowserViewTabbedLayoutImpl::CalculateProposedLayout(
 
   AdjustInfobarLayout(layout, params);
 
+  ApplyOriginFloatingTopBarLayout(layout, params);
+
   return layout;
+}
+
+void BraveBrowserViewTabbedLayoutImpl::ApplyOriginFloatingTopBarLayout(
+    ProposedLayout& layout,
+    const BrowserLayoutParams& params) const {
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (!delegate().ShouldShowVerticalTabs() ||
+      delegate().IsFullscreenForBrowser() || delegate().IsFullscreenForTab()) {
+    return;
+  }
+  // Keep the toolbar strip when the sidebar is hidden so native web contents
+  // cannot cover the restore button and window controls.
+  if (!IsVerticalTabStripAtContentsEdge()) {
+    return;
+  }
+  auto* contents_layout = layout.GetLayoutFor(views().multi_contents_view);
+  if (!contents_layout) {
+    return;
+  }
+
+  // macOS draws web contents in a native view that always composites above the
+  // Views hierarchy, so the bar cannot simply float over the page: whatever is
+  // underneath the contents is invisible. Give the page the strip only while
+  // the bar is hidden, and hand it back when the bar returns. The sidebar's
+  // own strip is untouched either way, so the window controls never move.
+  auto* brave_toolbar =
+      views::AsViewClass<BraveToolbarView>(views().toolbar.get());
+  if (!brave_toolbar) {
+    return;
+  }
+  // Follow the reveal animation rather than its end points, so the page glides
+  // into the strip instead of jumping the bar's full height in one pass.
+  const double revealed = brave_toolbar->origin_page_chrome_reveal_fraction();
+  if (revealed >= 1.0) {
+    return;
+  }
+
+  const int client_top = params.visual_client_area.y();
+  const int revealed_top = contents_layout->bounds.y();
+  if (revealed_top > client_top) {
+    const int bottom = contents_layout->bounds.bottom();
+    const int top =
+        client_top +
+        base::ClampRound((revealed_top - client_top) * revealed);
+    contents_layout->bounds.set_y(top);
+    contents_layout->bounds.set_height(std::max(0, bottom - top));
+    // The background region spans the page, so its top follows the page's.
+    if (auto* background_layout =
+            layout.GetLayoutFor(views().main_background_region)) {
+      const int background_bottom = background_layout->bounds.bottom();
+      background_layout->bounds.set_y(
+          std::min(background_layout->bounds.y(), top));
+      background_layout->bounds.set_height(
+          std::max(0, background_bottom - background_layout->bounds.y()));
+    }
+  }
+#endif
 }
 
 void BraveBrowserViewTabbedLayoutImpl::AdjustInfobarLayout(
@@ -550,9 +613,13 @@ void BraveBrowserViewTabbedLayoutImpl::InsetContentsContainerBounds(
        views().vertical_tab_strip_host->GetPreferredSize().width() != 0) &&
       !delegate().IsFullscreenForBrowser()) {
     const int margin_with_vertical_tab =
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+        0;
+#else
         delegate().ShouldUseBraveWebViewRoundedCornersForContents()
             ? (tabs::kMarginForVerticalTabContainers / 2)
             : 0;
+#endif
     if (IsVerticalTabStripLeading()) {
       contents_margins.set_left(margin_with_vertical_tab);
     } else {
@@ -629,9 +696,16 @@ gfx::Insets BraveBrowserViewTabbedLayoutImpl::GetContentsMargins() const {
 
   gfx::Insets margins(kRoundedCornersContentsViewMargin);
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // The web canvas begins directly under the unified 44 px titlebar. Its right
+  // and bottom edges retain the 8 px shell inset; the vertical-tab side is
+  // handled below so the page edge remains aligned with the URL field.
+  margins.set_top(0);
+#else
   if (!IsContentsAtTopEdge()) {
     margins.set_top(0);
   }
+#endif
 
   return margins;
 }
@@ -691,6 +765,9 @@ BraveBrowserViewTabbedLayoutImpl::CalculateContentsCornerRadii() const {
     return {};
   }
 
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  return gfx::RoundedCornersF(10);
+#else
   auto* layout_provider = views::LayoutProvider::Get();
   const float window_corner_radius = layout_provider->GetCornerRadiusMetric(
       views::ShapeContextTokensOverride::
@@ -740,6 +817,7 @@ BraveBrowserViewTabbedLayoutImpl::CalculateContentsCornerRadii() const {
   }
 
   return corner_radii;
+#endif
 }
 
 gfx::Insets BraveBrowserViewTabbedLayoutImpl::GetContentsMarginsForTesting()

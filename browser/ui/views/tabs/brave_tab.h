@@ -16,7 +16,10 @@
 #include "brave/browser/ui/views/tabs/accent_color/brave_tab_accent_types.h"
 #include "brave/components/containers/buildflags/buildflags.h"
 #include "chrome/browser/ui/views/tabs/tab.h"
+#include "content/public/browser/web_contents_observer.h"
+#include "third_party/skia/include/core/SkColor.h"
 #include "ui/gfx/geometry/point.h"
+#include "ui/gfx/image/image_skia.h"
 
 #if BUILDFLAG(ENABLE_CONTAINERS)
 #include "brave/components/containers/core/browser/containers_service_observer.h"
@@ -25,6 +28,8 @@
 
 namespace views {
 class ImageButton;
+class ImageView;
+class Textfield;
 }  // namespace views
 
 namespace tabs {
@@ -89,11 +94,36 @@ class BraveTab : public Tab
   bool IsActive() const override;
   TabSizeInfo GetTabSizeInfo() const override;
   TabNestingInfo GetTabNestingInfo() const override;
+  bool HasOriginHierarchyDescendants() const;
   bool IsInCollapsedTreeTabNode() const override;
   void MaybeUpdateHoverStatus(const ui::MouseEvent& event) override;
+  void OnMouseExited(const ui::MouseEvent& event) override;
+  bool OnMousePressed(const ui::MouseEvent& event) override;
+  void OnPaint(gfx::Canvas* canvas) override;
   void AddedToWidget() override;
   void RemovedFromWidget() override;
   bool IsHovering() const override;
+
+  // Marks this row as the page hierarchy target during an Origin tab drag.
+  void SetOriginHierarchyDropTarget(bool targeted);
+
+  // Origin: puts an editor over the title so the page can be renamed. Enter
+  // keeps the name, Escape drops it, and an empty name restores the title.
+  void BeginOriginRename();
+  bool IsOriginRenaming() const { return !!origin_rename_field_; }
+  // Origin: whether a pinned page has left the address it was pinned at.
+  bool IsOriginPinnedPageAway() const;
+  // Origin: the colour a pinned tile washes its surface with, taken from its
+  // favicon, as Arc's Favorites do. Null without a favicon.
+  std::optional<SkColor> GetOriginTileTint() const;
+  // Origin: an unread count the page shows in its title, such as "Inbox (3)",
+  // for a badge on its tile. 0 when there is none.
+  int GetOriginUnreadCount() const;
+
+  views::ImageButton* origin_done_button_for_testing() {
+    return origin_done_button_;
+  }
+  views::Textfield* origin_rename_field_for_testing();
 
   // Returns whether this tab should have an accent painted.
   bool ShouldPaintTabAccent() const;
@@ -184,6 +214,14 @@ class BraveTab : public Tab
   // of the tree toggle button.
   void LayoutTreeToggleButton();
 
+  class OriginRenameField;
+
+  void ToggleOriginPinned();
+  void UpdateOriginPinButton();
+  // Closes the page and its subpages, as d does: SigmaOS's "mark as done".
+  void MarkOriginPageDone();
+  void EndOriginRename(bool keep);
+
   // Returns whether the tree tab node is collapsed.
   bool IsTreeNodeCollapsed() const;
 
@@ -194,6 +232,33 @@ class BraveTab : public Tab
   bool CanShowTreeTabToggle() const;
 
   raw_ptr<views::ImageButton> tree_toggle_button_ = nullptr;
+  raw_ptr<views::ImageButton> origin_pin_button_ = nullptr;
+  raw_ptr<views::ImageButton> origin_done_button_ = nullptr;
+  raw_ptr<OriginRenameField> origin_rename_field_ = nullptr;
+  raw_ptr<views::View> origin_drag_handle_ = nullptr;
+  bool origin_hierarchy_drop_target_ = false;
+  // The favicon the tile tint was last taken from, and that tint.
+  mutable gfx::ImageSkia origin_tint_source_;
+  mutable std::optional<SkColor> origin_tint_;
+
+  // Repaints a tile when its page's unread count changes. A tile the user
+  // named keeps the same tab data while the page's title moves, so nothing
+  // else would repaint it.
+  class OriginTitleWatcher : public content::WebContentsObserver {
+   public:
+    explicit OriginTitleWatcher(BraveTab* tab);
+    ~OriginTitleWatcher() override;
+
+    void Watch(content::WebContents* contents);
+
+    // content::WebContentsObserver:
+    void TitleWasSet(content::NavigationEntry* entry) override;
+
+   private:
+    const raw_ptr<BraveTab> tab_;
+    int unread_count_ = 0;
+  };
+  OriginTitleWatcher origin_title_watcher_{this};
 
   // Returns the tree tab node for this tab.
   const tabs::TreeTabNode* GetTreeTabNode() const;

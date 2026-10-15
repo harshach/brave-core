@@ -5,6 +5,7 @@
 
 #include "base/containers/extend.h"
 #include "brave/app/brave_command_ids.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/commander/common/buildflags/buildflags.h"
 #include "build/build_config.h"
 
@@ -19,6 +20,11 @@ constexpr AcceleratorMapping kBraveAcceleratorMap[] = {
     {ui::VKEY_M, ui::EF_CONTROL_DOWN, IDC_TOGGLE_TAB_MUTE},
     // Ctrl+B(or Cmd+B)
     {ui::VKEY_B, ui::EF_PLATFORM_ACCELERATOR, IDC_TOGGLE_SIDEBAR},
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+    // Keep the workspace reachable even when focus is outside web contents.
+    {ui::VKEY_OEM_5, ui::EF_PLATFORM_ACCELERATOR,
+     IDC_TOGGLE_VERTICAL_TABS_EXPANDED},
+#endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
     // Ctrl+Alt+T (Cmd+Alt+T on Mac)
     {ui::VKEY_T, ui::EF_PLATFORM_ACCELERATOR | ui::EF_ALT_DOWN,
      IDC_NEW_SPLIT_TAB},

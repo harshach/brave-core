@@ -5,7 +5,9 @@
 
 import("//brave/components/brave_origin/buildflags/buildflags.gni")
 
-if (is_brave_origin_branded) {
+if (is_socket_branded) {
+  _linux_branding_dir = "socket"
+} else if (is_brave_origin_branded) {
   _linux_branding_dir = "brave-origin"
 } else {
   _linux_branding_dir = "brave-browser"

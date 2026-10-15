@@ -11,6 +11,7 @@
 #include "base/feature_list.h"
 #include "brave/browser/ui/tabs/shared_pinned_tab_service.h"
 #include "brave/browser/ui/tabs/shared_pinned_tab_service_factory.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/constants/webui_url_constants.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
@@ -28,6 +29,10 @@
 
 #if BUILDFLAG(ENABLE_EXTENSIONS)
 #include "chrome/browser/extensions/extension_url_overrides.h"
+#endif
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #endif
 
 namespace {
@@ -105,6 +110,14 @@ tabs::TabData MaybeApplyBraveTabDataOverrides(tabs::TabInterface* tab,
       data.should_themify_favicon = false;
     }
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // A name the user gave the page stands in for its title in the page list.
+  if (const std::u16string* title =
+          OriginSpaceController::GetCustomTitle(contents)) {
+    data.title = *title;
+  }
+#endif
 
   return data;
 }

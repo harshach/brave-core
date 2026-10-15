@@ -16,6 +16,8 @@
 #include "brave/browser/ui/screenshot/screenshot_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_controller.h"
 #include "brave/browser/ui/sidebar/sidebar_utils.h"
+#include "brave/browser/ui/tabs/origin_media_monitor.h"
+#include "brave/browser/ui/tabs/origin_space_controller.h"
 #include "brave/browser/ui/tabs/public/vertical_tab_controller.h"
 #include "brave/browser/ui/tabs/tree_tab_session_manager.h"
 #include "brave/browser/ui/views/frame/brave_non_client_hit_test_helper.h"
@@ -23,14 +25,15 @@
 #include "brave/browser/ui/views/toolbar/screenshot_preview_dialog.h"
 #include "brave/browser/ui/views/workspaces/workspaces_bubble_controller.h"
 #include "brave/browser/workspaces/features.h"
+#include "brave/browser/workspaces/workspace_service_factory.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_rewards/core/buildflags/buildflags.h"
 #include "brave/components/brave_vpn/common/buildflags/buildflags.h"
 #include "brave/components/email_aliases/buildflags/buildflags.h"
 #include "brave/components/playlist/core/common/buildflags/buildflags.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/tab_group_sync/tab_group_sync_service_factory.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_window/public/browser_window_interface.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
@@ -74,13 +77,10 @@ BrowserWindowFeatures::~BrowserWindowFeatures() = default;
 void BrowserWindowFeatures::Init(BrowserWindowInterface* browser) {
   auto* profile = browser->GetProfile();
 
-  // Initialize vertical tab controller first because WindowFeatureController
-  // needs it to determine whether immersive fullscreen is supported.
-  // The WindowFeatureController takes vertical tab controller via constructor
-  // and it's initialized in BrowserWindowFeatures_ChromiumImpl::Init().
-
   if (BrowserSupportsFocusMode(browser)) {
-    focus_mode_controller_ = std::make_unique<FocusModeController>();
+    focus_mode_controller_ =
+        GetUserDataFactory().CreateInstance<FocusModeController>(
+            *browser, browser->GetUnownedUserDataHost());
   }
 
   // VerticalTabController should be constructed in Init() instead of
@@ -117,6 +117,16 @@ void BrowserWindowFeatures::Init(BrowserWindowInterface* browser) {
             *browser, browser->GetUnownedUserDataHost(), profile,
             browser->GetTabStripModel(), browser->GetSessionID());
   }
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  if (browser->GetType() == BrowserWindowInterface::Type::TYPE_NORMAL) {
+    origin_space_controller_ = std::make_unique<OriginSpaceController>(
+        profile, browser->GetTabStripModel(), browser->GetSessionID());
+    origin_media_monitor_ = std::make_unique<OriginMediaMonitor>(
+        browser->GetTabStripModel(), origin_space_controller_.get(),
+        WorkspaceServiceFactory::GetForProfile(profile));
+  }
+#endif
 }
 
 void BrowserWindowFeatures::InitPostBrowserViewConstruction(

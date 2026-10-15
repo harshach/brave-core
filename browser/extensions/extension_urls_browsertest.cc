@@ -6,6 +6,7 @@
 #include "extensions/common/extension_urls.h"
 
 #include "base/command_line.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/update_client/buildflags.h"
 #include "chrome/test/base/chrome_test_utils.h"
 #include "chrome/test/base/platform_browser_test.h"
@@ -21,5 +22,13 @@ IN_PROC_BROWSER_TEST_F(ExtensionUrlsBrowserTest, IsWebstoreUpdateUrl) {
   url = GURL(BUILDFLAG(UPDATER_PROD_ENDPOINT));
   EXPECT_TRUE(base::CommandLine::ForCurrentProcess()->HasSwitch(
       switches::kComponentUpdater));
+
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  EXPECT_FALSE(extension_urls::IsWebstoreUpdateUrl(url));
+  EXPECT_EQ(extension_urls::GetDefaultWebstoreUpdateUrl(),
+            extension_urls::GetWebstoreUpdateUrl());
+#else
   EXPECT_TRUE(extension_urls::IsWebstoreUpdateUrl(url));
+  EXPECT_EQ(url, extension_urls::GetWebstoreUpdateUrl());
+#endif
 }

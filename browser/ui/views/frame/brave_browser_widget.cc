@@ -13,7 +13,6 @@
 #include "brave/browser/ui/views/frame/brave_browser_root_view.h"
 #include "brave/browser/ui/views/frame/brave_browser_view.h"
 #include "chrome/browser/profiles/profile.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/tabs/features.h"
 #include "chrome/browser/ui/views/frame/browser_view.h"
 #include "chrome/browser/ui/views/frame/browser_widget.h"
@@ -24,7 +23,8 @@ BraveBrowserWidget::BraveBrowserWidget(BrowserView* browser_view)
     : BrowserWidget(browser_view), view_(browser_view) {
   if (view_->browser()->GetProfile()->IsIncognitoProfile() ||
       view_->browser()->GetProfile()->IsTor() ||
-      view_->browser()->GetProfile()->IsGuestSession()) {
+      view_->browser()->GetProfile()->IsGuestSession() ||
+      view_->browser()->GetProfile()->IsEnterpriseIsolatedModeProfile()) {
     theme_supplier_ = base::MakeRefCounted<BravePrivateWindowThemeSupplier>(
         !view_->browser()->GetProfile()->IsTor());
   }
@@ -78,6 +78,14 @@ ui::ColorProviderKey BraveBrowserWidget::GetColorProviderKey() const {
   // instead of falling back to `ui::kColorSysHeader`.
   if (theme_supplier_) {
     key.custom_theme = GetCustomTheme();
+  }
+
+  // Origin windows take their Space's colour. Web app windows already use
+  // this slot for the app's theme, so leave theirs alone.
+  if (!key.app_controller && !theme_supplier_) {
+    if (auto* brave_view = BraveBrowserView::From(browser_view_)) {
+      key.app_controller = brave_view->GetOriginSpaceColorSupplier();
+    }
   }
 
   // We want to use dark mode for guest profile.

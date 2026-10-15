@@ -13,12 +13,12 @@
 #include "base/test/scoped_feature_list.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_controller.h"
 #include "brave/browser/ui/views/location_bar/brave_search_conversion/promotion_button_view.h"
+#include "brave/components/brave_origin/buildflags/buildflags.h"
 #include "brave/components/brave_search_conversion/features.h"
 #include "brave/components/brave_search_conversion/pref_names.h"
 #include "brave/components/search_engines/brave_prepopulated_engines.h"
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/search_engines/template_url_service_factory.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/omnibox/omnibox_controller.h"
 #include "chrome/browser/ui/omnibox/omnibox_edit_model.h"
 #include "chrome/browser/ui/omnibox/omnibox_view.h"
@@ -62,6 +62,10 @@ class BraveLocationBarViewBrowserTest : public InProcessBrowserTest {
   }
 
   OmniboxViewViews* omnibox_view() { return location_bar()->omnibox_view(); }
+
+  // FocusLocation() opens Quick Open where Origin has retired the top bar,
+  // so focus the field itself, as FocusLocation() otherwise does.
+  void FocusOmnibox() { omnibox_view()->SetFocus(/*is_user_initiated=*/true); }
 
   OmniboxController* controller() {
     return location_bar()->GetOmniboxController();
@@ -123,8 +127,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
   // Check promotion button is launched.
   GetTemplateURLService()->SetUserSelectedDefaultSearchProvider(
       &bing_template_url);
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(u"a");
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));
@@ -142,8 +145,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
       &brave_template_url);
 
   // Check button is not shown with brave search.
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(u"a");
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));
@@ -175,8 +177,7 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
   // Unset dismissed and simulate promotion button click.
   browser()->GetProfile()->GetPrefs()->SetBoolean(
       brave_search_conversion::prefs::kDismissed, false);
-  location_bar()->FocusLocation(/*is_user_initiated=*/true,
-                                /*clear_focus_if_failed=*/false);
+  FocusOmnibox();
   omnibox_view()->SetUserText(search_term);
   WaitUntil(base::BindLambdaForTesting(
       [&]() { return controller()->IsPopupOpen(); }));
@@ -242,7 +243,14 @@ IN_PROC_BROWSER_TEST_F(BraveLocationBarViewBrowserTest,
       &observer);
   observation.Observe(omnibox_view());
   auto toolbar_bounds = toolbar()->bounds();
+#if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
+  // Origin keeps the field at a fixed width over a wide toolbar, so narrow
+  // the toolbar until the field has to shrink with it.
+  toolbar_bounds.Inset(gfx::Insets::VH(
+      0, (toolbar_bounds.width() - location_bar()->width()) / 2 + 10));
+#else
   toolbar_bounds.Inset(gfx::Insets::VH(0, 10));
+#endif
   toolbar()->SetBoundsRect(toolbar_bounds);
 
   EXPECT_EQ(1, observer.bounds_changed_count_);

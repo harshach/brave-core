@@ -42,7 +42,6 @@
 #include "chrome/browser/profiles/profile.h"
 #include "chrome/browser/send_tab_to_self/send_tab_to_self_util.h"
 #include "chrome/browser/ui/actions/chrome_action_id.h"
-#include "chrome/browser/ui/browser.h"
 #include "chrome/browser/ui/browser_actions.h"
 #include "chrome/browser/ui/browser_command_controller.h"
 #include "chrome/browser/ui/browser_commands.h"
@@ -157,7 +156,7 @@ namespace chrome {
 BraveBrowserCommandController::BraveBrowserCommandController(
     BrowserWindowInterface* bwi)
     : BrowserCommandController(bwi),
-      browser_(*static_cast<Browser*>(bwi)),
+      browser_(*bwi),
       brave_command_updater_(nullptr) {
   InitBraveCommandState();
 #if BUILDFLAG(ENABLE_BRAVE_VPN)
@@ -382,7 +381,9 @@ void BraveBrowserCommandController::InitBraveCommandState() {
 
   UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS, true);
   UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS_WINDOW_TITLE, true);
-  UpdateCommandEnabled(IDC_TOGGLE_VERTICAL_TABS_EXPANDED, true);
+  UpdateCommandEnabled(
+      IDC_TOGGLE_VERTICAL_TABS_EXPANDED,
+      browser_->GetType() == BrowserWindowInterface::TYPE_NORMAL);
 
 #if BUILDFLAG(ENABLE_BRAVE_NEWS)
   UpdateCommandEnabled(IDC_CONFIGURE_BRAVE_NEWS,

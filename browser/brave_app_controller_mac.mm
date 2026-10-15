@@ -26,6 +26,7 @@
 
 #if BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 #include "brave/browser/ui/views/brave_origin/brave_origin_startup_view.h"
+#include "brave/grit/brave_generated_resources.h"
 #endif
 
 #if BUILDFLAG(ENABLE_TOR)
@@ -179,6 +180,17 @@ void BraveRestoreProfileMenu() {
       [mainMenu removeItem:profileMenu];
     }
   }
+
+  // This stays reachable when both the sidebar and page toolbar are hidden.
+  NSMenu* viewMenu = [[[NSApp mainMenu] itemWithTag:IDC_VIEW_MENU] submenu];
+  CHECK(viewMenu);
+  NSMenuItem* sidebarToggle = [[NSMenuItem alloc]
+      initWithTitle:l10n_util::GetNSStringWithFixup(IDS_ORIGIN_TOGGLE_SIDEBAR)
+             action:@selector(commandDispatch:)
+      keyEquivalent:@"\\"];
+  sidebarToggle.tag = IDC_TOGGLE_VERTICAL_TABS_EXPANDED;
+  sidebarToggle.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+  [viewMenu insertItem:sidebarToggle atIndex:0];
 #endif  // BUILDFLAG(IS_BRAVE_ORIGIN_BRANDED)
 
   NSMenu* editMenu = [[[NSApp mainMenu] itemWithTag:IDC_EDIT_MENU] submenu];

@@ -22,8 +22,11 @@ source_set("impl") {
     "//base",
     "//chrome/browser/ui",
     "//chrome/browser/ui:browser_tabrestore",
+    "//chrome/browser/ui:browser_window_header",
     "//chrome/browser/ui/browser_window:create_browser_window",
     "//chrome/browser/ui/tabs:tab_strip",
+    "//net",
+    "//url",
   ]
 }
 
@@ -40,6 +43,7 @@ source_set("workspaces") {
 
   public_deps = [
     "//base",
+    "//brave/components/brave_origin/buildflags",
     "//chrome/browser/profiles:profile",
     "//components/keyed_service/core",
     "//components/pref_registry",
@@ -56,9 +60,11 @@ source_set("unit_tests") {
     "//base",
     "//base/test:test_support",
     "//chrome/test:test_support",
+    "//components/prefs",
     "//components/sessions",
     "//components/sync_preferences:test_support",
     "//content/test:test_support",
     "//testing/gtest",
+    "//url",
   ]
 }

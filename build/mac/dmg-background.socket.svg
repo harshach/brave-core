@@ -1,0 +1,25 @@
+<svg width="570" height="320" viewBox="0 0 570 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="background" x1="20" y1="10" x2="550" y2="310" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10172A"/>
+      <stop offset="0.55" stop-color="#182A55"/>
+      <stop offset="1" stop-color="#0B5E62"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(300 160) rotate(12) scale(260 180)">
+      <stop stop-color="#6D67FF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#6D67FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="570" height="320" fill="url(#background)"/>
+  <rect width="570" height="320" fill="url(#glow)"/>
+  <g opacity="0.14" stroke="#A8FFF2">
+    <path d="M0 74H570M0 160H570M0 246H570"/>
+    <path d="M70 0V320M170 0V320M270 0V320M370 0V320M470 0V320"/>
+  </g>
+  <text x="32" y="54" fill="white" font-family="Arial, sans-serif" font-size="28" font-weight="700">Socket</text>
+  <text x="33" y="77" fill="#B8C8EC" font-family="Arial, sans-serif" font-size="12">Drag Socket to Applications</text>
+  <g stroke="white" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 170H314" stroke-width="7"/>
+    <path d="M298 154L315 170L298 186" stroke-width="7"/>
+  </g>
+</svg>

@@ -16,6 +16,7 @@
 #include "base/unguessable_token.h"
 #include "brave/browser/brave_browser_process.h"
 #include "brave/browser/brave_shields/brave_shields_web_contents_observer.h"
+#include "brave/browser/ephemeral_storage/ephemeral_storage_service_factory.h"
 #include "brave/browser/ephemeral_storage/ephemeral_storage_tab_helper.h"
 #include "brave/browser/serp_metrics/serp_metrics_tab_helper.h"
 #include "brave/components/ai_chat/core/common/buildflags/buildflags.h"
@@ -105,7 +106,6 @@
 
 #if defined(TOOLKIT_VIEWS)
 #include "brave/browser/onboarding/onboarding_tab_helper.h"
-#include "brave/browser/ui/sidebar/sidebar_tab_helper.h"
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
@@ -195,7 +195,6 @@ void AttachTabHelpers(content::WebContents* web_contents) {
 
 #if defined(TOOLKIT_VIEWS)
   OnboardingTabHelper::MaybeCreateForWebContents(web_contents);
-  sidebar::SidebarTabHelper::MaybeCreateForWebContents(web_contents);
 #endif
 
 #if BUILDFLAG(ENABLE_BRAVE_WALLET)
@@ -221,8 +220,12 @@ void AttachPrivacySensitiveTabHelpers(content::WebContents* web_contents) {
       std::make_unique<PageSpecificContentSettingsDelegate>(web_contents));
   brave_shields::BraveShieldsWebContentsObserver::CreateForWebContents(
       web_contents);
-  ephemeral_storage::EphemeralStorageTabHelper::CreateForWebContents(
-      web_contents);
+  if (auto* ephemeral_storage_service =
+          EphemeralStorageServiceFactory::GetForContext(
+              web_contents->GetBrowserContext())) {
+    ephemeral_storage::EphemeralStorageTabHelper::CreateForWebContents(
+        web_contents, ephemeral_storage_service);
+  }
 }
 
 }  // namespace brave
